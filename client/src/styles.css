@@ -1766,3 +1766,539 @@ tbody tr:last-child td {
 .committee-dropdown::-webkit-scrollbar-thumb:hover {
   background: rgba(79, 70, 229, 0.5);
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .nav-bar {
+    padding: 0.75rem 1rem;
+    gap: 1rem;
+  }
+
+  .brand {
+    font-size: 1.25rem;
+  }
+
+  .nav-links {
+    gap: 0.75rem;
+  }
+
+  .nav-links a {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .nav-links button {
+    padding: 0.375rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .app-main {
+    padding: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  input, select {
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .dashboard {
+    gap: 2rem;
+  }
+
+  .hero {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .hero-copy h1 {
+    font-size: 2rem;
+  }
+
+  .hero-images {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .hero-image {
+    min-height: 140px;
+  }
+
+  .feature-block {
+    padding: 1.5rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .quick-links-section {
+    padding: 1.5rem;
+  }
+
+  .quick-links-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .quick-link-card {
+    padding: 1.25rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .modules-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .visitor-sections {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .meeting-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .asset-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .ticket-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .intern-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .intern-subpanels {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .procurement-header {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .details-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .procurement-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .procurement-control-actions {
+    justify-content: center;
+  }
+
+  .module-actions {
+    flex-direction: column;
+  }
+
+  .module-actions button {
+    width: 100%;
+  }
+
+  .asset-actions {
+    flex-direction: column;
+  }
+
+  .asset-actions button {
+    width: 100%;
+  }
+
+  .visitor-row-actions {
+    justify-content: center;
+  }
+
+  .visitor-row-actions button {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .attendee-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendee-input-row input {
+    flex: none;
+  }
+
+  .attendee-input-row button {
+    align-self: flex-start;
+  }
+
+  .text-right {
+    text-align: left;
+  }
+
+  .file-table {
+    min-width: auto;
+  }
+
+  .file-table thead th,
+  .file-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  table th,
+  table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .committee-input-wrapper input {
+    padding: 0.875rem 2rem 0.875rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .dropdown-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .committee-item-name {
+    font-size: 0.95rem;
+  }
+
+  .committee-item-desc {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-bar {
+    flex-wrap: wrap;
+    padding: 0.5rem;
+  }
+
+  .brand {
+    font-size: 1.1rem;
+    order: 1;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .nav-links {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .nav-links a {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .nav-links button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .app-main {
+    padding: 0.5rem;
+  }
+
+  .card {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    margin: 1rem 0 0.25rem 0;
+  }
+
+  p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  label {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  input, select {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  button {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .message {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .hero {
+    padding: 1rem;
+  }
+
+  .hero-copy h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero-images {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .hero-image {
+    min-height: 120px;
+  }
+
+  .feature-block {
+    padding: 1rem;
+  }
+
+  .quick-links-section {
+    padding: 1rem;
+  }
+
+  .quick-link-card {
+    padding: 1rem;
+  }
+
+  .link-logo {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .quick-link-card h3 {
+    font-size: 1rem;
+  }
+
+  .quick-link-card p {
+    font-size: 0.85rem;
+  }
+
+  .info-card {
+    padding: 1.25rem;
+  }
+
+  .dashboard-card {
+    padding: 1.25rem;
+    min-height: 180px;
+  }
+
+  .module-card {
+    padding: 1.25rem;
+  }
+
+  .module-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .module-card p {
+    font-size: 0.9rem;
+  }
+
+  .procurement-card {
+    padding: 1.5rem;
+  }
+
+  .upload-panel {
+    padding: 1.25rem;
+  }
+
+  .summary-card {
+    padding: 0.875rem 1rem;
+  }
+
+  .summary-card strong {
+    font-size: 1.25rem;
+  }
+
+  .visitor-form {
+    padding: 1.25rem;
+  }
+
+  .page-header,
+  .meeting-panel,
+  .meeting-details,
+  .asset-panel,
+  .ticket-panel,
+  .intern-panel {
+    padding: 1.25rem;
+  }
+
+  .meeting-item,
+  .asset-item,
+  .ticket-item,
+  .intern-item {
+    padding: 0.875rem;
+  }
+
+  .current-visitors li {
+    padding: 0.875rem;
+  }
+
+  .attendance-row {
+    padding: 0.75rem 0.875rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .record-list li {
+    padding: 0.75rem;
+  }
+
+  .new-committee-section {
+    padding: 0.875rem;
+  }
+
+  .selected-committee-badge {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.85rem;
+  }
+
+  .intern-details .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .edit-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Touch-friendly interactions for mobile devices */
+@media (hover: none) and (pointer: coarse) {
+  .nav-links a:hover {
+    background: none;
+    transform: none;
+  }
+
+  .nav-links button:hover {
+    transform: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .quick-link-card:hover {
+    transform: none;
+  }
+
+  .module-card:hover {
+    transform: none;
+  }
+
+  .meeting-item:hover {
+    transform: none;
+  }
+
+  .asset-item:hover {
+    transform: none;
+  }
+
+  .ticket-item:hover {
+    transform: none;
+  }
+
+  .intern-item:hover {
+    transform: none;
+  }
+
+  .current-visitors li:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: none;
+  }
+
+  .dropdown-item:hover:not(.disabled) {
+    background: rgba(79, 70, 229, 0.08);
+    padding-left: 1.25rem;
+  }
+
+  button:hover::before {
+    display: none;
+  }
+
+  .hero-image:hover img {
+    transform: none;
+  }
+
+  tbody tr:hover {
+    background: rgba(79, 70, 229, 0.05);
+    transform: none;
+  }
+}
+
+/* Ensure proper viewport handling */
+@media screen and (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+
+  * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  }
+}
