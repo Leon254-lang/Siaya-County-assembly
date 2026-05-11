@@ -65,13 +65,18 @@ const ensureDefaultRoles = async () => {
 };
 
 const startServer = async () => {
-  await connectDB();
-  await ensureDefaultRoles();
+  try {
+    await connectDB();
+    await ensureDefaultRoles();
 
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  }
 };
 
 startServer();
