@@ -5,9 +5,9 @@ const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const { sendReminder } = require('./utils/mailer');
+const Role = require('./models/Role');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 app.use(cors());
@@ -42,10 +42,39 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const ensureDefaultRoles = async () => {
+  const roleNames = [
+    'Super Admin',
+    'ICT Admin',
+    'HR Officer',
+    'Clerk',
+    'Finance Officer',
+    'Committee Officer',
+    'Intern',
+    'Security Officer',
+  ];
+
+  for (const name of roleNames) {
+    await Role.findOneAndUpdate(
+      { name },
+      { name, description: `${name} role` },
+      { upsert: true, new: true }
+    );
+  }
+  console.log('Default roles seeded or already present');
+};
+
+const startServer = async () => {
+  await connectDB();
+  await ensureDefaultRoles();
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer();
 
 const Meeting = require('./models/Meeting');
 
