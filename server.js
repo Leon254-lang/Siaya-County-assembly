@@ -64,7 +64,22 @@ const ensureDefaultRoles = async () => {
   console.log('Default roles seeded or already present');
 };
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 const startServer = async () => {
+  console.log('Starting server with env vars:');
+  console.log('MONGO_URI=' + (process.env.MONGO_URI ? 'set' : 'missing'));
+  console.log('JWT_SECRET=' + (process.env.JWT_SECRET ? 'set' : 'missing'));
+  console.log('SEED_ADMIN_EMAIL=' + (process.env.SEED_ADMIN_EMAIL ? 'set' : 'missing'));
+  console.log('SEED_ADMIN_PASSWORD=' + (process.env.SEED_ADMIN_PASSWORD ? 'set' : 'missing'));
+
   try {
     await connectDB();
     await ensureDefaultRoles();
@@ -72,6 +87,9 @@ const startServer = async () => {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+    }).on('error', (err) => {
+      console.error('Server failed to listen:', err);
+      process.exit(1);
     });
   } catch (error) {
     console.error('Failed to start server:', error.message);
