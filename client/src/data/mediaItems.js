@@ -1,0 +1,95 @@
+const mediaItems = [
+  {
+    slug: 'house-approves-nominees-to-various-executive-positions',
+    title: 'HOUSE APPROVES NOMINEES TO VARIOUS EXECUTIVE POSITIONS',
+    date: 'April 29, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/29/7848/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/29/7848/#respond',
+    excerpt: 'HOUSE APPROVES NOMINEES TO VARIOUS EXECUTIVE POSITIONS ——————————- Wednesday, 29th April, ...',
+    content:
+      'HOUSE APPROVES NOMINEES TO VARIOUS EXECUTIVE POSITIONS ——————————- Wednesday, 29th April. The County Assembly approved nominees to several executive positions as part of its mandate to ensure effective service delivery across departments.',
+  },
+  {
+    slug: 'approval-hearing-for-the-nominees-in-the-positions-of-cecm',
+    title: 'APPROVAL HEARING FOR THE NOMINEES IN THE POSITIONS OF CECM',
+    date: 'April 28, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/28/approval-hearing-for-the-cecm-nominees/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/28/approval-hearing-for-the-cecm-nominees/#respond',
+    excerpt: 'APPROVAL HEARING FOR THE NOMINEES IN THE POSITIONS OF CECM ——————————— Monday,27th A...',
+    content:
+      'APPROVAL HEARING FOR THE NOMINEES IN THE POSITIONS OF CECM ——————————— Monday, 27th April. The assembly convened to review and approve qualified nominees for County Executive Committee Member positions.',
+  },
+  {
+    slug: 'vetting-of-governors-nominees-for-the-position-of-chief-officers',
+    title: 'VETTING OF GOVERNORS’ NOMINEES FOR THE POSITION OF CHIEF OFFICERS',
+    date: 'April 28, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/28/vetting-of-chief-officer-nominees/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/28/vetting-of-chief-officer-nominees/#respond',
+    excerpt: 'VETTING OF GOVERNORS’ NOMINEES FOR THE POSITION OF CHIEF OFFICERS —————————- Tuesday,28th ...',
+    content:
+      'VETTING OF GOVERNORS’ NOMINEES FOR THE POSITION OF CHIEF OFFICERS —————————- Tuesday, 28th April. The county assembly held a vetting session to assess suitability of nominees for chief officer roles.',
+  },
+  {
+    slug: 'governor-orengo-nominees-vetted-for-public-service-board-and-county-attorney',
+    title: 'GOVERNOR ORENGO’S NOMINEES TO THE SIAYA COUNTY PUBLIC SERVICE BOARD AND COUNTY ATTORNEY VETTED',
+    date: 'April 24, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/24/governor-orengos-nominees-to-the-siaya-county-public-service-board-and-county-attorney-vetted/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/24/governor-orengos-nominees-to-the-siaya-county-public-service-board-and-county-attorney-vetted/#respond',
+    excerpt: 'GOVERNOR ORENGO’S NOMINEES TO THE SIAYA COUNTY PUBLIC SERVICE BOARD AND COUNTY ATTORNEY VETTED ———————...',
+    content:
+      'GOVERNOR ORENGO’S NOMINEES TO THE SIAYA COUNTY PUBLIC SERVICE BOARD AND COUNTY ATTORNEY VETTED ———————. The assembly reviewed the qualifications of nominees for the Public Service Board and County Attorney roles.',
+  },
+  {
+    slug: 'siaya-county-assembly-operationalizes-access-to-information-act-2025',
+    title: 'SIAYA COUNTY ASSEMBLY MOVES TO OPERATIONALIZE ACCESS TO INFORMATION ACT,2025',
+    date: 'April 24, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/24/siaya-county-assembly-moves-to-operationalize-access-to-information-act2025/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/24/siaya-county-assembly-moves-to-operationalize-access-to-information-act2025/#respond',
+    excerpt: 'SIAYA COUNTY ASSEMBLY MOVES TO OPERATIONALIZE ACCESS TO INFORMATION ACT,2025 ————————– Friday, 2...',
+    content:
+      'SIAYA COUNTY ASSEMBLY MOVES TO OPERATIONALIZE ACCESS TO INFORMATION ACT, 2025 ————————– Friday, 24th April. The county is taking steps to improve public access to information and strengthen transparency.',
+  },
+  {
+    slug: 'siaya-county-assembly-hosts-lake-region-economic-bloc-secretariat-on-early-childhood-development-initiative',
+    title: 'SIAYA COUNTY ASSEMBLY HOST LAKE REGION ECONOMIC BLOC SECRETARIAT ON EARLY CHILDHOOD DEVELOPMENT INITIATIVE',
+    date: 'April 23, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/23/siaya-county-assembly-host-lake-region-economic-bloc-secretariat-on-early-childhood-development-initiative/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/23/siaya-county-assembly-host-lake-region-economic-bloc-secretariat-on-early-childhood-development-initiative/#respond',
+    excerpt: 'SIAYA COUNTY ASSEMBLY HOST LAKE REGION ECONOMIC BLOC SECRETARIAT ON EARLY CHILDHOOD DEVELOPMENT INITIATIVE ——————&...',
+    content:
+      'SIAYA COUNTY ASSEMBLY HOST LAKE REGION ECONOMIC BLOC SECRETARIAT ON EARLY CHILDHOOD DEVELOPMENT INITIATIVE ——————. Leaders gathered to discuss regional collaboration on early childhood development programs.',
+  },
+  {
+    slug: 'notice-to-nominees-and-public-in-matter-of-approval-hearing',
+    title: 'NOTICE TO NOMINEES AND MEMBERS OF THE PUBLIC IN THE MATTER OF APPROVAL HEARING FOR THE NOMINATION OF MEMBERS OF THE SIAYA COUNTY PUBLIC SERVICE BOARD, FOR THE NOMINATION OF COUNTY EXECUTIVE COMMITTEE MEMBERS AND FOR THE NOMINATION OF THE COUNTY ATTORNEY',
+    date: 'April 17, 2026',
+    category: 'Uncategorized',
+    categoryUrl: 'https://siayaassembly.go.ke/category/uncategorized/',
+    url: 'https://siayaassembly.go.ke/2026/04/17/notice-to-nominees-and-members-of-the-public-in-the-matter-of-approval-hearing-for-the-nomination-of-members-of-the-siaya-county-public-service-board-for-the-nomination-of-county-executive-committee/',
+    comments: 0,
+    commentUrl: 'https://siayaassembly.go.ke/2026/04/17/notice-to-nominees-and-members-of-the-public-in-the-matter-of-approval-hearing-for-the-nomination-of-members-of-the-siaya-county-public-service-board-for-the-nomination-of-county-executive-committee/#respond',
+    excerpt: 'APPROVAL HEARING FOR MEMBERS OF THE SIAYA COUNTY PUBLIC SERVICE BOARD, THE COUNTY ATTORNEY AND THE COUNTY EXECUTIVE COMMITTEE. The County Assembly of ...)',
+    content:
+      'APPROVAL HEARING FOR MEMBERS OF THE SIAYA COUNTY PUBLIC SERVICE BOARD, THE COUNTY ATTORNEY AND THE COUNTY EXECUTIVE COMMITTEE. The County Assembly invites nominees and members of the public to attend the hearing and participate in the approval process.',
+  },
+];
+
+export default mediaItems;

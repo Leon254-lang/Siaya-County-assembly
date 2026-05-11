@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: siaya-assembly-system
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromDatabase:
+          name: siaya-assembly-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SEED_ADMIN_EMAIL
+        value: admin@siaya.local
+
+databases:
+  - name: siaya-assembly-db
+    databaseName: siaya_assembly
+    plan: free
+    region: oregon
