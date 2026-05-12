@@ -2328,3 +2328,34 @@ tbody tr:last-child td {
     padding: 0 1rem;
   }
 }
+
+.leaders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.leader-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.leader-card img {
+  margin-bottom: 1rem;
+}
+
+.leader-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.leader-card p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}

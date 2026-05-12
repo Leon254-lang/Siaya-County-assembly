@@ -15,6 +15,14 @@ const heroImages = [
     src: '/c-800x650.jpg',
     alt: 'County assembly meeting room',
   },
+  {
+    src: 'https://siayaassembly.go.ke/wp-content/uploads/2024/01/WhatsApp-Image-2024-01-19-at-12.50.04-PM-240x300.jpeg',
+    alt: 'Speaker George Owino Okode',
+  },
+  {
+    src: 'https://siayaassembly.go.ke/wp-content/uploads/2017/09/promotion-performance-review-ringsidetalent-1024x683.jpg',
+    alt: 'County assembly performance review',
+  },
 ];
 
 const imageFallback = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%234f46e5"/%3E%3Cstop offset="1" stop-color="%2306b6d4"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="900" height="600" fill="url(%23g)"/%3E%3Ctext x="50%25" y="50%25" fill="%23ffffff" font-family="Inter, sans-serif" font-size="36" text-anchor="middle" dominant-baseline="middle"%3ESiaya County Assembly%3C/text%3E%3C/svg%3E';

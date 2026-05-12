@@ -41,7 +41,7 @@ export default function NavBar() {
     <nav className="nav-bar">
       <div className="brand">
         <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>
-          Siaya County Assembly
+          <img src="https://siayaassembly.go.ke/wp-content/uploads/2020/05/logo.png" alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
         </Link>
       </div>
       <div className="nav-links">
