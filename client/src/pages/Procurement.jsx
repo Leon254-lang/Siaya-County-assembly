@@ -20,6 +20,17 @@ export default function Procurement() {
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [description, setDescription] = useState('');
+  const [userRole, setUserRole] = useState(null);
+  const [deleting, setDeleting] = useState({});
+
+  const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
+
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
+    fetchFiles();
+  }, []);
 
   const fetchFiles = async () => {
     try {
@@ -35,16 +46,21 @@ export default function Procurement() {
     }
   };
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    if (!isHOD) {
+      setErrorMessage('Only Head of Department (HOD) and Super Admin can upload procurement documents.');
+      event.target.value = null;
+      return;
+    }
+
     const data = new FormData();
     data.append('file', file);
+    if (description) {
+      data.append('description', description);
+    }
 
     try {
       setUploading(true);
@@ -54,14 +70,38 @@ export default function Procurement() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setUploadMessage('Document uploaded successfully.');
+      setDescription('');
       fetchFiles();
     } catch (error) {
       console.error('Upload failed:', error);
-      setUploadMessage('Upload failed. Please try again.');
-      setErrorMessage(error?.response?.data?.message || 'Unable to upload document.');
+      if (error?.response?.status === 403) {
+        setErrorMessage('You do not have permission to upload procurement documents. Only HOD can upload.');
+      } else {
+        setErrorMessage(error?.response?.data?.message || 'Unable to upload document.');
+      }
+      setUploadMessage('');
     } finally {
       setUploading(false);
       event.target.value = null;
+    }
+  };
+
+  const handleDelete = async (documentId) => {
+    if (!window.confirm('Are you sure you want to delete this document?')) {
+      return;
+    }
+
+    try {
+      setDeleting({ ...deleting, [documentId]: true });
+      setErrorMessage('');
+      await api.delete(`/procurement/${documentId}`);
+      setUploadMessage('Document deleted successfully.');
+      fetchFiles();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      setErrorMessage(error?.response?.data?.message || 'Unable to delete document.');
+    } finally {
+      setDeleting({ ...deleting, [documentId]: false });
     }
   };
 
@@ -75,37 +115,62 @@ export default function Procurement() {
           <span className="eyebrow">Procurement Center</span>
           <h1>Procurement Documents</h1>
           <p>
-            Keep procurement files organized, accessible, and easy to manage. Upload documents here for fast download in the procurement module.
+            Keep procurement files organized, accessible, and easy to manage. {isHOD ? 'Upload documents here' : 'Access procurement documents'} in the procurement module.
           </p>
         </div>
 
-        <div className="upload-panel">
-          <div className="upload-actions">
-            <p className="upload-label">Upload new procurement documents</p>
-            <label htmlFor="procurement-file-upload" className="button upload-button">
-              {uploading ? 'Uploading…' : 'Upload Document'}
-            </label>
-            <input
-              id="procurement-file-upload"
-              type="file"
-              accept=".pdf,.doc,.docx,.xlsx,.ppt,.pptx,.txt"
-              onChange={handleUpload}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-          </div>
+        {isHOD && (
+          <div className="upload-panel">
+            <div className="upload-actions">
+              <p className="upload-label">Upload new procurement documents</p>
+              <input
+                type="text"
+                placeholder="Document description (optional)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={uploading}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  marginBottom: '0.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                }}
+              />
+              <label htmlFor="procurement-file-upload" className="button upload-button">
+                {uploading ? 'Uploading…' : 'Upload Document'}
+              </label>
+              <input
+                id="procurement-file-upload"
+                type="file"
+                accept=".pdf,.doc,.docx,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                onChange={handleUpload}
+                style={{ display: 'none' }}
+                disabled={uploading}
+              />
+            </div>
 
-          <div className="upload-meta">
-            <div className="summary-card">
-              <span>Total Files</span>
-              <strong>{fileCount}</strong>
-            </div>
-            <div className="summary-card">
-              <span>Latest Upload</span>
-              <strong>{latestUpload}</strong>
+            <div className="upload-meta">
+              <div className="summary-card">
+                <span>Total Files</span>
+                <strong>{fileCount}</strong>
+              </div>
+              <div className="summary-card">
+                <span>Latest Upload</span>
+                <strong>{latestUpload}</strong>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {!isHOD && (
+          <div className="upload-panel">
+            <div className="warning-box" style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '4px', color: '#664d03' }}>
+              <strong>ℹ️ Upload Restricted:</strong> Only Head of Department (HOD) and Super Admin can upload procurement documents.
+            </div>
+          </div>
+        )}
       </div>
 
       {uploadMessage && (
@@ -143,7 +208,7 @@ export default function Procurement() {
         ) : files.length === 0 ? (
           <div className="empty-state">
             <h3>No procurement documents yet</h3>
-            <p>Upload a file to make it available to procurement users and stakeholders.</p>
+            <p>{isHOD ? 'Upload a file to make it available to procurement users and stakeholders.' : 'No documents have been uploaded by any HOD yet.'}</p>
           </div>
         ) : (
           <div className="table-card">
@@ -151,6 +216,7 @@ export default function Procurement() {
               <thead>
                 <tr>
                   <th>Document</th>
+                  <th>Uploaded By</th>
                   <th>Size</th>
                   <th>Uploaded</th>
                   <th className="text-right">Action</th>
@@ -158,17 +224,33 @@ export default function Procurement() {
               </thead>
               <tbody>
                 {files.map((file) => (
-                  <tr key={file.filename}>
+                  <tr key={file._id}>
                     <td>
                       <div className="file-name">{file.originalName}</div>
-                      <div className="file-meta">{file.filename}</div>
+                      {file.description && <div className="file-meta">{file.description}</div>}
+                    </td>
+                    <td>
+                      <div className="file-name">{file.uploadedBy?.name || 'Unknown'}</div>
+                      <div className="file-meta">{file.department?.name || 'No Department'}</div>
                     </td>
                     <td>{formatFileSize(file.size)}</td>
                     <td>{formatDateTime(file.uploadedAt)}</td>
                     <td className="text-right">
-                      <a href={file.url} target="_blank" rel="noreferrer" className="button small-button">
-                        Download
-                      </a>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <a href={file.url} target="_blank" rel="noreferrer" className="button small-button">
+                          Download
+                        </a>
+                        {isHOD && (
+                          <button
+                            onClick={() => handleDelete(file._id)}
+                            disabled={deleting[file._id]}
+                            className="button small-button"
+                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                          >
+                            {deleting[file._id] ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
