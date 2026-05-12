@@ -26,9 +26,9 @@ export default function Procurement() {
   const [userRole, setUserRole] = useState(null);
   const [deleting, setDeleting] = useState({});
 
+  const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
   const canUpload =
-    userRole === 'HOD' ||
-    userRole === 'Super Admin' ||
+    isHOD ||
     userRole?.includes('Admin');
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function Procurement() {
           <span className="eyebrow">Procurement Center</span>
           <h1>Procurement Documents</h1>
           <p>
-            Keep procurement files organized, accessible, and easy to manage. {isHOD ? 'Upload documents here' : 'Access procurement documents'} in the procurement module.
+            Keep procurement files organized, accessible, and easy to manage. {canUpload ? 'Upload documents here' : 'Access procurement documents'} in the procurement module.
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export default function Procurement() {
         {!canUpload && (
           <div className="upload-panel">
             <div className="warning-box" style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '4px', color: '#664d03' }}>
-              <strong>ℹ️ Upload Restricted:</strong> Only Head of Department (HOD) and Super Admin can upload procurement documents.
+              <strong>ℹ️ Upload Restricted:</strong> Only HOD, Admin, or Super Admin can upload procurement documents.
             </div>
           </div>
         )}
@@ -244,7 +244,7 @@ export default function Procurement() {
         ) : files.length === 0 ? (
           <div className="empty-state">
             <h3>No procurement documents yet</h3>
-            <p>{isHOD ? 'Upload a file to make it available to procurement users and stakeholders.' : 'No documents have been uploaded by any HOD yet.'}</p>
+            <p>{canUpload ? 'Upload a file to make it available to procurement users and stakeholders.' : 'No procurement documents have been uploaded yet.'}</p>
           </div>
         ) : (
           <div className="table-card">
