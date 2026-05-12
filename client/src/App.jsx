@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/media/:slug" element={<MediaPost />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }

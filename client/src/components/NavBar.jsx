@@ -22,7 +22,7 @@ export default function NavBar() {
     <nav className="nav-bar">
       <div className="brand">
         <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>
-          <img src="/uploads/siaya.jpeg" alt="Siaya Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
+          Siaya County Assembly
         </Link>
       </div>
       <div className="nav-links">
