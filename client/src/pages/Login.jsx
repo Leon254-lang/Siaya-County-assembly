@@ -14,9 +14,18 @@ export default function Login() {
       const response = await api.post('/auth/login', { email, password });
       localStorage.setItem('icamsToken', response.data.token);
       localStorage.setItem('userName', response.data.user.name);
+      localStorage.setItem('userRole', response.data.user.role);
       setMessage('Login successful.');
-      // Redirect to dashboard after successful login
-      setTimeout(() => navigate('/dashboard'), 1000);
+      // Redirect based on role
+      const role = response.data.user.role;
+      let redirectPath = '/dashboard';
+      if (role === 'HR Officer') redirectPath = '/attendance';
+      else if (role === 'Security Officer') redirectPath = '/visitors';
+      else if (role === 'Committee Officer') redirectPath = '/meetings';
+      else if (role === 'Finance Officer') redirectPath = '/assets';
+      else if (role === 'ICT Admin') redirectPath = '/tickets';
+      else if (role === 'Clerk') redirectPath = '/documents';
+      setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
       setMessage(error.response?.data?.message || 'Login failed.');
     }

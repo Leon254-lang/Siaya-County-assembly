@@ -43,11 +43,14 @@ export default function Register() {
         <label>
           Role
           <select value={roleName} onChange={(e) => setRoleName(e.target.value)}>
-            <option value="Clerk">Clerk</option>
+            <option value="Super Admin">Super Admin</option>
+            <option value="ICT Admin">ICT Admin</option>
             <option value="HR Officer">HR Officer</option>
             <option value="Finance Officer">Finance Officer</option>
             <option value="Committee Officer">Committee Officer</option>
             <option value="Security Officer">Security Officer</option>
+            <option value="Clerk">Clerk</option>
+            <option value="Intern">Intern</option>
           </select>
         </label>
         <button type="submit">Register</button>

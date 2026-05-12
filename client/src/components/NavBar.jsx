@@ -4,13 +4,32 @@ import { useState, useEffect } from 'react';
 export default function NavBar() {
   const isLoggedIn = !!localStorage.getItem('icamsToken');
   const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     if (isLoggedIn) {
       const name = localStorage.getItem('userName');
+      const role = localStorage.getItem('userRole');
       setUserName(name || 'User');
+      setUserRole(role || '');
     }
   }, [isLoggedIn]);
+
+  const getAllowedLinks = (role) => {
+    const allLinks = [
+      { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer'] },
+      { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'HR Officer'] },
+      { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
+      { to: '/meetings', label: 'Meetings', roles: ['Super Admin', 'Committee Officer'] },
+      { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
+      { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },
+      { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer'] },
+      { to: '/feedback', label: 'Public', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },
+    ];
+    return allLinks.filter(link => link.roles.includes(role));
+  };
+
+  const allowedLinks = getAllowedLinks(userRole);
 
   const handleLogout = () => {
     localStorage.removeItem('icamsToken');
@@ -28,16 +47,11 @@ export default function NavBar() {
       <div className="nav-links">
         {isLoggedIn ? (
           <>
-            <Link to="/documents">Documents</Link>
-            <Link to="/attendance">Attendance</Link>
-            <Link to="/visitors">Visitors</Link>
-            <Link to="/meetings">Meetings</Link>
-            <Link to="/assets">Assets</Link>
-            <Link to="/tickets">Helpdesk</Link>
-            <Link to="/interns">Interns</Link>
-            <Link to="/feedback">Public</Link>
+            {allowedLinks.map(link => (
+              <Link key={link.to} to={link.to}>{link.label}</Link>
+            ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>👤 {userName}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>👤 {userName} ({userRole})</span>
               <button onClick={handleLogout}>Logout</button>
             </div>
           </>
