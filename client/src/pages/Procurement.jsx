@@ -21,10 +21,15 @@ export default function Procurement() {
   const [uploadMessage, setUploadMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [userRole, setUserRole] = useState(null);
   const [deleting, setDeleting] = useState({});
 
-  const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
+  const canUpload =
+    userRole === 'HOD' ||
+    userRole === 'Super Admin' ||
+    userRole?.includes('Admin');
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
@@ -46,43 +51,51 @@ export default function Procurement() {
     }
   };
 
-  const handleUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const handleFilesSelected = (event) => {
+    const filesArray = Array.from(event.target.files || []);
+    setSelectedFiles(filesArray);
+    setErrorMessage('');
+  };
 
-    if (!isHOD) {
-      setErrorMessage('Only Head of Department (HOD) and Super Admin can upload procurement documents.');
-      event.target.value = null;
+  const handleUpload = async () => {
+    if (!selectedFiles.length) {
+      setErrorMessage('Please select one or more files first.');
+      return;
+    }
+
+    if (!canUpload) {
+      setErrorMessage('Only HOD, Admin, or Super Admin can upload procurement documents.');
       return;
     }
 
     const data = new FormData();
-    data.append('file', file);
+    selectedFiles.forEach((file) => data.append('files', file));
     if (description) {
       data.append('description', description);
     }
 
     try {
       setUploading(true);
-      setUploadMessage('Uploading document...');
+      setUploadMessage('Uploading documents...');
       setErrorMessage('');
       await api.post('/procurement/upload', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setUploadMessage('Document uploaded successfully.');
+      setUploadMessage('Documents uploaded successfully.');
       setDescription('');
+      setSelectedFiles([]);
+      setFileInputKey(Date.now());
       fetchFiles();
     } catch (error) {
       console.error('Upload failed:', error);
       if (error?.response?.status === 403) {
-        setErrorMessage('You do not have permission to upload procurement documents. Only HOD can upload.');
+        setErrorMessage('You do not have permission to upload procurement documents. Only HOD or Admin users can upload.');
       } else {
-        setErrorMessage(error?.response?.data?.message || 'Unable to upload document.');
+        setErrorMessage(error?.response?.data?.message || 'Unable to upload documents.');
       }
       setUploadMessage('');
     } finally {
       setUploading(false);
-      event.target.value = null;
     }
   };
 
@@ -119,7 +132,7 @@ export default function Procurement() {
           </p>
         </div>
 
-        {isHOD && (
+        {canUpload && (
           <div className="upload-panel">
             <div className="upload-actions">
               <p className="upload-label">Upload new procurement documents</p>
@@ -131,24 +144,47 @@ export default function Procurement() {
                 disabled={uploading}
                 style={{
                   width: '100%',
-                  padding: '0.5rem',
-                  marginBottom: '0.5rem',
+                  padding: '0.6rem',
+                  marginBottom: '0.75rem',
                   border: '1px solid #ddd',
                   borderRadius: '4px',
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                 }}
               />
-              <label htmlFor="procurement-file-upload" className="button upload-button">
-                {uploading ? 'Uploading…' : 'Upload Document'}
-              </label>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <label htmlFor="procurement-file-upload" className="button upload-button" style={{ minWidth: '180px' }}>
+                  Select Files
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUpload}
+                  disabled={uploading || !selectedFiles.length}
+                  className="button upload-button"
+                  style={{ minWidth: '180px' }}
+                >
+                  {uploading ? 'Uploading…' : 'Upload Documents'}
+                </button>
+              </div>
               <input
+                key={fileInputKey}
                 id="procurement-file-upload"
                 type="file"
                 accept=".pdf,.doc,.docx,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-                onChange={handleUpload}
+                multiple
+                onChange={handleFilesSelected}
                 style={{ display: 'none' }}
                 disabled={uploading}
               />
+              {selectedFiles.length > 0 && (
+                <div className="selected-files-list" style={{ marginTop: '0.75rem' }}>
+                  <strong>Selected files:</strong>
+                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem' }}>
+                    {selectedFiles.map((file) => (
+                      <li key={file.name + file.size}>{file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="upload-meta">
@@ -164,7 +200,7 @@ export default function Procurement() {
           </div>
         )}
 
-        {!isHOD && (
+        {!canUpload && (
           <div className="upload-panel">
             <div className="warning-box" style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '4px', color: '#664d03' }}>
               <strong>ℹ️ Upload Restricted:</strong> Only Head of Department (HOD) and Super Admin can upload procurement documents.

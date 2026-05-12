@@ -43,40 +43,52 @@ router.get('/department/:departmentId', async (req, res) => {
   }
 });
 
-// Upload procurement document (HOD only)
-router.post('/upload', verifyToken, authorizeRoles('HOD', 'Super Admin'), upload.single('file'), async (req, res) => {
+const canUploadRole = (role) => {
+  return role === 'HOD' || role === 'Super Admin' || role?.includes('Admin');
+};
+
+// Upload procurement documents (HOD/Admin/Super Admin)
+router.post('/upload', verifyToken, upload.array('files', 30), async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'File upload required' });
+    }
+
+    if (!canUploadRole(req.user.role?.name)) {
+      return res.status(403).json({ message: 'Access denied: only HOD or Admin users can upload procurement documents.' });
     }
 
     const description = req.body.description || '';
 
-    const procurementDoc = new Procurement({
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      mimeType: req.file.mimetype,
-      uploadedBy: req.user._id,
-      department: req.user.department,
-      url: `/uploads/procurement/${encodeURIComponent(req.file.filename)}`,
-      description,
-      uploadedAt: new Date(),
-    });
+    const createdDocs = await Promise.all(req.files.map(async (file) => {
+      const doc = new Procurement({
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+        uploadedBy: req.user._id,
+        department: req.user.department,
+        url: `/uploads/procurement/${encodeURIComponent(file.filename)}`,
+        description,
+        uploadedAt: new Date(),
+      });
+      await doc.save();
+      await doc.populate('uploadedBy', 'name email');
+      await doc.populate('department', 'name');
+      return doc;
+    }));
 
-    await procurementDoc.save();
-    await procurementDoc.populate('uploadedBy', 'name email');
-    await procurementDoc.populate('department', 'name');
-
-    res.status(201).json({ 
-      message: 'Document uploaded successfully',
-      file: procurementDoc 
+    res.status(201).json({
+      message: 'Documents uploaded successfully',
+      files: createdDocs,
     });
   } catch (error) {
-    // Clean up uploaded file if DB save failed
-    if (req.file) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error('Failed to delete uploaded file:', err);
+    // Clean up uploaded files if DB save failed
+    if (req.files) {
+      req.files.forEach((file) => {
+        fs.unlink(path.join(uploadDir, file.filename), (err) => {
+          if (err) console.error('Failed to delete uploaded file:', err);
+        });
       });
     }
     res.status(500).json({ message: 'Error uploading procurement document', error: error.message });
