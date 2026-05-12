@@ -24,6 +24,7 @@ export default function NavBar() {
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },
       { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer'] },
+      { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },
       { to: '/feedback', label: 'Public', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },
     ];
     return allLinks.filter(link => link.roles.includes(role));
