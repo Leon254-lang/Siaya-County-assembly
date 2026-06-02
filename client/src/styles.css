@@ -20,9 +20,15 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-width: 0;
+  overflow-x: hidden;
   background: linear-gradient(180deg, #000000 0%, #000000 20%, #ffffff 20%, #ffffff 30%, #006A4E 30%, #006A4E 50%, #ffffff 50%, #ffffff 60%, #B22234 60%, #B22234 100%);
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
@@ -104,6 +110,7 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  overflow-x: hidden;
 }
 
 .card {
@@ -746,13 +753,23 @@ button:hover {
   padding: 1rem;
   border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: var(--shadow);
-  overflow-x: auto;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 .file-table {
   width: 100%;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0 0.9rem;
+}
+
+.file-table th,
+.file-table td {
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .file-table thead th {
@@ -2360,7 +2377,8 @@ tbody tr:last-child td {
 
   .table-card {
     padding: 1rem;
-    overflow-x: auto;
+    overflow-x: hidden;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -2761,7 +2779,8 @@ tbody tr:last-child td {
   .table-card {
     padding: 0.75rem;
     border-radius: 8px;
-    overflow-x: auto;
+    overflow-x: hidden;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
   }
 
