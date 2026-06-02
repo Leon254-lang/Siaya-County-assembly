@@ -22,7 +22,7 @@ export default function Login() {
       if (role === 'HR Officer') redirectPath = '/attendance';
       else if (role === 'Security Officer') redirectPath = '/visitors';
       else if (role === 'Committee Officer') redirectPath = '/meetings';
-      else if (role === 'Finance Officer') redirectPath = '/assets';
+      else if (role === 'Finance Officer') redirectPath = '/finance';
       else if (role === 'ICT Admin') redirectPath = '/tickets';
       else if (role === 'Clerk') redirectPath = '/documents';
       setTimeout(() => navigate(redirectPath), 1000);

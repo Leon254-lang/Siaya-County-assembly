@@ -18,6 +18,7 @@ import Interns from './pages/Interns';
 import Feedback from './pages/Feedback';
 import Leaders from './pages/Leaders';
 import Procurement from './pages/Procurement';
+import Finance from './pages/Finance';
 import FAQ from './pages/FAQ';
 import MediaCenter from './pages/MediaCenter';
 import MediaPost from './pages/MediaPost';
@@ -46,6 +47,7 @@ function App() {
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/leaders" element={<Leaders />} />
           <Route path="/procurement" element={<Procurement />} />
+          <Route path="/finance" element={<Finance />} />
           <Route path="/bills" element={<Bills />} />
           <Route path="/voting" element={<Voting />} />
           <Route path="/faq" element={<FAQ />} />

@@ -38,6 +38,7 @@ export default function NavBar() {
       { to: '/sessions', label: 'Sessions', roles: ['Super Admin', 'Committee Officer', 'Clerk'] },
       { to: '/mcas', label: 'MCAs', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk'] },
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
+      { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },

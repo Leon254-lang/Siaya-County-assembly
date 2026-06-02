@@ -275,7 +275,13 @@ export default function Dashboard() {
           </div>
 
           <div className="module-card">
-            <h3>📋 Procurement</h3>
+            <h3>� Finance & Budget</h3>
+            <p>Prepare budgets, track expenditure, log payment approvals, and monitor procurement-linked financial summaries.</p>
+            <Link to="/finance" className="module-link">Access Finance</Link>
+          </div>
+
+          <div className="module-card">
+            <h3>�📋 Procurement</h3>
             <p>Manage tender notices, procurement opportunities, and contracts with full transparency and compliance tracking.</p>
             <Link to="/procurement" className="module-link">Access Procurement</Link>
           </div>
