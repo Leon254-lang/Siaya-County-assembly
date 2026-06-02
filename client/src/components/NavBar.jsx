@@ -5,6 +5,7 @@ export default function NavBar() {
   const isLoggedIn = !!localStorage.getItem('icamsToken');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -14,6 +15,18 @@ export default function NavBar() {
       setUserRole(role || '');
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    // Close menu when window is resized to desktop size
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getAllowedLinks = (role) => {
     const allLinks = [
@@ -35,34 +48,120 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem('icamsToken');
     localStorage.removeItem('userName');
+    setIsMobileMenuOpen(false);
     window.location.href = '/login';
   };
 
+  const handleLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="nav-bar">
-      <div className="brand">
-        <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>
-          <img src="https://siayaassembly.go.ke/wp-content/uploads/2020/05/logo.png" alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
-        </Link>
-      </div>
-      <div className="nav-links">
-        {isLoggedIn ? (
-          <>
-            {allowedLinks.map(link => (
-              <Link key={link.to} to={link.to}>{link.label}</Link>
-            ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>👤 {userName} ({userRole})</span>
-              <button onClick={handleLogout}>Logout</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </>
-        )}
-      </div>
-    </nav>
+    <>
+      <nav className="nav-bar">
+        <div className="brand">
+          <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }} onClick={handleLinkClick}>
+            <img src="https://siayaassembly.go.ke/wp-content/uploads/2020/05/logo.png" alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
+          </Link>
+        </div>
+        <button 
+          className="mobile-menu-toggle" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle menu"
+          style={{ display: 'none' }}
+        >
+          ☰
+        </button>
+        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          {isLoggedIn ? (
+            <>
+              {allowedLinks.map(link => (
+                <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem' }}>👤 {userName}</span>
+                <button onClick={handleLogout}>Logout</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login" onClick={handleLinkClick}>Login</Link>
+              <Link to="/register" onClick={handleLinkClick}>Register</Link>
+            </>
+          )}
+        </div>
+      </nav>
+      <style>{`
+        @media screen and (max-width: 768px) {
+          .mobile-menu-toggle {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 0.5rem;
+            order: 3;
+          }
+
+          .nav-links {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            flex-direction: column;
+            width: 100%;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0;
+          }
+
+          .nav-links.mobile-open {
+            max-height: 500px;
+            padding: 1rem;
+          }
+
+          .nav-links a,
+          .nav-links button {
+            width: 100%;
+            text-align: center;
+            margin: 0.5rem 0;
+          }
+
+          .nav-links a {
+            display: block;
+            padding: 0.75rem 0.5rem;
+            border-radius: 6px;
+            transition: background 0.2s;
+          }
+
+          .nav-links a:hover {
+            background: rgba(178, 34, 52, 0.08);
+          }
+
+          .nav-links button {
+            padding: 0.75rem 1rem;
+          }
+
+          .nav-bar {
+            flex-wrap: wrap;
+            position: relative;
+          }
+
+          .nav-links > div {
+            width: 100% !important;
+            justify-content: center !important;
+            margin-top: 0.5rem;
+          }
+        }
+      `}</style>
+    </>
   );
 }
