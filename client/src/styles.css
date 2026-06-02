@@ -364,6 +364,28 @@ h1, h3, p {
   h1 { font-size: clamp(1.4rem, 6vw, 1.8rem); }
 }
 
+/* Footer styles */
+.site-footer {
+  background: linear-gradient(180deg, #0b1220, #061223);
+  color: rgba(255,255,255,0.92);
+  padding: 2rem 0 1.25rem;
+}
+.site-footer a { color: #cfe8ff; text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+.footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+.footer-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 1rem; }
+.footer-column h4 { margin: 0 0 0.5rem; font-size: 1rem; color: #fff; }
+.footer-column p { margin: 0 0 0.5rem; color: rgba(255,255,255,0.85); font-size: 0.95rem; }
+.footer-column ul { list-style: none; padding: 0; margin: 0; }
+.footer-column li { margin: 0.35rem 0; }
+.footer-bottom { margin-top: 1rem; text-align: center; color: rgba(255,255,255,0.72); }
+
+@media (max-width: 700px) {
+  .site-footer { padding: 1rem 0 0.75rem; }
+  .footer-column p, .footer-column li { font-size: 0.9rem; }
+  .footer-bottom { font-size: 0.85rem; }
+}
+
 .feature-card {
   background: rgba(247, 250, 255, 0.96);
   border-radius: var(--border-radius);
