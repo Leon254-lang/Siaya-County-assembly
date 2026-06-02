@@ -36,6 +36,8 @@ app.use('/api/assets', require('./routes/assets'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/interns', require('./routes/interns'));
 app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/bills', require('./routes/bills'));
+app.use('/api/mcas', require('./routes/mcas'));
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
@@ -50,6 +52,7 @@ const ensureDefaultRoles = async () => {
     'Clerk',
     'Finance Officer',
     'Committee Officer',
+    'MCA',
     'Intern',
     'Security Officer',
   ];

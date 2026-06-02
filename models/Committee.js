@@ -16,6 +16,19 @@ const CommitteeSchema = new mongoose.Schema({
       ref: 'User',
     },
   ],
+  reports: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Document',
+    },
+  ],
+  recommendations: [
+    {
+      text: String,
+      by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

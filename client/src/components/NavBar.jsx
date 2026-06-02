@@ -30,11 +30,16 @@ export default function NavBar() {
 
   const getAllowedLinks = (role) => {
     const allLinks = [
-      { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer'] },
+    { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer'] },
+    { to: '/committees', label: 'Committees', roles: ['Super Admin', 'Committee Officer', 'Clerk', 'HR Officer'] },
       { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'HR Officer'] },
       { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
       { to: '/meetings', label: 'Meetings', roles: ['Super Admin', 'Committee Officer'] },
+      { to: '/sessions', label: 'Sessions', roles: ['Super Admin', 'Committee Officer', 'Clerk'] },
+      { to: '/mcas', label: 'MCAs', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk'] },
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
+      { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
+      { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },
       { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer'] },
       { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },

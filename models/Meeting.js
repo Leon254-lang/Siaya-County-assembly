@@ -51,6 +51,59 @@ const MeetingSchema = new mongoose.Schema({
       ref: 'User',
     },
   ],
+  meetingType: {
+    type: String,
+    enum: ['committee', 'session'],
+    default: 'committee',
+  },
+  votingItems: [
+    new mongoose.Schema({
+      question: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      description: {
+        type: String,
+        trim: true,
+      },
+      options: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
+      voteType: {
+        type: String,
+        enum: ['voice', 'electronic', 'secret'],
+        default: 'electronic',
+      },
+      results: [
+        {
+          option: {
+            type: String,
+            trim: true,
+          },
+          votes: {
+            type: Number,
+            default: 0,
+          },
+        },
+      ],
+      voteRecords: [
+        {
+          voter: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+          option: String,
+          castAt: { type: Date, default: Date.now },
+        },
+      ],
+      finalDecision: {
+        type: String,
+        trim: true,
+      },
+      talliedAt: Date,
+    }),
+  ],
   attendance: [AttendanceEntrySchema],
   notes: {
     type: String,

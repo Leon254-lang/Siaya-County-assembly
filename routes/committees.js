@@ -1,6 +1,15 @@
 const express = require('express');
 const Committee = require('../models/Committee');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const Meeting = require('../models/Meeting');
+const Document = require('../models/Document');
+const multer = require('multer');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+});
+const upload = multer({ storage });
 
 const router = express.Router();
 
@@ -46,6 +55,76 @@ router.post('/', verifyToken, async (req, res) => {
   const committee = new Committee(req.body);
   await committee.save();
   res.status(201).json(committee);
+});
+
+// Assign members to a committee (replace members list)
+router.put('/:id/members', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), async (req, res) => {
+  const committee = await Committee.findById(req.params.id);
+  if (!committee) return res.status(404).json({ message: 'Committee not found' });
+  const { members } = req.body;
+  if (!Array.isArray(members)) return res.status(400).json({ message: 'Members array required' });
+  committee.members = members;
+  await committee.save();
+  await committee.populate('members');
+  res.json(committee);
+});
+
+// Schedule a meeting for a committee
+router.post('/:id/meetings', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const committee = await Committee.findById(req.params.id);
+  if (!committee) return res.status(404).json({ message: 'Committee not found' });
+
+  const meetingData = { ...req.body, committee: committee._id };
+  if (meetingData.attendees && Array.isArray(meetingData.attendees)) {
+    meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
+  }
+
+  const meeting = new Meeting(meetingData);
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+  res.status(201).json(meeting);
+});
+
+// Upload a committee report and attach as a Document
+router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), upload.single('file'), async (req, res) => {
+  try {
+    const committee = await Committee.findById(req.params.id);
+    if (!committee) return res.status(404).json({ message: 'Committee not found' });
+    if (!req.file) return res.status(400).json({ message: 'File required' });
+
+    const doc = new Document({
+      docNumber: `CM-${Date.now()}`,
+      title: req.body.title || req.file.originalname,
+      description: req.body.description || '',
+      type: req.body.type || 'report',
+      category: req.body.category || 'public',
+      status: 'approved',
+      owner: req.user._id,
+      department: req.body.department,
+      files: [{ path: req.file.path, filename: req.file.filename, originalName: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype }],
+    });
+
+    await doc.save();
+    committee.reports.push(doc._id);
+    await committee.save();
+    await committee.populate('reports');
+
+    res.status(201).json({ committee, document: doc });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to upload report', error: err.message });
+  }
+});
+
+// Add a recommendation to a committee
+router.post('/:id/recommendations', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin', 'MCA'), async (req, res) => {
+  const committee = await Committee.findById(req.params.id);
+  if (!committee) return res.status(404).json({ message: 'Committee not found' });
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ message: 'Recommendation text required' });
+  committee.recommendations.push({ text, by: req.user._id });
+  await committee.save();
+  await committee.populate('recommendations.by');
+  res.json(committee);
 });
 
 module.exports = router;

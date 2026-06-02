@@ -30,6 +30,30 @@ const UserSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  ward: {
+    type: String,
+    trim: true,
+  },
+  party: {
+    type: String,
+    trim: true,
+  },
+  contactDetails: {
+    address: {
+      type: String,
+      trim: true,
+    },
+  },
+  committeeMemberships: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Committee',
+    },
+  ],
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

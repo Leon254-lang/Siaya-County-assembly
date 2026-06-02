@@ -3,11 +3,19 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const Meeting = require('../models/Meeting');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { sendReminder } = require('../utils/mailer');
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, '../uploads/meetings');
+
+const computeDecision = (results) => {
+  const yes = results.find((item) => item.option.toLowerCase() === 'yes')?.votes || 0;
+  const no = results.find((item) => item.option.toLowerCase() === 'no')?.votes || 0;
+  const abstain = results.find((item) => item.option.toLowerCase() === 'abstain')?.votes || 0;
+  if (yes === no) return yes > 0 ? 'Tie' : 'No clear decision';
+  return yes > no ? 'Approved' : 'Rejected';
+};
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -28,6 +36,10 @@ router.get('/', verifyToken, async (req, res) => {
       $gte: new Date(),
       $lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     };
+  }
+
+  if (req.query.type) {
+    query.meetingType = req.query.type;
   }
 
   const meetings = await Meeting.find(query)
@@ -93,7 +105,7 @@ Please arrive on time and confirm attendance through the meeting portal.`;
   }
 });
 
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const meetingData = { ...req.body };
   if (meetingData.attendees && Array.isArray(meetingData.attendees)) {
     meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
@@ -105,7 +117,7 @@ router.post('/', verifyToken, async (req, res) => {
   res.status(201).json(meeting);
 });
 
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const updateData = { ...req.body };
   if (updateData.attendees && Array.isArray(updateData.attendees)) {
     const meeting = await Meeting.findById(req.params.id);
@@ -169,7 +181,79 @@ router.post('/:id/checkin', verifyToken, async (req, res) => {
   res.json(meeting);
 });
 
-router.post('/:id/upload-agenda', verifyToken, upload.single('file'), async (req, res) => {
+router.post('/:id/voting-items', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const items = Array.isArray(req.body.votingItems) ? req.body.votingItems : [];
+  meeting.votingItems = items.map((item) => ({
+    question: item.question,
+    description: item.description,
+    voteType: item.voteType || 'electronic',
+    options: Array.isArray(item.options) ? item.options : [],
+    results: (item.options || []).map((option) => ({ option, votes: 0 })),
+    voteRecords: [],
+    finalDecision: '',
+  }));
+
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+  res.json(meeting);
+});
+
+router.post('/:id/vote', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin', 'MCA'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const { itemId, option } = req.body;
+  const item = meeting.votingItems.id(itemId);
+  if (!item) {
+    return res.status(400).json({ message: 'Voting item not found' });
+  }
+
+  const existing = item.results.find((result) => result.option === option);
+  if (existing) {
+    existing.votes += 1;
+  } else {
+    item.results.push({ option, votes: 1 });
+  }
+
+  item.voteRecords.push({
+    voter: req.user._id,
+    option,
+  });
+  item.finalDecision = computeDecision(item.results);
+  item.talliedAt = new Date();
+
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+  res.json(item);
+});
+
+router.get('/:id/voting-summary', verifyToken, async (req, res) => {
+  try {
+    const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user');
+    if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+    const summary = meeting.votingItems.map((item) => ({
+      question: item.question,
+      description: item.description,
+      voteType: item.voteType,
+      options: item.options,
+      results: item.results,
+      finalDecision: item.finalDecision || computeDecision(item.results),
+      totalVotes: item.results.reduce((sum, result) => sum + (result.votes || 0), 0),
+      castCount: item.voteRecords.length,
+      talliedAt: item.talliedAt,
+    }));
+
+    res.json({ meetingId: meeting._id, title: meeting.title, startTime: meeting.startTime, summary });
+  } catch (error) {
+    res.status(500).json({ message: 'Error loading voting summary', error: error.message });
+  }
+});
+
+router.post('/:id/upload-agenda', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No agenda file uploaded' });
 
   const meeting = await Meeting.findByIdAndUpdate(
@@ -179,10 +263,31 @@ router.post('/:id/upload-agenda', verifyToken, upload.single('file'), async (req
   ).populate('committee attendees attendance.user');
 
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  // Notify attendees that the agenda has been uploaded
+  try {
+    const attendeeEmails = meeting.attendees
+      .filter((a) => a?.email)
+      .map((a) => a.email);
+
+    if (attendeeEmails.length > 0) {
+      const subject = `Agenda uploaded: ${meeting.title}`;
+      const text = `The agenda for the meeting '${meeting.title}' has been uploaded. The meeting is scheduled for ${meeting.startTime?.toLocaleString() || 'N/A'} in ${meeting.room || 'TBD'}.`;
+      const html = `<p>The agenda for <strong>${meeting.title}</strong> has been uploaded.</p>
+        <p><strong>When:</strong> ${meeting.startTime ? meeting.startTime.toLocaleString() : 'TBD'}</p>
+        <p><strong>Where:</strong> ${meeting.room || 'TBD'}</p>
+        <p>You can download the agenda from the meeting page.</p>`;
+
+      await sendReminder({ to: attendeeEmails.join(','), subject, text, html });
+    }
+  } catch (notifyErr) {
+    console.error('Failed to notify attendees about agenda upload:', notifyErr.message);
+  }
+
   res.json(meeting);
 });
 
-router.post('/:id/upload-minutes', verifyToken, upload.single('file'), async (req, res) => {
+router.post('/:id/upload-minutes', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No minutes file uploaded' });
 
   const meeting = await Meeting.findByIdAndUpdate(
@@ -192,6 +297,25 @@ router.post('/:id/upload-minutes', verifyToken, upload.single('file'), async (re
   ).populate('committee attendees attendance.user');
 
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  // Notify attendees that minutes are available
+  try {
+    const attendeeEmails = meeting.attendees
+      .filter((a) => a?.email)
+      .map((a) => a.email);
+
+    if (attendeeEmails.length > 0) {
+      const subject = `Minutes archived: ${meeting.title}`;
+      const text = `Minutes for the meeting '${meeting.title}' have been uploaded and archived.`;
+      const html = `<p>The minutes for <strong>${meeting.title}</strong> have been uploaded and archived.</p>
+        <p>You can download the minutes from the meeting page.</p>`;
+
+      await sendReminder({ to: attendeeEmails.join(','), subject, text, html });
+    }
+  } catch (notifyErr) {
+    console.error('Failed to notify attendees about minutes upload:', notifyErr.message);
+  }
+
   res.json(meeting);
 });
 
