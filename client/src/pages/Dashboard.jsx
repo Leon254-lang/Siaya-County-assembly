@@ -309,11 +309,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="about-section info-card about-card">
-        <h2>About Us</h2>
-        <p>Siaya County Assembly is dedicated to serving residents with transparent governance, efficient administration, and strong community engagement. This platform supports assembly staff and the public by providing secure access to documents, meeting schedules, attendance tracking, asset management, and feedback channels.</p>
-        <p>Our mission is to strengthen local government operations through digital tools that increase accountability, improve collaboration, and make it easier for citizens and county teams to work together.</p>
-      </section>
+      {/* Removed duplicate About Us section to avoid repetition with footer */}
 
       <footer className="site-footer">
         <div className="footer-inner app-main">
