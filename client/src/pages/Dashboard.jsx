@@ -309,51 +309,6 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Removed duplicate About Us section to avoid repetition with footer */}
-
-      <footer className="site-footer">
-        <div className="footer-inner app-main">
-          <div className="footer-columns">
-            <div className="footer-column about-foot">
-              <h4>About Us</h4>
-              <p>Siaya County Assembly management system provides secure access to documents, meetings, attendance, visitors, assets, and public feedback in one convenient portal.</p>
-            </div>
-
-            <div className="footer-column quicklinks-foot">
-              <h4>Quick Links</h4>
-              <ul>
-                <li><Link to="/dashboard">Dashboard</Link></li>
-                <li><Link to="/leaders">Know Your Leaders</Link></li>
-                <li><Link to="/documents">Documents</Link></li>
-                <li><Link to="/feedback">Public Feedback</Link></li>
-              </ul>
-            </div>
-
-            <div className="footer-column importantlinks-foot">
-              <h4>Important Links</h4>
-              <ul>
-                <li><a href="https://siayaassembly.go.ke/" target="_blank" rel="noopener noreferrer">Siaya Assembly Official Website</a></li>
-                <li><a href="https://siayaassembly.go.ke/the-speakers-office/" target="_blank" rel="noopener noreferrer">Speaker’s Office</a></li>
-                <li><a href="https://siayaassembly.go.ke/contact-us/" target="_blank" rel="noopener noreferrer">Contact Us</a></li>
-                <li><a href="https://siayaassembly.go.ke/procurement/" target="_blank" rel="noopener noreferrer">Procurement</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-column recentposts-foot">
-              <h4>Recent Posts</h4>
-              <ul>
-                <li><a href="https://siayaassembly.go.ke/2026/04/29/7848/" target="_blank" rel="noopener noreferrer">HOUSE APPROVES NOMINEES TO VARIOUS EXECUTIVE POSITIONS</a></li>
-                <li><a href="https://siayaassembly.go.ke/2026/04/28/approval-hearing-for-the-cecm-nominees/" target="_blank" rel="noopener noreferrer">APPROVAL HEARING FOR THE NOMINEES IN THE POSITIONS OF CECM</a></li>
-                <li><a href="https://siayaassembly.go.ke/2026/04/28/vetting-of-chief-officer-nominees/" target="_blank" rel="noopener noreferrer">VETTING OF GOVERNORS’ NOMINEES FOR THE POSITION OF CHIEF OFFICERS</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="footer-bottom">
-            <small>© 2024 Siaya County Assembly. All rights reserved. Contact: <a href="mailto:clerk@siayaassembly.go.ke">clerk@siayaassembly.go.ke</a> | Phone: 057 5321021</small>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
