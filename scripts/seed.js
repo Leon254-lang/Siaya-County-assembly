@@ -94,24 +94,38 @@ const seed = async () => {
 
     const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@icams.local';
     const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin123!';
+    const adminName = process.env.SEED_ADMIN_NAME || 'Leonard Juma';
 
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    if (!existingAdmin) {
-      const adminRole = await Role.findOne({ name: 'Super Admin' });
-      const hashed = await bcrypt.hash(adminPassword, 12);
-      const admin = new User({
-        name: 'Super Admin',
-        email: adminEmail,
-        password: hashed,
-        role: adminRole._id,
-        department: department._id,
-      });
-      await admin.save();
-      console.log(`Created Super Admin user: ${adminEmail}`);
-      console.log(`Use password: ${adminPassword}`);
-    } else {
-      console.log(`Super Admin user already exists: ${adminEmail}`);
+    const adminRoleNames = [
+      'Super Admin',
+      'ICT Admin',
+      'HR Officer',
+      'Clerk',
+      'Finance Officer',
+      'Committee Officer',
+      'Procurement Officer',
+      'Security Officer',
+    ];
+    const adminRoles = await Role.find({ name: { $in: adminRoleNames } });
+    const adminRoleIds = adminRoles.map((role) => role._id);
+
+    if (adminRoleIds.length > 0) {
+      await User.deleteMany({ role: { $in: adminRoleIds } });
+      console.log('Removed existing admin-level user accounts.');
     }
+
+    const adminRole = await Role.findOne({ name: 'Super Admin' });
+    const hashed = await bcrypt.hash(adminPassword, 12);
+    const admin = new User({
+      name: adminName,
+      email: adminEmail,
+      password: hashed,
+      role: adminRole._id,
+      department: department._id,
+    });
+    await admin.save();
+    console.log(`Created Super Admin user: ${adminEmail}`);
+    console.log(`Use password: ${adminPassword}`);
 
     console.log('Role seeding complete.');
     process.exit(0);
