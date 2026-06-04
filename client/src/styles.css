@@ -302,11 +302,12 @@ button:hover {
 }
 
 .hero {
+  position: relative;
   display: grid;
   gap: 2rem;
   grid-template-columns: minmax(360px, 1.4fr) minmax(320px, 1fr);
   align-items: center;
-  background: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
   border-radius: var(--border-radius);
   padding: 2.5rem;
   box-shadow: var(--shadow);
@@ -314,6 +315,26 @@ button:hover {
   width: 100%;
   max-width: 1580px;
   margin: 0 auto;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/a-800x650.jpg'), url('/c-800x650.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-position: left bottom, right top;
+  background-size: 45% auto, 35% auto;
+  opacity: 0.12;
+  filter: blur(1px) saturate(0.7);
+  pointer-events: none;
+}
+
+.hero-copy,
+.hero-images {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-copy {
@@ -380,6 +401,12 @@ button:hover {
   .hero {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .hero::before {
+    background-position: center bottom, center top;
+    background-size: 55% auto, 55% auto;
+    opacity: 0.08;
   }
 
   .hero-images {
