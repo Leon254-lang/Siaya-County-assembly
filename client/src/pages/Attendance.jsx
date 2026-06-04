@@ -29,7 +29,17 @@ export default function Attendance() {
   const [checkInOutForm, setCheckInOutForm] = useState({
     method: 'manual',
     location: '',
-    breakTime: 0
+    breakTime: 0,
+    latitude: null,
+    longitude: null
+  });
+
+  const [geoLocation, setGeoLocation] = useState({
+    latitude: null,
+    longitude: null,
+    distance: null,
+    status: 'not-detected',
+    error: ''
   });
 
   const [leaveForm, setLeaveForm] = useState({
@@ -38,6 +48,86 @@ export default function Attendance() {
     endDate: '',
     reason: ''
   });
+
+  const ASSEMBLY_PREMISES = {
+    latitude: -0.0595,
+    longitude: 34.2765,
+    radiusMeters: 1200
+  };
+
+  const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371000; // metres
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const isWithinPremises = (latitude, longitude) => {
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') return false;
+    return getDistanceFromLatLonInMeters(
+      latitude,
+      longitude,
+      ASSEMBLY_PREMISES.latitude,
+      ASSEMBLY_PREMISES.longitude
+    ) <= ASSEMBLY_PREMISES.radiusMeters;
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoLocation({
+        latitude: null,
+        longitude: null,
+        distance: null,
+        status: 'error',
+        error: 'Geolocation is not supported by your browser.'
+      });
+      return;
+    }
+
+    setGeoLocation(prev => ({ ...prev, status: 'locating', error: '' }));
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const distance = getDistanceFromLatLonInMeters(
+          latitude,
+          longitude,
+          ASSEMBLY_PREMISES.latitude,
+          ASSEMBLY_PREMISES.longitude
+        );
+        const inside = distance <= ASSEMBLY_PREMISES.radiusMeters;
+
+        setGeoLocation({
+          latitude,
+          longitude,
+          distance,
+          status: inside ? 'inside' : 'outside',
+          error: inside ? '' : 'You are outside the Siaya County Assembly premises.'
+        });
+        setCheckInOutForm(prev => ({
+          ...prev,
+          latitude,
+          longitude
+        }));
+      },
+      (error) => {
+        setGeoLocation({
+          latitude: null,
+          longitude: null,
+          distance: null,
+          status: 'error',
+          error: error.message || 'Unable to detect your location.'
+        });
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
 
   useEffect(() => {
     if (activeTab === 'attendance') {
@@ -97,6 +187,16 @@ export default function Attendance() {
   };
 
   const handleCheckIn = async () => {
+    if (!checkInOutForm.latitude || !checkInOutForm.longitude) {
+      alert('Location is required. Please verify your device location before checking in.');
+      return;
+    }
+
+    if (!isWithinPremises(checkInOutForm.latitude, checkInOutForm.longitude)) {
+      alert('You must be within the Siaya County Assembly premises to sign in.');
+      return;
+    }
+
     try {
       const response = await api.post('/attendance/checkin', checkInOutForm);
       setCurrentAttendance(response.data);
@@ -109,6 +209,16 @@ export default function Attendance() {
   };
 
   const handleCheckOut = async () => {
+    if (!checkInOutForm.latitude || !checkInOutForm.longitude) {
+      alert('Location is required. Please verify your device location before checking out.');
+      return;
+    }
+
+    if (!isWithinPremises(checkInOutForm.latitude, checkInOutForm.longitude)) {
+      alert('You must be within the Siaya County Assembly premises to sign out.');
+      return;
+    }
+
     try {
       const response = await api.post('/attendance/checkout', checkInOutForm);
       setCurrentAttendance(response.data);
@@ -538,13 +648,42 @@ export default function Attendance() {
                 <option value="face_recognition">Face Recognition</option>
               </select>
 
-              <input
-                type="text"
-                placeholder="Location (optional)"
-                value={checkInOutForm.location}
-                onChange={(e) => setCheckInOutForm({...checkInOutForm, location: e.target.value})}
-                style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-              />
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <button
+                  onClick={detectLocation}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #3b82f6', background: '#3b82f6', color: 'white', cursor: 'pointer' }}
+                >
+                  Verify Device Location
+                </button>
+
+                <div style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontWeight: 600 }}>Location status</p>
+                  {geoLocation.status === 'locating' && <p style={{ margin: '0.5rem 0' }}>Detecting location…</p>}
+                  {geoLocation.status === 'inside' && (
+                    <p style={{ margin: '0.5rem 0', color: '#047857' }}>
+                      Location detected inside the assembly premises.
+                      {geoLocation.distance != null && ` (${Math.round(geoLocation.distance)}m from assembly center)`}
+                    </p>
+                  )}
+                  {geoLocation.status === 'outside' && (
+                    <p style={{ margin: '0.5rem 0', color: '#b91c1c' }}>{geoLocation.error}</p>
+                  )}
+                  {geoLocation.status === 'error' && (
+                    <p style={{ margin: '0.5rem 0', color: '#b91c1c' }}>{geoLocation.error}</p>
+                  )}
+                  {geoLocation.status === 'not-detected' && (
+                    <p style={{ margin: '0.5rem 0' }}>Location must be enabled on your device before you can sign attendance.</p>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Optional address or landmark"
+                  value={checkInOutForm.location}
+                  onChange={(e) => setCheckInOutForm({...checkInOutForm, location: e.target.value})}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                />
+              </div>
 
               {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time && (
                 <input
@@ -558,7 +697,11 @@ export default function Attendance() {
 
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <button onClick={() => setShowCheckInOut(false)}>Cancel</button>
-                <button onClick={currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? handleCheckOut : handleCheckIn}>
+                <button
+                  onClick={currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? handleCheckOut : handleCheckIn}
+                  disabled={geoLocation.status !== 'inside'}
+                  style={{ opacity: geoLocation.status !== 'inside' ? 0.6 : 1 }}
+                >
                   {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? 'Check Out' : 'Check In'}
                 </button>
               </div>

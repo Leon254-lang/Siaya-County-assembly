@@ -4,6 +4,35 @@ const Leave = require('../models/Leave');
 const User = require('../models/User');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
+const ASSEMBLY_PREMISES = {
+  latitude: -0.0595,
+  longitude: 34.2765,
+  radiusMeters: 1200
+};
+
+const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const isWithinPremises = (latitude, longitude) => {
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return false;
+  return getDistanceFromLatLonInMeters(
+    latitude,
+    longitude,
+    ASSEMBLY_PREMISES.latitude,
+    ASSEMBLY_PREMISES.longitude
+  ) <= ASSEMBLY_PREMISES.radiusMeters;
+};
+
 const router = express.Router();
 
 // Get attendance records with filtering
@@ -61,6 +90,13 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/checkin', verifyToken, async (req, res) => {
   try {
     const { method = 'manual', location, deviceId, latitude, longitude, address } = req.body;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({ message: 'Location is required for attendance and must be enabled on your device.' });
+    }
+    if (!isWithinPremises(latitude, longitude)) {
+      return res.status(400).json({ message: 'You must be within the Siaya County Assembly premises to check in.' });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -88,7 +124,7 @@ router.post('/checkin', verifyToken, async (req, res) => {
         location,
         deviceId,
       },
-      location: latitude && longitude ? { latitude, longitude, address } : undefined,
+      location: { latitude, longitude, address },
       deviceInfo: {
         userAgent: req.headers['user-agent'],
         ipAddress: req.ip,
@@ -118,7 +154,14 @@ router.post('/checkin', verifyToken, async (req, res) => {
 // Check-out endpoint
 router.post('/checkout', verifyToken, async (req, res) => {
   try {
-    const { method = 'manual', location, deviceId, breakTime = 0 } = req.body;
+    const { method = 'manual', location, deviceId, breakTime = 0, latitude, longitude, address } = req.body;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({ message: 'Location is required for attendance and must be enabled on your device.' });
+    }
+    if (!isWithinPremises(latitude, longitude)) {
+      return res.status(400).json({ message: 'You must be within the Siaya County Assembly premises to check out.' });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -141,6 +184,7 @@ router.post('/checkout', verifyToken, async (req, res) => {
       location,
       deviceId,
     };
+    record.location = { latitude, longitude, address };
     record.breakTime = breakTime;
     record.updatedAt = new Date();
 
