@@ -1325,7 +1325,7 @@ h1, h3, p {
   }
 }
 
-..empty-state {
+.empty-state {
   text-align: center;
   padding: 2rem;
   background: rgba(247, 250, 255, 0.96);
