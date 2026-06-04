@@ -7,7 +7,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const ASSEMBLY_PREMISES = {
   latitude: -0.0595,
   longitude: 34.2765,
-  radiusMeters: 1200
+  radiusMeters: 2200
 };
 
 const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
@@ -90,7 +90,7 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/checkin', verifyToken, async (req, res) => {
   try {
     const { method = 'manual', location, deviceId, latitude, longitude, address } = req.body;
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    if (latitude == null || longitude == null) {
       return res.status(400).json({ message: 'Location is required for attendance and must be enabled on your device.' });
     }
     if (!isWithinPremises(latitude, longitude)) {
@@ -155,7 +155,7 @@ router.post('/checkin', verifyToken, async (req, res) => {
 router.post('/checkout', verifyToken, async (req, res) => {
   try {
     const { method = 'manual', location, deviceId, breakTime = 0, latitude, longitude, address } = req.body;
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    if (latitude == null || longitude == null) {
       return res.status(400).json({ message: 'Location is required for attendance and must be enabled on your device.' });
     }
     if (!isWithinPremises(latitude, longitude)) {

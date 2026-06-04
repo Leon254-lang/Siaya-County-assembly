@@ -52,7 +52,7 @@ export default function Attendance() {
   const ASSEMBLY_PREMISES = {
     latitude: -0.0595,
     longitude: 34.2765,
-    radiusMeters: 1200
+    radiusMeters: 2200
   };
 
   const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
@@ -108,7 +108,7 @@ export default function Attendance() {
           longitude,
           distance,
           status: inside ? 'inside' : 'outside',
-          error: inside ? '' : 'You are outside the Siaya County Assembly premises.'
+          error: inside ? '' : `You are outside the Siaya County Assembly premises (${Math.round(distance)}m away).`
         });
         setCheckInOutForm(prev => ({
           ...prev,
@@ -670,6 +670,12 @@ export default function Attendance() {
                   )}
                   {geoLocation.status === 'error' && (
                     <p style={{ margin: '0.5rem 0', color: '#b91c1c' }}>{geoLocation.error}</p>
+                  )}
+                  {geoLocation.status === 'inside' && (
+                    <p style={{ margin: '0.5rem 0', color: '#047857' }}>
+                      Location is inside the allowed premises. Current position: {geoLocation.latitude?.toFixed(6)}, {geoLocation.longitude?.toFixed(6)}.
+                      {geoLocation.distance != null && ` Distance from center: ${Math.round(geoLocation.distance)}m.`}
+                    </p>
                   )}
                   {geoLocation.status === 'not-detected' && (
                     <p style={{ margin: '0.5rem 0' }}>Location must be enabled on your device before you can sign attendance.</p>
