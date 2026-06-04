@@ -39,8 +39,14 @@ router.get('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Com
   }
 });
 
-router.post('/', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Clerk'), async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
+    const userRole = req.user.role?.name;
+    const canRegisterMca = userRole === 'Super Admin' || userRole?.includes('Admin');
+    if (!canRegisterMca) {
+      return res.status(403).json({ message: 'Only Admin users can register MCAs' });
+    }
+
     const {
       name,
       email,

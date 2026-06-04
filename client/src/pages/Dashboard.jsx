@@ -4,10 +4,6 @@ import api from '../services/api';
 
 const heroImages = [
   {
-    src: '/siaya-county-speaker.jpg',
-    alt: 'Siaya county assembly speaker',
-  },
-  {
     src: '/a-800x650.jpg',
     alt: 'County assembly office exterior',
   },
@@ -16,12 +12,8 @@ const heroImages = [
     alt: 'County assembly meeting room',
   },
   {
-    src: 'https://siayaassembly.go.ke/wp-content/uploads/2024/01/WhatsApp-Image-2024-01-19-at-12.50.04-PM-240x300.jpeg',
-    alt: 'Speaker George Owino Okode',
-  },
-  {
-    src: 'https://siayaassembly.go.ke/wp-content/uploads/2017/09/promotion-performance-review-ringsidetalent-1024x683.jpg',
-    alt: 'County assembly performance review',
+    src: '/WhatsApp-Image-2021-01-29-at-9.01.31-AM2-800x650.jpeg',
+    alt: 'County assembly building exterior',
   },
 ];
 

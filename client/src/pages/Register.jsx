@@ -8,6 +8,8 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [roleName, setRoleName] = useState('Clerk');
   const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isAllowed, setIsAllowed] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,26 +21,41 @@ export default function Register() {
     }
     if (role !== 'Super Admin') {
       navigate('/dashboard');
+      return;
     }
+    setIsAllowed(true);
   }, [navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setMessage('');
+    setSuccess('');
+
     try {
       await api.post('/auth/register', { name, email, password, roleName });
-      setMessage('Registration successful. Redirecting to login...');
+      setSuccess('User created successfully. You can add another user.');
       setName('');
       setEmail('');
       setPassword('');
-      setTimeout(() => navigate('/login'), 1500);
+      setRoleName('Clerk');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Registration failed.');
+      setMessage(error.response?.data?.message || 'User creation failed.');
     }
   };
 
+  if (!isAllowed) {
+    return (
+      <div className="card">
+        <h1>Access denied</h1>
+        <p>Only Super Admin users can add new users to the system.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="card">
-      <h1>Register</h1>
+      <h1>Create User</h1>
+      <p>Only Super Admins can create new staff accounts and assign roles.</p>
       <form onSubmit={handleSubmit}>
         <label>
           Full Name
@@ -67,10 +84,10 @@ export default function Register() {
             <option value="Intern">Intern</option>
           </select>
         </label>
-        <button type="submit">Register</button>
+        <button type="submit">Create User</button>
       </form>
+      {success && <div className="success-message">{success}</div>}
       {message && <div className="message">{message}</div>}
-      <p>Already registered? <Link to="/login">Log in</Link></p>
     </div>
   );
 }

@@ -82,6 +82,14 @@ export default function Voting() {
     setVoteForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+    setSelectedItem(null);
+    setSelectedSummary(null);
+    setCastVote({ itemId: '', option: '' });
+    setMessage('');
+  };
+
   const handleAddVotingItem = async (event) => {
     event.preventDefault();
     if (!selectedItem) {
@@ -95,7 +103,7 @@ export default function Voting() {
     }
 
     try {
-      const path = selectedKind === 'bill' ? `/bills/${selectedItem._id}/vote-item` : `/meetings/${selectedItem._id}/voting-items`;
+      const path = selectedKind === 'bill' ? `/bills/${selectedItem._id}/vote-item` : `/meetings/${selectedItem._id}/voting-item`;
       const payload = { question: voteForm.question, voteType: voteForm.voteType, options };
       await api.post(path, payload);
       setMessage('Voting item created successfully.');
@@ -115,9 +123,18 @@ export default function Voting() {
       return;
     }
 
+    const voteItems = getVoteItems();
+    const selectedVoteItem = voteItems.find((item) => item._id === castVote.itemId || item.question === castVote.itemId);
+    const itemId = selectedVoteItem?._id || castVote.itemId;
+
+    if (!itemId) {
+      setMessage('Unable to resolve the selected voting item.');
+      return;
+    }
+
     try {
       const path = selectedKind === 'bill' ? `/bills/${selectedItem._id}/vote` : `/meetings/${selectedItem._id}/vote`;
-      await api.post(path, { itemId: castVote.itemId, option: castVote.option });
+      await api.post(path, { itemId, option: castVote.option });
       setMessage('Vote cast successfully.');
       setCastVote({ itemId: '', option: '' });
       await loadResources();
@@ -141,8 +158,8 @@ export default function Voting() {
       {message && <div className="notification">{message}</div>}
 
       <div className="tab-controls">
-        <button type="button" className={tab === 'bills' ? 'active' : ''} onClick={() => setTab('bills')}>Bill votes</button>
-        <button type="button" className={tab === 'meetings' ? 'active' : ''} onClick={() => setTab('meetings')}>Meeting votes</button>
+        <button type="button" className={tab === 'bills' ? 'active' : ''} onClick={() => handleTabChange('bills')}>Bill votes</button>
+        <button type="button" className={tab === 'meetings' ? 'active' : ''} onClick={() => handleTabChange('meetings')}>Meeting votes</button>
       </div>
 
       <div className="voting-grid">
@@ -234,12 +251,14 @@ export default function Voting() {
                   Option
                   <select value={castVote.option} onChange={(e) => setCastVote((prev) => ({ ...prev, option: e.target.value }))}>
                     <option value="">Select option</option>
-                    {getVoteItems().find((item) => item._id === castVote.itemId)?.options?.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                    {getVoteItems().find((item) => item._id === castVote.itemId)?.results?.map((result) => (
-                      <option key={result.option} value={result.option}>{result.option}</option>
-                    ))}
+                      {(() => {
+                      const selectedVoteItem = getVoteItems().find((item) => item._id === castVote.itemId || item.question === castVote.itemId);
+                      return selectedVoteItem?.options?.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      )) || selectedVoteItem?.results?.map((result) => (
+                        <option key={result.option} value={result.option}>{result.option}</option>
+                      ));
+                    })()}
                   </select>
                 </label>
                 <button type="submit">Submit vote</button>

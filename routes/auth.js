@@ -10,6 +10,11 @@ const router = express.Router();
 router.post('/register', verifyToken, authorizeRoles('Super Admin'), async (req, res) => {
   try {
     const { name, email, password, roleName, department } = req.body;
+    const userRole = req.user.role?.name;
+    if (roleName === 'MCA' && !userRole?.includes('Admin')) {
+      return res.status(403).json({ message: 'Only Admin users can register MCA accounts' });
+    }
+
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: 'Email already registered' });

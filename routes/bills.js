@@ -156,6 +156,7 @@ router.get('/:id/voting-summary', verifyToken, async (req, res) => {
     if (!bill) return res.status(404).json({ message: 'Bill not found' });
 
     const summary = bill.voting.items.map((item) => ({
+      _id: item._id,
       question: item.question,
       voteType: item.voteType,
       options: item.options,

@@ -27,6 +27,9 @@ export default function Mcas() {
   const [attendanceReport, setAttendanceReport] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState('');
+
+  const canRegisterMca = userRole === 'Super Admin' || userRole?.includes('Admin');
 
   const resetForm = () => {
     setSelectedMca(null);
@@ -54,6 +57,8 @@ export default function Mcas() {
   };
 
   useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    setUserRole(role || '');
     loadData();
   }, []);
 
@@ -147,6 +152,11 @@ export default function Mcas() {
       <div className="grid-two-column">
         <section className="card">
           <h2>{selectedMca ? 'Update MCA Profile' : 'Register a New MCA'}</h2>
+          {!canRegisterMca && !selectedMca && (
+            <div className="notification warning">
+              Only Admin users can register new MCAs. Your current role does not have MCA registration permission.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="form-grid">
             <label>
               Full name
@@ -186,7 +196,7 @@ export default function Mcas() {
                 ))}
               </select>
             </label>
-            <button type="submit" className="primary-button">
+            <button type="submit" className="primary-button" disabled={!canRegisterMca && !selectedMca}>
               {selectedMca ? 'Save Changes' : 'Register MCA'}
             </button>
             {selectedMca && (

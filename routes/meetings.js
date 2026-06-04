@@ -181,21 +181,49 @@ router.post('/:id/checkin', verifyToken, async (req, res) => {
   res.json(meeting);
 });
 
+const appendVotingItem = (meeting, item) => ({
+  question: item.question,
+  description: item.description,
+  voteType: item.voteType || 'electronic',
+  options: Array.isArray(item.options) ? item.options : [],
+  results: (item.options || []).map((option) => ({ option, votes: 0 })),
+  voteRecords: [],
+  finalDecision: '',
+});
+
 router.post('/:id/voting-items', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const meeting = await Meeting.findById(req.params.id);
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
-  const items = Array.isArray(req.body.votingItems) ? req.body.votingItems : [];
-  meeting.votingItems = items.map((item) => ({
-    question: item.question,
-    description: item.description,
-    voteType: item.voteType || 'electronic',
-    options: Array.isArray(item.options) ? item.options : [],
-    results: (item.options || []).map((option) => ({ option, votes: 0 })),
-    voteRecords: [],
-    finalDecision: '',
-  }));
+  const items = Array.isArray(req.body.votingItems)
+    ? req.body.votingItems
+    : req.body.question
+      ? [{ question: req.body.question, description: req.body.description, voteType: req.body.voteType, options: req.body.options }]
+      : [];
 
+  if (items.length === 0) {
+    return res.status(400).json({ message: 'No voting item data provided' });
+  }
+
+  items.forEach((item) => {
+    meeting.votingItems.push(appendVotingItem(meeting, item));
+  });
+
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+  res.json(meeting);
+});
+
+router.post('/:id/voting-item', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const { question, description, voteType, options } = req.body;
+  if (!question || !options || (Array.isArray(options) ? options.length === 0 : true)) {
+    return res.status(400).json({ message: 'Invalid voting item payload' });
+  }
+
+  meeting.votingItems.push(appendVotingItem(meeting, { question, description, voteType, options }));
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
   res.json(meeting);
@@ -236,6 +264,7 @@ router.get('/:id/voting-summary', verifyToken, async (req, res) => {
     if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
     const summary = meeting.votingItems.map((item) => ({
+      _id: item._id,
       question: item.question,
       description: item.description,
       voteType: item.voteType,
