@@ -5,9 +5,9 @@ const User = require('../models/User');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const ASSEMBLY_PREMISES = {
-  latitude: -0.0595,
-  longitude: 34.2765,
-  radiusMeters: 2200
+  latitude: 0.0619,
+  longitude: 34.2886,
+  radiusMeters: 1200
 };
 
 const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
