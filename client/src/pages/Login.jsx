@@ -18,13 +18,19 @@ export default function Login() {
       setMessage('Login successful.');
       // Redirect based on role
       const role = response.data.user.role;
-      let redirectPath = '/dashboard';
-      if (role === 'HR Officer') redirectPath = '/attendance';
-      else if (role === 'Security Officer') redirectPath = '/visitors';
-      else if (role === 'Committee Officer') redirectPath = '/meetings';
-      else if (role === 'Finance Officer') redirectPath = '/finance';
-      else if (role === 'ICT Admin') redirectPath = '/tickets';
-      else if (role === 'Clerk') redirectPath = '/documents';
+      const redirectMap = {
+        'Super Admin': '/dashboard',
+        'ICT Admin': '/tickets',
+        'HR Officer': '/attendance',
+        'Finance Officer': '/finance',
+        'Committee Officer': '/committees',
+        'Procurement Officer': '/procurement',
+        'Security Officer': '/visitors',
+        'Clerk': '/documents',
+        'MCA': '/voting',
+        'Intern': '/interns',
+      };
+      const redirectPath = redirectMap[role] || '/dashboard';
       setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
       setMessage(error.response?.data?.message || 'Login failed.');

@@ -30,7 +30,7 @@ export default function NavBar() {
 
   const getAllowedLinks = (role) => {
     const allLinks = [
-    { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer'] },
+    { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer'] },
     { to: '/committees', label: 'Committees', roles: ['Super Admin', 'Committee Officer', 'Clerk', 'HR Officer'] },
       { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'HR Officer'] },
       { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
@@ -39,12 +39,15 @@ export default function NavBar() {
       { to: '/mcas', label: 'MCAs', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk'] },
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
+      { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'ICT Admin', 'Procurement Officer'] },
       { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },
-      { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer'] },
-      { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },
-      { to: '/feedback', label: 'Public', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern'] },
+      { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer', 'Intern'] },
+      { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
+      { to: '/feedback', label: 'Public', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
+      { to: '/faq', label: 'FAQ', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
+      { to: '/media', label: 'Media', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
     ];
     return allLinks.filter(link => link.roles.includes(role));
   };
@@ -84,6 +87,9 @@ export default function NavBar() {
               {allowedLinks.map(link => (
                 <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
               ))}
+              {userRole === 'Super Admin' && (
+                <Link to="/register" onClick={handleLinkClick}>Register</Link>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
                 <span style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem' }}>👤 {userName}</span>
                 <button onClick={handleLogout}>Logout</button>
@@ -92,7 +98,6 @@ export default function NavBar() {
           ) : (
             <>
               <Link to="/login" onClick={handleLinkClick}>Login</Link>
-              <Link to="/register" onClick={handleLinkClick}>Register</Link>
             </>
           )}
         </div>

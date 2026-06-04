@@ -44,7 +44,7 @@ router.get('/department/:departmentId', async (req, res) => {
 });
 
 const canUploadRole = (role) => {
-  return role === 'HOD' || role === 'Super Admin' || role?.includes('Admin');
+  return role === 'HOD' || role === 'Super Admin' || role === 'Procurement Officer' || role?.includes('Admin');
 };
 
 // Upload procurement documents (HOD/Admin/Super Admin)

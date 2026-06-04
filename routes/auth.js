@@ -3,11 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Role = require('../models/Role');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', verifyToken, authorizeRoles('Super Admin'), async (req, res) => {
   try {
     const { name, email, password, roleName, department } = req.body;
     const existing = await User.findOne({ email });

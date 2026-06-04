@@ -53,6 +53,7 @@ const ensureDefaultRoles = async () => {
     'Clerk',
     'Finance Officer',
     'Committee Officer',
+    'Procurement Officer',
     'MCA',
     'Intern',
     'Security Officer',

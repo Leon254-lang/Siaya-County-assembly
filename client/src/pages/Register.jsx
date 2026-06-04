@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -9,6 +9,18 @@ export default function Register() {
   const [roleName, setRoleName] = useState('Clerk');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('icamsToken');
+    const role = localStorage.getItem('userRole');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    if (role !== 'Super Admin') {
+      navigate('/dashboard');
+    }
+  }, [navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -48,7 +60,9 @@ export default function Register() {
             <option value="HR Officer">HR Officer</option>
             <option value="Finance Officer">Finance Officer</option>
             <option value="Committee Officer">Committee Officer</option>
+            <option value="Procurement Officer">Procurement Officer</option>
             <option value="Security Officer">Security Officer</option>
+            <option value="MCA">MCA</option>
             <option value="Clerk">Clerk</option>
             <option value="Intern">Intern</option>
           </select>
