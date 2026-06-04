@@ -1,73 +1,79 @@
-import mediaItems from '../data/mediaItems';
-
-const quickLinks = [
+const productLinks = [
   { label: 'Dashboard', url: '/dashboard' },
-  { label: 'Know Your Leaders', url: '/leaders' },
   { label: 'Documents', url: '/documents' },
+  { label: 'Meetings', url: '/meetings' },
+];
+
+const countyLinks = [
+  { label: 'About Assembly', url: '/leaders' },
+  { label: 'Committees', url: '/committees' },
   { label: 'Public Feedback', url: '/feedback' },
 ];
 
-const importantLinks = [
-  { label: 'Siaya Assembly Official Website', url: 'https://siayaassembly.go.ke/' },
-  { label: 'Speaker’s Office', url: 'https://siayaassembly.go.ke/the-speakers-office/' },
-  { label: 'Contact Us', url: 'https://siayaassembly.go.ke/contact-us/' },
-  { label: 'Procurement', url: 'https://siayaassembly.go.ke/procurement/' },
+const connectLinks = [
+  { label: 'Facebook', url: 'https://www.facebook.com/siayaassembly' },
+  { label: 'LinkedIn', url: 'https://www.linkedin.com/company/siaya-county-assembly' },
 ];
-
-const recentPosts = mediaItems.slice(0, 3);
 
 export default function Footer() {
   return (
     <footer className="app-footer">
-      <div className="footer-grid">
-        <div className="footer-section">
-          <h4>About Us</h4>
-          <p>
-            Siaya County Assembly management system provides secure access to documents,
-            meetings, attendance, visitors, assets, and public feedback in one convenient portal.
-          </p>
+      <div className="footer-top">
+        <div className="footer-brand">
+          <div className="footer-brand-mark">🏛️</div>
+          <div>
+            <h3>Siaya County Assembly</h3>
+            <p>
+              A secure county assembly platform for meetings, documents, attendance,
+              visitors, procurement and public engagement built for transparency
+              and efficient governance.
+            </p>
+          </div>
         </div>
 
-        <div className="footer-section">
-          <h4>Quick Links</h4>
-          <ul>
-            {quickLinks.map((link) => (
-              <li key={link.url}>
-                <a href={link.url}>{link.label}</a>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <div className="footer-links-grid">
+          <div className="footer-section">
+            <h4>Product</h4>
+            <ul>
+              {productLinks.map((link) => (
+                <li key={link.url}>
+                  <a href={link.url}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        <div className="footer-section">
-          <h4>Important Links</h4>
-          <ul>
-            {importantLinks.map((link) => (
-              <li key={link.url}>
-                <a href={link.url} target="_blank" rel="noreferrer">
+          <div className="footer-section">
+            <h4>County</h4>
+            <ul>
+              {countyLinks.map((link) => (
+                <li key={link.url}>
+                  <a href={link.url}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="footer-section">
+            <h4>Connect</h4>
+            <div className="social-links">
+              {connectLinks.map((link) => (
+                <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="social-link">
                   {link.label}
                 </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="footer-section">
-          <h4>Recent Posts</h4>
-          <ul>
-            {recentPosts.map((post) => (
-              <li key={post.slug}>
-                <a href={post.url} target="_blank" rel="noreferrer">
-                  {post.title}
-                </a>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
       <div className="footer-bottom">
         <p>&copy; 2024 Siaya County Assembly. All rights reserved.</p>
-        <p>Contact: clerk@siayaassembly.go.ke | Phone: 057 5321021</p>
+        <p>
+          <a href="/privacy">Privacy Policy</a>
+          <span>•</span>
+          <a href="/terms">Terms of Service</a>
+        </p>
       </div>
     </footer>
   );
