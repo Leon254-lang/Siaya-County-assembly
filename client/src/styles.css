@@ -304,18 +304,20 @@ button:hover {
 .hero {
   display: grid;
   gap: 2rem;
-  grid-template-columns: minmax(360px, 1.5fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(360px, 1.4fr) minmax(320px, 1fr);
   align-items: center;
   background: rgba(255, 255, 255, 0.98);
   border-radius: var(--border-radius);
   padding: 2.5rem;
   box-shadow: var(--shadow);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  width: min(100%, calc(100vw - 3rem));
+  width: 100%;
+  max-width: 1580px;
+  margin: 0 auto;
 }
 
 .hero-copy {
-  max-width: 800px;
+  max-width: 760px;
 }
 
 .hero-actions {
@@ -350,7 +352,7 @@ button:hover {
 
 .hero-images {
   display: grid;
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 1rem;
 }
 
@@ -360,6 +362,12 @@ button:hover {
   overflow: hidden;
   box-shadow: var(--shadow);
   background: #f8fafc;
+}
+
+@media (min-width: 1500px) {
+  .hero-images {
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+  }
 }
 
 @media (max-width: 1300px) {
