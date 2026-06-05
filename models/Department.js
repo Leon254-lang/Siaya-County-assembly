@@ -11,6 +11,10 @@ const DepartmentSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  modules: {
+    type: [String],
+    default: [],
+  },
 });
 
 module.exports = mongoose.model('Department', DepartmentSchema);

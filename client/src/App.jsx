@@ -23,6 +23,8 @@ import FAQ from './pages/FAQ';
 import MediaCenter from './pages/MediaCenter';
 import MediaPost from './pages/MediaPost';
 import Voting from './pages/Voting';
+import Announcements from './pages/Announcements';
+import Messages from './pages/Messages';
 
 function App() {
   return (
@@ -50,6 +52,8 @@ function App() {
           <Route path="/finance" element={<Finance />} />
           <Route path="/bills" element={<Bills />} />
           <Route path="/voting" element={<Voting />} />
+          <Route path="/announcements" element={<Announcements />} />
+          <Route path="/messages" element={<Messages />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/media" element={<MediaCenter />} />
           <Route path="/media/:slug" element={<MediaPost />} />

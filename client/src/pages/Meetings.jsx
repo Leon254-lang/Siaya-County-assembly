@@ -17,6 +17,8 @@ const buildAttendanceState = (meeting) => {
   return result;
 };
 
+const boardrooms = ['Boardroom 1', 'Boardroom 2', 'Boardroom 3', 'Boardroom 4', 'Boardroom 5'];
+
 export default function Meetings() {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
@@ -293,8 +295,13 @@ export default function Meetings() {
               <p className="form-note">No committees found. Please add committees in the administration panel.</p>
             )}
             <label>
-              Room
-              <input name="room" value={form.room} onChange={handleFormChange} placeholder="E.g. Boardroom A" />
+              Boardroom
+              <select name="room" value={form.room} onChange={handleFormChange} required>
+                <option value="">Select a boardroom...</option>
+                {boardrooms.map((room) => (
+                  <option key={room} value={room}>{room}</option>
+                ))}
+              </select>
             </label>
             <label>
               Start time

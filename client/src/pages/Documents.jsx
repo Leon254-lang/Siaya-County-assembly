@@ -429,12 +429,22 @@ export default function Documents() {
                         <td>{doc.currentDepartment || 'N/A'}</td>
                         <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
                         <td>
-                          <button
-                            onClick={() => fetchDocument(doc._id)}
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
-                          >
-                            👁️ View
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => fetchDocument(doc._id)}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                            >
+                              👁️ View
+                            </button>
+                            {doc.files && doc.files.length > 0 && (
+                              <button
+                                onClick={() => window.open(`${api.defaults.baseURL}/documents/${doc._id}/download/${doc.files[0]._id}`, '_blank')}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                              >
+                                📥 Download
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -511,11 +521,19 @@ export default function Documents() {
                           >
                             👁️ View
                           </button>
-                          {doc.files && doc.files.length > 0 && (
-                            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                              📎 {doc.files.length}
-                            </span>
-                          )}
+                          {doc.files && doc.files.length > 0 ? (
+                            <>
+                              <button
+                                onClick={() => window.open(`${api.defaults.baseURL}/documents/${doc._id}/download/${doc.files[0]._id}`, '_blank')}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                              >
+                                📥 Download
+                              </button>
+                              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                                📎 {doc.files.length}
+                              </span>
+                            </>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

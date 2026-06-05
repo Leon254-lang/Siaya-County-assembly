@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 const defaultForm = {
@@ -28,6 +29,27 @@ const defaultDisposal = {
   notes: '',
 };
 
+const moduleOptions = [
+  { value: 'documents', label: 'Documents', path: '/documents' },
+  { value: 'committees', label: 'Committees', path: '/committees' },
+  { value: 'attendance', label: 'Attendance', path: '/attendance' },
+  { value: 'visitors', label: 'Visitors', path: '/visitors' },
+  { value: 'meetings', label: 'Meetings', path: '/meetings' },
+  { value: 'sessions', label: 'Sessions', path: '/sessions' },
+  { value: 'mcas', label: 'MCAs', path: '/mcas' },
+  { value: 'assets', label: 'Assets', path: '/assets' },
+  { value: 'finance', label: 'Finance', path: '/finance' },
+  { value: 'procurement', label: 'Procurement', path: '/procurement' },
+  { value: 'bills', label: 'Bills', path: '/bills' },
+  { value: 'voting', label: 'Voting', path: '/voting' },
+  { value: 'tickets', label: 'Helpdesk', path: '/tickets' },
+  { value: 'interns', label: 'Interns', path: '/interns' },
+  { value: 'leaders', label: 'Leaders', path: '/leaders' },
+  { value: 'feedback', label: 'Public', path: '/feedback' },
+  { value: 'faq', label: 'FAQ', path: '/faq' },
+  { value: 'media', label: 'Media', path: '/media' },
+];
+
 export default function Assets() {
   const [assets, setAssets] = useState([]);
   const [users, setUsers] = useState([]);
@@ -37,7 +59,7 @@ export default function Assets() {
   const [assignment, setAssignment] = useState({ assignedTo: '', assignedDepartment: '', status: 'available' });
   const [maintenanceForm, setMaintenanceForm] = useState(defaultMaintenance);
   const [disposalForm, setDisposalForm] = useState(defaultDisposal);
-  const [newDepartment, setNewDepartment] = useState({ name: '', description: '' });
+  const [newDepartment, setNewDepartment] = useState({ name: '', description: '', modules: [] });
   const [message, setMessage] = useState('');
 
   const fetchAssets = async () => {
@@ -116,6 +138,15 @@ export default function Assets() {
     setNewDepartment((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleModuleToggle = (moduleValue) => {
+    setNewDepartment((prev) => {
+      const modules = prev.modules.includes(moduleValue)
+        ? prev.modules.filter((m) => m !== moduleValue)
+        : [...prev.modules, moduleValue];
+      return { ...prev, modules };
+    });
+  };
+
   const handleCreateDepartment = async (event) => {
     event.preventDefault();
     if (!newDepartment.name.trim()) {
@@ -127,10 +158,11 @@ export default function Assets() {
       const payload = {
         name: newDepartment.name.trim(),
         description: newDepartment.description.trim(),
+        modules: newDepartment.modules,
       };
       const response = await api.post('/departments', payload);
       setDepartments((prev) => [...prev, response.data]);
-      setNewDepartment({ name: '', description: '' });
+      setNewDepartment({ name: '', description: '', modules: [] });
       setMessage(`Department '${response.data.name}' created.`);
     } catch (error) {
       console.error('Failed to create department:', error);
@@ -336,6 +368,21 @@ export default function Assets() {
                 />
               </label>
             </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Relevant Modules</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {moduleOptions.map((option) => (
+                  <label key={option.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={newDepartment.modules.includes(option.value)}
+                      onChange={() => handleModuleToggle(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className="form-actions">
               <button type="submit">Create Department</button>
             </div>
@@ -344,7 +391,34 @@ export default function Assets() {
             {departments.length > 0 ? (
               <ul>
                 {departments.map((dept) => (
-                  <li key={dept._id}>{dept.name} {dept.description ? `- ${dept.description}` : ''}</li>
+                  <li key={dept._id} style={{ marginBottom: '0.75rem' }}>
+                    <strong>{dept.name}</strong> {dept.description ? `- ${dept.description}` : ''}
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {dept.modules && dept.modules.length > 0 ? (
+                        dept.modules.map((moduleKey) => {
+                          const moduleOption = moduleOptions.find((option) => option.value === moduleKey);
+                          return moduleOption ? (
+                            <Link
+                              key={moduleKey}
+                              to={moduleOption.path}
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                background: '#eff6ff',
+                                borderRadius: '6px',
+                                color: '#1d4ed8',
+                                textDecoration: 'none',
+                                fontSize: '0.85rem'
+                              }}
+                            >
+                              {moduleOption.label}
+                            </Link>
+                          ) : null;
+                        })
+                      ) : (
+                        <span style={{ fontSize: '0.9rem', color: '#6b7280' }}>No modules assigned.</span>
+                      )}
+                    </div>
+                  </li>
                 ))}
               </ul>
             ) : (

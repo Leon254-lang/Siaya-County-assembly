@@ -26,6 +26,10 @@ const MeetingSchema = new mongoose.Schema({
   room: {
     type: String,
     trim: true,
+    validate: {
+      validator: (value) => !value || /^Boardroom [1-5]$/.test(value),
+      message: 'Room must be one of Boardroom 1 through Boardroom 5.',
+    },
   },
   agenda: {
     type: String,

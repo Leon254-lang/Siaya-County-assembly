@@ -10,7 +10,12 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 router.post('/', verifyToken, async (req, res) => {
-  const department = new Department(req.body);
+  const { name, description, modules } = req.body;
+  const department = new Department({
+    name,
+    description,
+    modules: Array.isArray(modules) ? modules : [],
+  });
   await department.save();
   res.status(201).json(department);
 });

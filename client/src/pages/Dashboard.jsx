@@ -73,6 +73,7 @@ const formatDateTime = (value) => {
 export default function Dashboard() {
   const [nextMeetings, setNextMeetings] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loadingMeetings, setLoadingMeetings] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -87,12 +88,14 @@ export default function Dashboard() {
     const loadMeetings = async () => {
       setLoadingMeetings(true);
       try {
-        const [meetingsRes, remindersRes] = await Promise.all([
+        const [meetingsRes, remindersRes, announcementsRes] = await Promise.all([
           api.get('/meetings?upcoming=true'),
           api.get('/meetings/reminders'),
+          api.get('/communications/announcements?limit=3'),
         ]);
         setNextMeetings(meetingsRes.data.slice(0, 6));
         setReminders(remindersRes.data);
+        setAnnouncements(announcementsRes.data);
       } catch (error) {
         console.error('Failed to load dashboard meetings', error);
       } finally {
@@ -224,6 +227,25 @@ export default function Dashboard() {
                 </ul>
               )}
               <Link to="/meetings" className="module-link">View Meeting Schedule</Link>
+            </div>
+
+            <div className="dashboard-card announcement-card">
+              <h2>Latest Notices</h2>
+              {loadingMeetings ? (
+                <p>Loading notices...</p>
+              ) : announcements.length === 0 ? (
+                <p>No current announcements.</p>
+              ) : (
+                <ul>
+                  {announcements.map((item) => (
+                    <li key={item._id}>
+                      <strong>{item.title}</strong>
+                      <div>{item.type}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link to="/announcements" className="module-link">View Announcements</Link>
             </div>
 
             <div className="dashboard-card calendar-card">

@@ -3,6 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const Meeting = require('../models/Meeting');
+const Committee = require('../models/Committee');
+const Document = require('../models/Document');
+const Message = require('../models/Message');
+const Announcement = require('../models/Announcement');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { sendReminder } = require('../utils/mailer');
 
@@ -28,6 +32,36 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+const buildMeetingDocument = async (meeting, committee, userId) => {
+  const year = new Date().getFullYear();
+  const count = await Document.countDocuments({ createdAt: { $gte: new Date(year, 0, 1) } });
+  const docNumber = `DOC-${year}-${String(count + 1).padStart(4, '0')}`;
+  const document = new Document({
+    docNumber,
+    title: `Meeting scheduled: ${meeting.title}`,
+    description: meeting.agenda || 'A new meeting was scheduled.',
+    type: 'minutes',
+    category: 'administrative',
+    priority: 'medium',
+    status: 'pending',
+    origin: 'Meeting Scheduler',
+    destination: committee?.name || 'Meetings',
+    currentDepartment: 'Meetings',
+    owner: userId,
+    department: committee?._id,
+    tags: ['meeting', 'schedule'],
+    approvalHistory: [
+      {
+        action: 'created',
+        by: userId,
+        comment: 'Meeting created and sent to documents',
+      },
+    ],
+  });
+  await document.save();
+  return document;
+};
 
 router.get('/', verifyToken, async (req, res) => {
   const query = {};
@@ -107,6 +141,8 @@ Please arrive on time and confirm attendance through the meeting portal.`;
 
 router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const meetingData = { ...req.body };
+  const committee = meetingData.committee ? await Committee.findById(meetingData.committee) : null;
+
   if (meetingData.attendees && Array.isArray(meetingData.attendees)) {
     meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
   }
@@ -114,6 +150,36 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
   const meeting = new Meeting(meetingData);
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
+
+  try {
+    const document = await buildMeetingDocument(meeting, committee, req.user._id);
+    if (committee) {
+      committee.reports = committee.reports || [];
+      committee.reports.push(document._id);
+      await committee.save();
+    }
+
+    if (meetingData.attendees && meetingData.attendees.length > 0) {
+      const message = new Message({
+        subject: `Meeting scheduled: ${meeting.title}`,
+        body: `A meeting titled "${meeting.title}" has been scheduled for ${new Date(meeting.startTime).toLocaleString()} in ${meeting.room || 'TBD'}. Agenda: ${meeting.agenda || 'No agenda specified.'}`,
+        from: req.user._id,
+        to: meetingData.attendees,
+      });
+      await message.save();
+    }
+
+    const announcement = new Announcement({
+      title: `Meeting scheduled: ${meeting.title}`,
+      body: `A meeting has been scheduled for ${new Date(meeting.startTime).toLocaleString()} in ${meeting.room || 'TBD'}. Please review the agenda and prepare accordingly.`,
+      type: 'notice',
+      createdBy: req.user._id,
+    });
+    await announcement.save();
+  } catch (error) {
+    console.error('Failed to create meeting document or communication notice:', error.message);
+  }
+
   res.status(201).json(meeting);
 });
 
