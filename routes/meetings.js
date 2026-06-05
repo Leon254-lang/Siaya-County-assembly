@@ -12,6 +12,29 @@ const { sendReminder } = require('../utils/mailer');
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, '../uploads/meetings');
+const boardrooms = ['Boardroom 1', 'Boardroom 2', 'Boardroom 3', 'Boardroom 4', 'Boardroom 5'];
+
+const isRoomBooked = async (room, startTime, endTime, excludeMeetingId = null) => {
+  if (!room || !startTime || !endTime) return false;
+
+  const query = {
+    room,
+    startTime: { $lt: new Date(endTime) },
+    endTime: { $gt: new Date(startTime) },
+  };
+
+  if (excludeMeetingId) {
+    query._id = { $ne: excludeMeetingId };
+  }
+
+  return await Meeting.exists(query);
+};
+
+const ensureInterval = (startTime, endTime) => {
+  const start = new Date(startTime);
+  if (endTime) return new Date(endTime);
+  return new Date(start.getTime() + 60 * 60 * 1000);
+};
 
 const computeDecision = (results) => {
   const yes = results.find((item) => item.option.toLowerCase() === 'yes')?.votes || 0;
@@ -95,6 +118,29 @@ router.get('/reminders', verifyToken, async (req, res) => {
   res.json(reminders);
 });
 
+router.get('/availability', verifyToken, async (req, res) => {
+  try {
+    const { startTime, endTime } = req.query;
+    const now = new Date();
+    const query = {
+      room: { $in: boardrooms },
+      startTime: { $lt: startTime ? new Date(endTime) : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+      endTime: { $gt: startTime ? new Date(startTime) : now },
+    };
+
+    const busyMeetings = await Meeting.find(query)
+      .sort({ startTime: 1 })
+      .populate('committee attendees');
+
+    const busyRooms = [...new Set(busyMeetings.map((meeting) => meeting.room).filter(Boolean))];
+    const availableRooms = boardrooms.filter((room) => !busyRooms.includes(room));
+
+    res.json({ availableRooms, busyRooms, busyMeetings });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to load room availability', error: error.message });
+  }
+});
+
 router.get('/:id', verifyToken, async (req, res) => {
   const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
@@ -147,6 +193,13 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
     meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
   }
 
+  if (meetingData.room && meetingData.startTime) {
+    meetingData.endTime = ensureInterval(meetingData.startTime, meetingData.endTime);
+    if (await isRoomBooked(meetingData.room, meetingData.startTime, meetingData.endTime)) {
+      return res.status(409).json({ message: `Room ${meetingData.room} is already booked during this time.` });
+    }
+  }
+
   const meeting = new Meeting(meetingData);
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
@@ -185,14 +238,25 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
 
 router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const updateData = { ...req.body };
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const proposedRoom = updateData.room || meeting.room;
+  const proposedStartTime = updateData.startTime || meeting.startTime;
+  const proposedEndTime = ensureInterval(proposedStartTime, updateData.endTime || meeting.endTime);
+
+  if (proposedRoom && proposedStartTime && proposedEndTime) {
+    if (await isRoomBooked(proposedRoom, proposedStartTime, proposedEndTime, meeting._id)) {
+      return res.status(409).json({ message: `Room ${proposedRoom} is already booked during this time.` });
+    }
+  }
+
   if (updateData.attendees && Array.isArray(updateData.attendees)) {
-    const meeting = await Meeting.findById(req.params.id);
-    if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
     meeting.title = updateData.title ?? meeting.title;
     meeting.committee = updateData.committee ?? meeting.committee;
-    meeting.room = updateData.room ?? meeting.room;
-    meeting.startTime = updateData.startTime ?? meeting.startTime;
-    meeting.endTime = updateData.endTime ?? meeting.endTime;
+    meeting.room = proposedRoom;
+    meeting.startTime = proposedStartTime;
+    meeting.endTime = proposedEndTime;
     meeting.notes = updateData.notes ?? meeting.notes;
     meeting.attendees = updateData.attendees;
     meeting.attendance = updateData.attendees.map((user) => ({ user, status: 'Confirmed' }));
@@ -201,13 +265,16 @@ router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Su
     return res.json(meeting);
   }
 
-  const meeting = await Meeting.findByIdAndUpdate(req.params.id, updateData, {
+  const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, {
+    ...updateData,
+    endTime: proposedEndTime,
+  }, {
     new: true,
     runValidators: true,
   }).populate('committee attendees attendance.user');
 
-  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
-  res.json(meeting);
+  if (!updatedMeeting) return res.status(404).json({ message: 'Meeting not found' });
+  res.json(updatedMeeting);
 });
 
 router.post('/:id/attendance', verifyToken, async (req, res) => {

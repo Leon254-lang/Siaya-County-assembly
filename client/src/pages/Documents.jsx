@@ -38,7 +38,9 @@ export default function Documents() {
     sender: { name: '', organization: '', contact: '' },
     recipient: { name: '', organization: '', contact: '' },
     tags: '',
-    dueDate: ''
+    dueDate: '',
+    responseStatus: 'not_requested',
+    responseNotes: '',
   });
 
   useEffect(() => {
@@ -122,6 +124,8 @@ export default function Documents() {
         ...formData,
         currentDepartment: formData.currentDepartment || selectedDept?.name || '',
         department: formData.department,
+        responseStatus: formData.responseStatus,
+        responseNotes: formData.responseNotes,
       };
 
       await api.post('/documents', payload);
@@ -139,7 +143,9 @@ export default function Documents() {
         sender: { name: '', organization: '', contact: '' },
         recipient: { name: '', organization: '', contact: '' },
         tags: '',
-        dueDate: ''
+        dueDate: '',
+        responseStatus: 'not_requested',
+        responseNotes: '',
       });
       fetchDocuments();
     } catch (error) {
@@ -208,6 +214,24 @@ export default function Documents() {
       }
     } catch (error) {
       console.error('Failed to assign document:', error);
+    }
+  };
+
+  const handleResponseUpdate = async (documentId, status, notes = '') => {
+    try {
+      const payload = {
+        status,
+        responseNotes: notes,
+        responseReceivedAt: status === 'received' ? new Date().toISOString() : undefined,
+      };
+      await api.post(`/documents/${documentId}/response`, payload);
+      fetchDocuments();
+      if (showDetails) {
+        const response = await api.get(`/documents/${documentId}`);
+        setShowDetails(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to update response status:', error);
     }
   };
 
@@ -661,6 +685,26 @@ export default function Documents() {
                   />
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <select
+                    value={formData.responseStatus}
+                    onChange={(e) => setFormData({ ...formData, responseStatus: e.target.value })}
+                    style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  >
+                    <option value="not_requested">No response required</option>
+                    <option value="awaiting">Awaiting response</option>
+                    <option value="received">Response received</option>
+                    <option value="overdue">Overdue response</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Response notes"
+                    value={formData.responseNotes}
+                    onChange={(e) => setFormData({ ...formData, responseNotes: e.target.value })}
+                    style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  />
+                </div>
+
                 <input
                   type="text"
                   placeholder="Origin/Source"
@@ -771,6 +815,17 @@ export default function Documents() {
               <div>
                 <strong>Created:</strong> {new Date(showDetails.createdAt).toLocaleString()}
               </div>
+              <div>
+                <strong>Response Status:</strong> {showDetails.responseStatus ? showDetails.responseStatus.replace('_', ' ') : 'Not requested'}
+              </div>
+              <div>
+                <strong>Response Notes:</strong> {showDetails.responseNotes || 'None'}
+              </div>
+              {showDetails.responseReceivedAt && (
+                <div>
+                  <strong>Response Received:</strong> {new Date(showDetails.responseReceivedAt).toLocaleString()}
+                </div>
+              )}
             </div>
 
             {showDetails.description && (
@@ -850,6 +905,15 @@ export default function Documents() {
                     📦 Archive
                   </button>
                 )}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <h3>✉️ Correspondence Response</h3>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button onClick={() => handleResponseUpdate(showDetails._id, 'awaiting', 'Awaiting response')}>⏳ Mark Awaiting Response</button>
+                <button onClick={() => handleResponseUpdate(showDetails._id, 'received', 'Response received')}>✅ Mark Response Received</button>
+                <button onClick={() => handleResponseUpdate(showDetails._id, 'overdue', 'Response is overdue')}>⚠️ Mark Overdue</button>
               </div>
             </div>
 

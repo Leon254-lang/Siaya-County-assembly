@@ -95,6 +95,16 @@ const DocumentSchema = new mongoose.Schema({
   dueDate: {
     type: Date,
   },
+  responseStatus: {
+    type: String,
+    enum: ['not_requested', 'awaiting', 'received', 'overdue'],
+    default: 'not_requested',
+  },
+  responseNotes: {
+    type: String,
+    trim: true,
+  },
+  responseReceivedAt: Date,
   approvalHistory: [
     {
       action: {

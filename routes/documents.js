@@ -114,6 +114,9 @@ router.post('/', verifyToken, async (req, res) => {
       department,
       tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
       dueDate,
+      responseStatus: req.body.responseStatus || 'not_requested',
+      responseNotes: req.body.responseNotes || '',
+      responseReceivedAt: req.body.responseReceivedAt || undefined,
       approvalHistory: [
         {
           action: 'created',
@@ -254,6 +257,41 @@ router.post('/:id/archive', verifyToken, authorizeRoles(...workflowRoles), async
   await document.save();
 
   res.json(document);
+});
+
+router.post('/:id/response', verifyToken, authorizeRoles(...workflowRoles), async (req, res) => {
+  try {
+    const { status, responseNotes, responseReceivedAt } = req.body;
+    const document = await Document.findById(req.params.id);
+    if (!document) return res.status(404).json({ message: 'Document not found' });
+
+    document.responseStatus = status || 'received';
+    document.responseNotes = responseNotes || document.responseNotes;
+    if (responseReceivedAt) {
+      document.responseReceivedAt = new Date(responseReceivedAt);
+    } else if (status === 'received') {
+      document.responseReceivedAt = new Date();
+    }
+    document.updatedAt = Date.now();
+    document.approvalHistory.push({
+      action: 'responded',
+      by: req.user._id,
+      comment: responseNotes || `Response ${status}`,
+    });
+
+    await document.save();
+
+    const populatedDoc = await Document.findById(document._id)
+      .populate('owner', 'name email')
+      .populate('assignedTo', 'name email')
+      .populate('department', 'name')
+      .populate('approvalHistory.by', 'name')
+      .populate('movementHistory.movedBy', 'name');
+
+    res.json(populatedDoc);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating response status', error: error.message });
+  }
 });
 
 router.post('/:id/move', verifyToken, authorizeRoles(...workflowRoles), async (req, res) => {

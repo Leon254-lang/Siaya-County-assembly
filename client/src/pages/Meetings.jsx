@@ -27,6 +27,10 @@ export default function Meetings() {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [busyRooms, setBusyRooms] = useState([]);
+  const [busyMeetings, setBusyMeetings] = useState([]);
   const [form, setForm] = useState({
     title: '',
     committee: '',
@@ -76,6 +80,12 @@ export default function Meetings() {
     fetchData();
   }, [navigate]);
 
+  useEffect(() => {
+    if (form.startTime && form.endTime) {
+      fetchRoomAvailability(form.startTime, form.endTime);
+    }
+  }, [form.startTime, form.endTime]);
+
   const resetForm = () => {
     setForm({
       title: '',
@@ -106,6 +116,32 @@ export default function Meetings() {
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const fetchRoomAvailability = async (startTime, endTime) => {
+    if (!startTime || !endTime) {
+      setAvailableRooms([]);
+      setBusyRooms([]);
+      setBusyMeetings([]);
+      return;
+    }
+
+    try {
+      setAvailabilityLoading(true);
+      const response = await api.get(
+        `/meetings/availability?startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`
+      );
+      setAvailableRooms(response.data.availableRooms);
+      setBusyRooms(response.data.busyRooms);
+      setBusyMeetings(response.data.busyMeetings);
+    } catch (error) {
+      console.error('Failed to load room availability:', error);
+      setAvailableRooms([]);
+      setBusyRooms([]);
+      setBusyMeetings([]);
+    } finally {
+      setAvailabilityLoading(false);
+    }
   };
 
   const handleAddAttendee = () => {
@@ -195,7 +231,11 @@ export default function Meetings() {
       fetchData();
     } catch (error) {
       console.error('Error creating meeting:', error);
-      setMessage('Failed to create meeting.');
+      if (error.response?.status === 409) {
+        setMessage(error.response.data.message || 'Selected room is already booked.');
+      } else {
+        setMessage('Failed to create meeting.');
+      }
     }
   };
 
@@ -299,10 +339,37 @@ export default function Meetings() {
               <select name="room" value={form.room} onChange={handleFormChange} required>
                 <option value="">Select a boardroom...</option>
                 {boardrooms.map((room) => (
-                  <option key={room} value={room}>{room}</option>
+                  <option key={room} value={room} disabled={busyRooms.includes(room)}>
+                    {room}{busyRooms.includes(room) ? ' — unavailable' : ''}
+                  </option>
                 ))}
               </select>
             </label>
+            <div className="room-availability">
+              <h3>Room availability</h3>
+              {availabilityLoading ? (
+                <p>Checking availability...</p>
+              ) : form.startTime && form.endTime ? (
+                <>
+                  {busyMeetings.length === 0 ? (
+                    <p>All boardrooms are available for the selected slot.</p>
+                  ) : (
+                    <div>
+                      <p>Currently booked rooms for this span:</p>
+                      <ul>
+                        {busyMeetings.map((meeting) => (
+                          <li key={meeting._id}>
+                            <strong>{meeting.room}</strong> — {meeting.title} ({formatDateTime(meeting.startTime)} to {formatDateTime(meeting.endTime)})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p>Select a start and end time to preview boardroom availability.</p>
+              )}
+            </div>
             <label>
               Start time
               <input name="startTime" type="datetime-local" value={form.startTime} onChange={handleFormChange} required />
@@ -362,7 +429,12 @@ export default function Meetings() {
               Notes
               <textarea name="notes" value={form.notes} onChange={handleFormChange} rows="3" />
             </label>
-            <button type="submit" className="primary-button">Schedule Meeting</button>
+            <button type="submit" className="primary-button" disabled={form.room && busyRooms.includes(form.room)}>
+              Schedule Meeting
+            </button>
+            {form.room && busyRooms.includes(form.room) && (
+              <p className="form-warning">The selected room is already booked for this time. Please choose another boardroom or time slot.</p>
+            )}
           </form>
         </div>
       </section>
