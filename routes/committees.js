@@ -40,91 +40,103 @@ const defaultCommittees = [
   { name: 'General Oversight Committee', description: 'Provides broad oversight across county assembly operations.' },
 ];
 
-router.get('/', verifyToken, async (req, res) => {
-  let committees = await Committee.find().populate('members');
+const handleAsync = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+const loadCommittee = async (req, res, next, id) => {
+  const committee = await Committee.findById(id).populate('members reports recommendations.by');
+  if (!committee) {
+    return res.status(404).json({ message: 'Committee not found' });
+  }
+  req.committee = committee;
+  next();
+};
+
+router.param('id', handleAsync(loadCommittee));
+
+router.get('/', verifyToken, handleAsync(async (req, res) => {
+  let committees = await Committee.find().populate('members');
   if (committees.length === 0) {
     await Committee.insertMany(defaultCommittees);
     committees = await Committee.find().populate('members');
   }
-
   res.json(committees);
+}));
+
+router.get('/:id', verifyToken, (req, res) => {
+  res.json(req.committee);
 });
 
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, handleAsync(async (req, res) => {
   const committee = new Committee(req.body);
   await committee.save();
   res.status(201).json(committee);
-});
+}));
 
-// Assign members to a committee (replace members list)
-router.put('/:id/members', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), async (req, res) => {
-  const committee = await Committee.findById(req.params.id);
-  if (!committee) return res.status(404).json({ message: 'Committee not found' });
+router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), handleAsync(async (req, res) => {
+  Object.assign(req.committee, req.body);
+  await req.committee.save();
+  await req.committee.populate('members reports recommendations.by');
+  res.json(req.committee);
+}));
+
+router.delete('/:id', verifyToken, authorizeRoles('Super Admin', 'Clerk'), handleAsync(async (req, res) => {
+  await req.committee.remove();
+  res.json({ message: 'Committee deleted successfully' });
+}));
+
+router.put('/:id/members', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), handleAsync(async (req, res) => {
   const { members } = req.body;
-  if (!Array.isArray(members)) return res.status(400).json({ message: 'Members array required' });
-  committee.members = members;
-  await committee.save();
-  await committee.populate('members');
-  res.json(committee);
-});
+  if (!Array.isArray(members)) {
+    return res.status(400).json({ message: 'Members array required' });
+  }
+  req.committee.members = members;
+  await req.committee.save();
+  await req.committee.populate('members');
+  res.json(req.committee);
+}));
 
-// Schedule a meeting for a committee
-router.post('/:id/meetings', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
-  const committee = await Committee.findById(req.params.id);
-  if (!committee) return res.status(404).json({ message: 'Committee not found' });
-
-  const meetingData = { ...req.body, committee: committee._id };
+router.post('/:id/meetings', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), handleAsync(async (req, res) => {
+  const meetingData = { ...req.body, committee: req.committee._id };
   if (meetingData.attendees && Array.isArray(meetingData.attendees)) {
     meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
   }
-
   const meeting = new Meeting(meetingData);
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
   res.status(201).json(meeting);
-});
+}));
 
-// Upload a committee report and attach as a Document
-router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), upload.single('file'), async (req, res) => {
-  try {
-    const committee = await Committee.findById(req.params.id);
-    if (!committee) return res.status(404).json({ message: 'Committee not found' });
-    if (!req.file) return res.status(400).json({ message: 'File required' });
-
-    const doc = new Document({
-      docNumber: `CM-${Date.now()}`,
-      title: req.body.title || req.file.originalname,
-      description: req.body.description || '',
-      type: req.body.type || 'report',
-      category: req.body.category || 'public',
-      status: 'approved',
-      owner: req.user._id,
-      department: req.body.department,
-      files: [{ path: req.file.path, filename: req.file.filename, originalName: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype }],
-    });
-
-    await doc.save();
-    committee.reports.push(doc._id);
-    await committee.save();
-    await committee.populate('reports');
-
-    res.status(201).json({ committee, document: doc });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to upload report', error: err.message });
+router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), upload.single('file'), handleAsync(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'File required' });
   }
-});
+  const document = new Document({
+    docNumber: `CM-${Date.now()}`,
+    title: req.body.title || req.file.originalname,
+    description: req.body.description || '',
+    type: req.body.type || 'report',
+    category: req.body.category || 'public',
+    status: 'approved',
+    owner: req.user._id,
+    department: req.body.department,
+    files: [{ path: req.file.path, filename: req.file.filename, originalName: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype }],
+  });
+  await document.save();
+  req.committee.reports.push(document._id);
+  await req.committee.save();
+  await req.committee.populate('reports');
+  res.status(201).json({ committee: req.committee, document });
+}));
 
-// Add a recommendation to a committee
-router.post('/:id/recommendations', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin', 'MCA'), async (req, res) => {
-  const committee = await Committee.findById(req.params.id);
-  if (!committee) return res.status(404).json({ message: 'Committee not found' });
+router.post('/:id/recommendations', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin', 'MCA'), handleAsync(async (req, res) => {
   const { text } = req.body;
-  if (!text) return res.status(400).json({ message: 'Recommendation text required' });
-  committee.recommendations.push({ text, by: req.user._id });
-  await committee.save();
-  await committee.populate('recommendations.by');
-  res.json(committee);
-});
+  if (!text) {
+    return res.status(400).json({ message: 'Recommendation text required' });
+  }
+  req.committee.recommendations.push({ text, by: req.user._id });
+  await req.committee.save();
+  await req.committee.populate('recommendations.by');
+  res.json(req.committee);
+}));
 
 module.exports = router;
