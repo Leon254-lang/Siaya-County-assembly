@@ -3,21 +3,27 @@ import api from '../services/api';
 
 export default function Documents() {
   const [documents, setDocuments] = useState([]);
+  const [inboxDocuments, setInboxDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDetails, setShowDetails] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [inboxDepartment, setInboxDepartment] = useState('');
   const [filters, setFilters] = useState({
     type: '',
     status: '',
     category: '',
-    priority: ''
+    priority: '',
+    department: ''
   });
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     totalDocuments: 0
   });
+  const [moveFields, setMoveFields] = useState({ toDepartment: '', reason: '' });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -28,6 +34,7 @@ export default function Documents() {
     origin: '',
     destination: '',
     currentDepartment: '',
+    department: '',
     sender: { name: '', organization: '', contact: '' },
     recipient: { name: '', organization: '', contact: '' },
     tags: '',
@@ -35,8 +42,35 @@ export default function Documents() {
   });
 
   useEffect(() => {
-    fetchDocuments();
-  }, [searchTerm, filters, pagination.currentPage]);
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'all') {
+      fetchDocuments();
+    }
+  }, [searchTerm, filters, pagination.currentPage, activeTab]);
+
+  useEffect(() => {
+    if (showDetails) {
+      setMoveFields({ toDepartment: '', reason: '' });
+    }
+  }, [showDetails]);
+
+  useEffect(() => {
+    if (activeTab === 'inbox') {
+      fetchInboxDocuments(inboxDepartment);
+    }
+  }, [activeTab, inboxDepartment]);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      setDepartments(response.data);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
@@ -58,10 +92,39 @@ export default function Documents() {
     }
   };
 
+  const fetchInboxDocuments = async (departmentName) => {
+    if (!departmentName) {
+      setInboxDocuments([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        currentDepartment: departmentName,
+        page: 1,
+        limit: 50
+      });
+      const response = await api.get(`/documents?${params}`);
+      setInboxDocuments(response.data.documents);
+    } catch (error) {
+      console.error('Failed to fetch department inbox documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateDocument = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/documents', formData);
+      const selectedDept = departments.find((dept) => dept._id === formData.department);
+      const payload = {
+        ...formData,
+        currentDepartment: formData.currentDepartment || selectedDept?.name || '',
+        department: formData.department,
+      };
+
+      await api.post('/documents', payload);
       setShowCreateForm(false);
       setFormData({
         title: '',
@@ -72,6 +135,7 @@ export default function Documents() {
         origin: '',
         destination: '',
         currentDepartment: '',
+        department: '',
         sender: { name: '', organization: '', contact: '' },
         recipient: { name: '', organization: '', contact: '' },
         tags: '',
@@ -80,6 +144,15 @@ export default function Documents() {
       fetchDocuments();
     } catch (error) {
       console.error('Failed to create document:', error);
+    }
+  };
+
+  const fetchDocument = async (documentId) => {
+    try {
+      const response = await api.get(`/documents/${documentId}`);
+      setShowDetails(response.data);
+    } catch (error) {
+      console.error('Failed to load document details:', error);
     }
   };
 
@@ -93,9 +166,7 @@ export default function Documents() {
       });
       fetchDocuments();
       if (showDetails) {
-        // Refresh details view
-        const response = await api.get(`/documents/${documentId}`);
-        setShowDetails(response.data);
+        fetchDocument(documentId);
       }
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -107,8 +178,7 @@ export default function Documents() {
       await api.post(`/documents/${documentId}/${action}`, { comment });
       fetchDocuments();
       if (showDetails) {
-        const response = await api.get(`/documents/${documentId}`);
-        setShowDetails(response.data);
+        fetchDocument(documentId);
       }
     } catch (error) {
       console.error(`Failed to ${action} document:`, error);
@@ -173,153 +243,286 @@ export default function Documents() {
 
         <div className="module-actions" style={{ marginBottom: '2rem' }}>
           <button onClick={() => setShowCreateForm(true)}>➕ Create New Document</button>
-          <button onClick={fetchDocuments}>🔄 Refresh</button>
+          <button onClick={() => {
+            if (activeTab === 'all') fetchDocuments();
+            else fetchInboxDocuments(inboxDepartment);
+          }}>🔄 Refresh</button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <button
+            onClick={() => setActiveTab('all')}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              border: activeTab === 'all' ? '2px solid #3b82f6' : '1px solid #d1d5db',
+              background: activeTab === 'all' ? '#eff6ff' : 'white'
+            }}
+          >All Documents</button>
+          <button
+            onClick={() => setActiveTab('inbox')}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              border: activeTab === 'inbox' ? '2px solid #3b82f6' : '1px solid #d1d5db',
+              background: activeTab === 'inbox' ? '#eff6ff' : 'white'
+            }}
+          >Department Inbox</button>
         </div>
 
         {/* Search and Filters */}
-        <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-          />
-          <select
-            value={filters.type}
-            onChange={(e) => setFilters({...filters, type: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Types</option>
-            <option value="incoming">Incoming</option>
-            <option value="outgoing">Outgoing</option>
-            <option value="memo">Memo</option>
-            <option value="bill">Bill</option>
-            <option value="report">Report</option>
-            <option value="minutes">Minutes</option>
-            <option value="letter">Letter</option>
-            <option value="contract">Contract</option>
-          </select>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters({...filters, status: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending</option>
-            <option value="under_review">Under Review</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="archived">Archived</option>
-          </select>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters({...filters, category: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Categories</option>
-            <option value="administrative">Administrative</option>
-            <option value="financial">Financial</option>
-            <option value="legal">Legal</option>
-            <option value="technical">Technical</option>
-            <option value="personnel">Personnel</option>
-            <option value="public">Public</option>
-          </select>
-          <select
-            value={filters.priority}
-            onChange={(e) => setFilters({...filters, priority: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-          >
-            <option value="">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
-        </div>
+        {activeTab === 'all' && (
+          <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            />
+            <select
+              value={filters.department}
+              onChange={(e) => setFilters({...filters, department: e.target.value})}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>{dept.name}</option>
+              ))}
+            </select>
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters({...filters, type: e.target.value})}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">All Types</option>
+              <option value="incoming">Incoming</option>
+              <option value="outgoing">Outgoing</option>
+              <option value="memo">Memo</option>
+              <option value="bill">Bill</option>
+              <option value="report">Report</option>
+              <option value="minutes">Minutes</option>
+              <option value="letter">Letter</option>
+              <option value="contract">Contract</option>
+            </select>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({...filters, status: e.target.value})}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="pending">Pending</option>
+              <option value="under_review">Under Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({...filters, category: e.target.value})}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">All Categories</option>
+              <option value="administrative">Administrative</option>
+              <option value="financial">Financial</option>
+              <option value="legal">Legal</option>
+              <option value="technical">Technical</option>
+              <option value="personnel">Personnel</option>
+              <option value="public">Public</option>
+            </select>
+            <select
+              value={filters.priority}
+              onChange={(e) => setFilters({...filters, priority: e.target.value})}
+              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+            >
+              <option value="">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        )}
 
         {/* Documents Table */}
         <div className="documents-list">
-          {documents.length === 0 ? (
-            <p>No documents found. Create your first document!</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Doc Number</th>
-                  <th>Title</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Priority</th>
-                  <th>Department</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map(doc => (
-                  <tr key={doc._id}>
-                    <td style={{ fontWeight: '600', color: '#3b82f6' }}>{doc.docNumber}</td>
-                    <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</td>
-                    <td>
-                      <span style={{
-                        background: '#f3f4f6',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.875rem',
-                        textTransform: 'capitalize'
-                      }}>
-                        {doc.type}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{
-                        background: getStatusColor(doc.status),
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.875rem',
-                        textTransform: 'capitalize'
-                      }}>
-                        {doc.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{
-                        background: doc.priority === 'urgent' ? '#ef4444' :
-                                   doc.priority === 'high' ? '#f59e0b' :
-                                   doc.priority === 'medium' ? '#3b82f6' : '#6b7280',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.875rem',
-                        textTransform: 'capitalize'
-                      }}>
-                        {doc.priority}
-                      </span>
-                    </td>
-                    <td>{doc.currentDepartment || 'N/A'}</td>
-                    <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button
-                          onClick={() => setShowDetails(doc)}
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
-                        >
-                          👁️ View
-                        </button>
-                        {doc.files && doc.files.length > 0 && (
-                          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                            📎 {doc.files.length}
+          {activeTab === 'inbox' ? (
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                <select
+                  value={inboxDepartment}
+                  onChange={(e) => setInboxDepartment(e.target.value)}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                >
+                  <option value="">Select department inbox</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => fetchInboxDocuments(inboxDepartment)}
+                  disabled={!inboxDepartment}
+                  style={{ padding: '0.75rem 1rem', borderRadius: '8px' }}
+                >
+                  📥 Load Inbox
+                </button>
+              </div>
+              {inboxDocuments.length === 0 ? (
+                <p>{inboxDepartment ? 'No documents currently in this department inbox.' : 'Choose a department to view its inbox.'}</p>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Doc Number</th>
+                      <th>Title</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Priority</th>
+                      <th>Current Dept</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inboxDocuments.map(doc => (
+                      <tr key={doc._id}>
+                        <td style={{ fontWeight: '600', color: '#3b82f6' }}>{doc.docNumber}</td>
+                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</td>
+                        <td>
+                          <span style={{
+                            background: '#f3f4f6',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                            textTransform: 'capitalize'
+                          }}>
+                            {doc.type}
                           </span>
-                        )}
-                      </div>
-                    </td>
+                        </td>
+                        <td>
+                          <span style={{
+                            background: getStatusColor(doc.status),
+                            color: 'white',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                            textTransform: 'capitalize'
+                          }}>
+                            {doc.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{
+                            background: doc.priority === 'urgent' ? '#ef4444' :
+                                       doc.priority === 'high' ? '#f59e0b' :
+                                       doc.priority === 'medium' ? '#3b82f6' : '#6b7280',
+                            color: 'white',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                            textTransform: 'capitalize'
+                          }}>
+                            {doc.priority}
+                          </span>
+                        </td>
+                        <td>{doc.currentDepartment || 'N/A'}</td>
+                        <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <button
+                            onClick={() => fetchDocument(doc._id)}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          >
+                            👁️ View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ) : (
+            documents.length === 0 ? (
+              <p>No documents found. Create your first document!</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Doc Number</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Department</th>
+                    <th>Created</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {documents.map(doc => (
+                    <tr key={doc._id}>
+                      <td style={{ fontWeight: '600', color: '#3b82f6' }}>{doc.docNumber}</td>
+                      <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</td>
+                      <td>
+                        <span style={{
+                          background: '#f3f4f6',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem',
+                          textTransform: 'capitalize'
+                        }}>
+                          {doc.type}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: getStatusColor(doc.status),
+                          color: 'white',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem',
+                          textTransform: 'capitalize'
+                        }}>
+                          {doc.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: doc.priority === 'urgent' ? '#ef4444' :
+                                     doc.priority === 'high' ? '#f59e0b' :
+                                     doc.priority === 'medium' ? '#3b82f6' : '#6b7280',
+                          color: 'white',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.875rem',
+                          textTransform: 'capitalize'
+                        }}>
+                          {doc.priority}
+                        </span>
+                      </td>
+                      <td>{doc.currentDepartment || 'N/A'}</td>
+                      <td>{new Date(doc.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => setShowDetails(doc)}
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          >
+                            👁️ View
+                          </button>
+                          {doc.files && doc.files.length > 0 && (
+                            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                              📎 {doc.files.length}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
           )}
         </div>
 
@@ -448,19 +651,31 @@ export default function Documents() {
                   style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
                 />
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <select
+                    value={formData.department}
+                    onChange={(e) => setFormData({...formData, department: e.target.value})}
+                    style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((dept) => (
+                      <option key={dept._id} value={dept._id}>{dept.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Current Department"
+                    value={formData.currentDepartment}
+                    onChange={(e) => setFormData({...formData, currentDepartment: e.target.value})}
+                    style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  />
+                </div>
                 <input
                   type="text"
                   placeholder="Destination/Recipient Department"
                   value={formData.destination}
                   onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Current Department"
-                  value={formData.currentDepartment}
-                  onChange={(e) => setFormData({...formData, currentDepartment: e.target.value})}
                   style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
                 />
 
@@ -620,7 +835,56 @@ export default function Documents() {
               </div>
             </div>
 
-            {/* Approval History */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3>🔄 Send / Move Document to Another Department</h3>
+              <div style={{ display: 'grid', gap: '1rem', maxWidth: '480px' }}>
+                <select
+                  value={moveFields.toDepartment}
+                  onChange={(e) => setMoveFields({ ...moveFields, toDepartment: e.target.value })}
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                >
+                  <option value="">Select destination department</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+                <textarea
+                  placeholder="Reason or instructions for the receiving department"
+                  value={moveFields.reason}
+                  onChange={(e) => setMoveFields({ ...moveFields, reason: e.target.value })}
+                  rows="3"
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                />
+                <button
+                  onClick={() => handleMoveDocument(showDetails._id, moveFields.toDepartment, moveFields.reason)}
+                  disabled={!moveFields.toDepartment}
+                >
+                  ➡️ Send to Department
+                </button>
+              </div>
+            </div>
+
+            {/* Movement and Approval History */}
+            {showDetails.movementHistory && showDetails.movementHistory.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3>📌 Movement History</h3>
+                <div style={{ maxHeight: '180px', overflow: 'auto' }}>
+                  {showDetails.movementHistory.map((entry, index) => (
+                    <div key={index} style={{
+                      padding: '0.5rem',
+                      borderLeft: '3px solid #10b981',
+                      marginBottom: '0.5rem',
+                      background: '#f8fafc'
+                    }}>
+                      <strong>{entry.fromDepartment || 'Unknown'}</strong> ➡️ <strong>{entry.toDepartment || 'Unknown'}</strong>
+                      <div>By: {entry.movedBy?.name || 'Unknown'}</div>
+                      <div>{new Date(entry.movedAt).toLocaleString()}</div>
+                      {entry.reason && <p>{entry.reason}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {showDetails.approvalHistory && showDetails.approvalHistory.length > 0 && (
               <div>
                 <h3>📋 History</h3>

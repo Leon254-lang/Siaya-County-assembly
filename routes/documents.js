@@ -44,6 +44,7 @@ router.get('/', verifyToken, async (req, res) => {
     if (priority) query.priority = priority;
     if (department) query.department = department;
     if (assignedTo) query.assignedTo = assignedTo;
+    if (req.query.currentDepartment) query.currentDepartment = req.query.currentDepartment;
 
     const skip = (page - 1) * limit;
 
@@ -133,6 +134,49 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(populatedDoc);
   } catch (error) {
     res.status(500).json({ message: 'Error creating document', error: error.message });
+  }
+});
+
+router.get('/:id', verifyToken, async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id)
+      .populate('owner', 'name email')
+      .populate('assignedTo', 'name email')
+      .populate('department', 'name')
+      .populate('approvalHistory.by', 'name')
+      .populate('movementHistory.movedBy', 'name');
+
+    if (!document) return res.status(404).json({ message: 'Document not found' });
+    res.json(document);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching document', error: error.message });
+  }
+});
+
+router.post('/:id/submit', verifyToken, async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id);
+    if (!document) return res.status(404).json({ message: 'Document not found' });
+
+    document.status = 'pending';
+    document.approvalHistory.push({
+      action: 'submitted',
+      by: req.user._id,
+      comment: req.body.comment || 'Document submitted for review',
+    });
+    document.updatedAt = Date.now();
+    await document.save();
+
+    const populatedDoc = await Document.findById(document._id)
+      .populate('owner', 'name email')
+      .populate('assignedTo', 'name email')
+      .populate('department', 'name')
+      .populate('approvalHistory.by', 'name')
+      .populate('movementHistory.movedBy', 'name');
+
+    res.json(populatedDoc);
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting document', error: error.message });
   }
 });
 
