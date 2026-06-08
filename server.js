@@ -40,6 +40,7 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/bills', require('./routes/bills'));
 app.use('/api/mcas', require('./routes/mcas'));
 app.use('/api/communications', require('./routes/communications'));
+app.use('/api/audit-logs', require('./routes/auditLogs'));
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {

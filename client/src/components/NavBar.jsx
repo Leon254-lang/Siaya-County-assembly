@@ -33,6 +33,7 @@ export default function NavBar() {
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/messages', label: 'Messages', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
+      { to: '/audit-logs', label: 'Audit Logs', roles: ['Super Admin', 'ICT Admin'] },
       { to: '/committees', label: 'Committees', roles: ['Super Admin', 'Committee Officer', 'Clerk', 'HR Officer'] },
       { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'HR Officer'] },
       { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },

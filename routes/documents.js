@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const Document = require('../models/Document');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -129,6 +130,14 @@ router.post('/', verifyToken, async (req, res) => {
     const document = new Document(docData);
     await document.save();
 
+    await recordAudit({
+      req,
+      action: 'Created document',
+      entity: 'Document',
+      entityId: document._id,
+      details: { docNumber, title },
+    });
+
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
       .populate('assignedTo', 'name email')
@@ -170,6 +179,14 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
     document.updatedAt = Date.now();
     await document.save();
 
+    await recordAudit({
+      req,
+      action: 'Submitted document',
+      entity: 'Document',
+      entityId: document._id,
+      details: { comment: req.body.comment },
+    });
+
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
       .populate('assignedTo', 'name email')
@@ -191,6 +208,15 @@ router.put('/:id', verifyToken, async (req, res) => {
   ).populate('owner assignedTo approvalHistory.by');
 
   if (!document) return res.status(404).json({ message: 'Document not found' });
+
+  await recordAudit({
+    req,
+    action: 'Updated document',
+    entity: 'Document',
+    entityId: document._id,
+    details: { updates: req.body },
+  });
+
   res.json(document);
 });
 
@@ -209,6 +235,14 @@ router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) 
     });
     document.updatedAt = Date.now();
     await document.save();
+
+    await recordAudit({
+      req,
+      action: 'Uploaded document file',
+      entity: 'Document',
+      entityId: document._id,
+      details: { filename: req.file.originalname, path: req.file.path },
+    });
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
@@ -232,6 +266,14 @@ router.post('/:id/approve', verifyToken, authorizeRoles(...workflowRoles), async
   document.updatedAt = Date.now();
   await document.save();
 
+  await recordAudit({
+    req,
+    action: 'Approved document',
+    entity: 'Document',
+    entityId: document._id,
+    details: { comment: req.body.comment },
+  });
+
   res.json(document);
 });
 
@@ -244,6 +286,14 @@ router.post('/:id/reject', verifyToken, authorizeRoles(...workflowRoles), async 
   document.updatedAt = Date.now();
   await document.save();
 
+  await recordAudit({
+    req,
+    action: 'Rejected document',
+    entity: 'Document',
+    entityId: document._id,
+    details: { comment: req.body.comment },
+  });
+
   res.json(document);
 });
 
@@ -255,6 +305,14 @@ router.post('/:id/archive', verifyToken, authorizeRoles(...workflowRoles), async
   document.approvalHistory.push({ action: 'archived', by: req.user._id, comment: req.body.comment });
   document.updatedAt = Date.now();
   await document.save();
+
+  await recordAudit({
+    req,
+    action: 'Archived document',
+    entity: 'Document',
+    entityId: document._id,
+    details: { comment: req.body.comment },
+  });
 
   res.json(document);
 });
@@ -280,6 +338,14 @@ router.post('/:id/response', verifyToken, authorizeRoles(...workflowRoles), asyn
     });
 
     await document.save();
+
+    await recordAudit({
+      req,
+      action: 'Updated document response status',
+      entity: 'Document',
+      entityId: document._id,
+      details: { status, responseNotes },
+    });
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
@@ -326,6 +392,14 @@ router.post('/:id/move', verifyToken, authorizeRoles(...workflowRoles), async (r
 
     await document.save();
 
+    await recordAudit({
+      req,
+      action: 'Moved document',
+      entity: 'Document',
+      entityId: document._id,
+      details: { fromDepartment, toDepartment, reason },
+    });
+
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
       .populate('assignedTo', 'name email')
@@ -357,6 +431,14 @@ router.post('/:id/assign', verifyToken, authorizeRoles(...workflowRoles), async 
     });
 
     await document.save();
+
+    await recordAudit({
+      req,
+      action: 'Assigned document',
+      entity: 'Document',
+      entityId: document._id,
+      details: { assignedTo, comment },
+    });
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
@@ -403,6 +485,14 @@ router.delete('/:id/file/:fileId', verifyToken, async (req, res) => {
     document.files.splice(fileIndex, 1);
     document.updatedAt = Date.now();
     await document.save();
+
+    await recordAudit({
+      req,
+      action: 'Deleted document file',
+      entity: 'Document',
+      entityId: document._id,
+      details: { fileId: req.params.fileId, originalName: file.originalName },
+    });
 
     res.json({ message: 'File deleted successfully' });
   } catch (error) {

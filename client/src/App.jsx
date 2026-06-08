@@ -25,6 +25,7 @@ import MediaPost from './pages/MediaPost';
 import Voting from './pages/Voting';
 import Announcements from './pages/Announcements';
 import Messages from './pages/Messages';
+import AuditLogs from './pages/AuditLogs';
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
           <Route path="/voting" element={<Voting />} />
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/audit-logs" element={<AuditLogs />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/media" element={<MediaCenter />} />
           <Route path="/media/:slug" element={<MediaPost />} />

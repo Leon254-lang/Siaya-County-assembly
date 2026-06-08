@@ -1,6 +1,7 @@
 const express = require('express');
 const Asset = require('../models/Asset');
 const { verifyToken } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -24,6 +25,15 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   const asset = new Asset(req.body);
   await asset.save();
+
+  await recordAudit({
+    req,
+    action: 'Created asset',
+    entity: 'Asset',
+    entityId: asset._id,
+    details: req.body,
+  });
+
   const populated = await Asset.findById(asset._id)
     .populate('assignedTo', 'name email')
     .populate('assignedDepartment', 'name');
@@ -41,6 +51,15 @@ router.put('/:id', verifyToken, async (req, res) => {
   if (!asset) {
     return res.status(404).json({ message: 'Asset not found' });
   }
+
+  await recordAudit({
+    req,
+    action: 'Updated asset',
+    entity: 'Asset',
+    entityId: asset._id,
+    details: update,
+  });
+
   res.json(asset);
 });
 
@@ -59,6 +78,14 @@ router.post('/:id/maintenance', verifyToken, async (req, res) => {
   });
   asset.status = 'maintenance';
   await asset.save();
+
+  await recordAudit({
+    req,
+    action: 'Added maintenance entry',
+    entity: 'Asset',
+    entityId: asset._id,
+    details: { task, performedBy, notes },
+  });
 
   const populated = await Asset.findById(asset._id)
     .populate('assignedTo', 'name email')
@@ -82,6 +109,14 @@ router.post('/:id/dispose', verifyToken, async (req, res) => {
   });
   asset.status = 'retired';
   await asset.save();
+
+  await recordAudit({
+    req,
+    action: 'Disposed asset',
+    entity: 'Asset',
+    entityId: asset._id,
+    details: { reason, disposedBy, method, notes },
+  });
 
   const populated = await Asset.findById(asset._id)
     .populate('assignedTo', 'name email')

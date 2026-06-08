@@ -76,10 +76,12 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [loadingMeetings, setLoadingMeetings] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('icamsToken');
     setIsLoggedIn(!!token);
+    setUserRole(localStorage.getItem('userRole') || '');
   }, []);
 
   useEffect(() => {
@@ -181,6 +183,14 @@ export default function Dashboard() {
               <Link to={link.path} className="link-arrow">→</Link>
             </div>
           ))}
+          {(userRole === 'Super Admin' || userRole === 'ICT Admin') && (
+            <div className="quick-link-card">
+              <div className="link-logo">🛡️</div>
+              <h3>Audit Logs</h3>
+              <p>Review system activity, user operations, and audit entries for secure administration.</p>
+              <Link to="/audit-logs" className="link-arrow">→</Link>
+            </div>
+          )}
         </div>
       </section>
 

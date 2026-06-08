@@ -1,6 +1,7 @@
 const express = require('express');
 const Intern = require('../models/Intern');
 const { verifyToken } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -20,6 +21,15 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   const intern = new Intern(req.body);
   await intern.save();
+
+  await recordAudit({
+    req,
+    action: 'Created intern',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: req.body,
+  });
+
   const populated = await Intern.findById(intern._id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
   res.status(201).json(populated);
 });
@@ -40,6 +50,15 @@ router.put('/:id', verifyToken, async (req, res) => {
   if (!intern) {
     return res.status(404).json({ message: 'Intern not found' });
   }
+
+  await recordAudit({
+    req,
+    action: 'Updated intern',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: updates,
+  });
+
   res.json(intern);
 });
 
@@ -49,13 +68,23 @@ router.post('/:id/log', verifyToken, async (req, res) => {
     return res.status(404).json({ message: 'Intern not found' });
   }
 
-  intern.dailyLogs.push({
+  const logEntry = {
     date: req.body.date ? new Date(req.body.date) : new Date(),
     activity: req.body.activity,
     notes: req.body.notes,
+  };
+
+  intern.dailyLogs.push(logEntry);
+  await intern.save();
+
+  await recordAudit({
+    req,
+    action: 'Added intern daily log',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: logEntry,
   });
 
-  await intern.save();
   const populated = await Intern.findById(intern._id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
   res.json(populated);
 });
@@ -66,14 +95,24 @@ router.post('/:id/evaluate', verifyToken, async (req, res) => {
     return res.status(404).json({ message: 'Intern not found' });
   }
 
-  intern.evaluations.push({
+  const evaluation = {
     reviewer: req.user._id,
     score: req.body.score,
     comments: req.body.comments,
     date: req.body.date ? new Date(req.body.date) : new Date(),
+  };
+
+  intern.evaluations.push(evaluation);
+  await intern.save();
+
+  await recordAudit({
+    req,
+    action: 'Added intern evaluation',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: evaluation,
   });
 
-  await intern.save();
   const populated = await Intern.findById(intern._id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
   res.json(populated);
 });
@@ -84,16 +123,27 @@ router.post('/:id/complete', verifyToken, async (req, res) => {
     return res.status(404).json({ message: 'Intern not found' });
   }
 
-  intern.completionReports.push({
+  const completionReport = {
     date: req.body.date ? new Date(req.body.date) : new Date(),
     summary: req.body.summary,
     supervisor: req.user._id,
     remarks: req.body.remarks,
-  });
+  };
+
+  intern.completionReports.push(completionReport);
   intern.status = 'completed';
   intern.endDate = req.body.date ? new Date(req.body.date) : new Date();
 
   await intern.save();
+
+  await recordAudit({
+    req,
+    action: 'Completed intern program',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: completionReport,
+  });
+
   const populated = await Intern.findById(intern._id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
   res.json(populated);
 });

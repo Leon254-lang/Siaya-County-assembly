@@ -8,6 +8,7 @@ const Document = require('../models/Document');
 const Message = require('../models/Message');
 const Announcement = require('../models/Announcement');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 const { sendReminder } = require('../utils/mailer');
 
 const router = express.Router();
@@ -178,6 +179,15 @@ Please arrive on time and confirm attendance through the meeting portal.`;
     });
     meeting.reminderSent = true;
     await meeting.save();
+
+    await recordAudit({
+      req,
+      action: 'Sent meeting reminder',
+      entity: 'Meeting',
+      entityId: meeting._id,
+      details: { title: meeting.title },
+    });
+
     return res.json({ message: 'Reminder sent successfully.' });
   } catch (error) {
     console.error(`Failed to send manual reminder for meeting '${meeting.title}':`, error.message);
@@ -232,6 +242,19 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
   } catch (error) {
     console.error('Failed to create meeting document or communication notice:', error.message);
   }
+
+  await recordAudit({
+    req,
+    action: 'Scheduled meeting',
+    entity: 'Meeting',
+    entityId: meeting._id,
+    details: {
+      title: meeting.title,
+      room: meeting.room,
+      startTime: meeting.startTime,
+      committee: meeting.committee,
+    },
+  });
 
   res.status(201).json(meeting);
 });
