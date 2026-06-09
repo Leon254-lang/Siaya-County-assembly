@@ -247,7 +247,8 @@ export default function NavBar() {
             right: 0;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
             width: 100%;
             max-height: 0;
             overflow: hidden;
@@ -265,9 +266,10 @@ export default function NavBar() {
 
           .nav-links a,
           .nav-links button {
-            width: 100%;
+            width: calc(50% - 0.5rem);
             text-align: center;
-            margin: 0.5rem 0;
+            margin: 0.25rem;
+            box-sizing: border-box;
           }
 
           .nav-links a {
