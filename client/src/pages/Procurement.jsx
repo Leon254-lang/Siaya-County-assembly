@@ -14,6 +14,51 @@ const formatDateTime = (value) => {
   return new Date(value).toLocaleString();
 };
 
+const procurementActivities = [
+  'Preparing purchase requisitions.',
+  'Receiving and reviewing procurement requests from departments.',
+  'Preparing requests for quotations (RFQs) and tender documents.',
+  'Assisting in supplier/vendor registration and record keeping.',
+  'Comparing quotations and preparing evaluation summaries.',
+  'Processing Local Purchase Orders (LPOs) and Local Service Orders (LSOs).',
+  'Maintaining procurement files and documentation.',
+];
+
+const storesActivities = [
+  'Receiving goods delivered by suppliers.',
+  'Verifying quantities and quality against delivery notes and LPOs.',
+  'Updating stock records and inventory registers.',
+  'Issuing items to departments.',
+  'Conducting stock-taking and inventory audits.',
+];
+
+const recordsActivities = [
+  'Filing procurement documents.',
+  'Maintaining supplier databases.',
+  'Organizing tender records and contract files.',
+  'Digitizing procurement records.',
+];
+
+const itActivities = [
+  'Data entry into procurement management systems.',
+  'Managing procurement spreadsheets in Excel.',
+  'Generating reports and summaries.',
+  'Scanning and archiving procurement documents.',
+  'Troubleshooting computers, printers, and scanners used in the department.',
+  'Supporting electronic document management systems.',
+];
+
+const logbookExamples = [
+  'Assisted in filing procurement documents.',
+  'Prepared and updated supplier records.',
+  'Received and verified delivered goods.',
+  'Updated inventory records in Excel.',
+  'Scanned and archived procurement documents.',
+  'Assisted in preparing requests for quotations.',
+  'Generated procurement reports.',
+  'Maintained procurement department computer systems.',
+];
+
 export default function Procurement() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -220,6 +265,28 @@ export default function Procurement() {
       )}
 
       <div className="procurement-controls">
+        <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', width: '100%' }}>
+          <section className="card" style={{ padding: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Procurement Activities</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{procurementActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section className="card" style={{ padding: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Stores and Inventory Management</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{storesActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section className="card" style={{ padding: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Records Management</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{recordsActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section className="card" style={{ padding: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>ICT-Related Tasks</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{itActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section className="card" style={{ padding: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Logbook Entry Examples</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{logbookExamples.map((item) => <li key={item}>{item}</li>)}</ul>
+          </section>
+        </div>
         <div className="storage-note">
           <strong>Storage folder:</strong> <code>/uploads/procurement/</code>
         </div>
