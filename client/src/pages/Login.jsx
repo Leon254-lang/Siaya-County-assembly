@@ -12,14 +12,17 @@ export default function Login() {
     event.preventDefault();
     try {
       const response = await api.post('/auth/login', { email, password });
+      const userRole = response.data.user.role?.name || response.data.user.role || 'User';
+      const user = { ...response.data.user, role: userRole };
+
       localStorage.setItem('icamsToken', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('userName', response.data.user.name);
-      localStorage.setItem('userRole', response.data.user.role);
-      localStorage.setItem('userId', response.data.user.id || response.data.user._id || '');
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('userName', user.name);
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('userId', user.id || user._id || '');
       setMessage('Login successful.');
       // Redirect based on role
-      const role = response.data.user.role;
+      const role = userRole;
       const redirectMap = {
         'Super Admin': '/dashboard',
         'ICT Admin': '/tickets',

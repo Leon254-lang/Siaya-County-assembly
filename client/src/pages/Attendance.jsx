@@ -11,7 +11,14 @@ export default function Attendance() {
   const [showReport, setShowReport] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const [currentAttendance, setCurrentAttendance] = useState(null);
-  const canViewFullAttendance = ['Super Admin', 'HR Officer'].includes(localStorage.getItem('userRole') || '');
+
+  const normalizeRole = (value) => {
+    if (typeof value === 'string') return value.trim();
+    if (value && typeof value === 'object') return value.name || value.role || '';
+    return '';
+  };
+
+  const canViewFullAttendance = ['Super Admin', 'HR Officer'].includes(normalizeRole(localStorage.getItem('userRole') || JSON.parse(localStorage.getItem('user') || 'null')?.role || ''));
 
   // Filters and pagination
   const [filters, setFilters] = useState({

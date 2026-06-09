@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 export default function NavBar() {
+  const normalizeRole = (value) => {
+    if (typeof value === 'string') return value.trim();
+    if (value && typeof value === 'object') return value.name || value.role || '';
+    return '';
+  };
+
   const isLoggedIn = !!localStorage.getItem('icamsToken');
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -10,10 +16,11 @@ export default function NavBar() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      const name = localStorage.getItem('userName');
-      const role = localStorage.getItem('userRole');
-      setUserName(name || 'User');
-      setUserRole(role || '');
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      const name = storedUser?.name || localStorage.getItem('userName') || 'User';
+      const role = normalizeRole(storedUser?.role || localStorage.getItem('userRole'));
+      setUserName(name);
+      setUserRole(role);
     }
   }, [isLoggedIn]);
 
@@ -31,6 +38,7 @@ export default function NavBar() {
   }, []);
 
   const getAllowedLinks = (role) => {
+    const normalizedRole = normalizeRole(role);
     const allLinks = [
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
@@ -54,15 +62,17 @@ export default function NavBar() {
       { to: '/faq', label: 'FAQ', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
       { to: '/media', label: 'Media', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
     ];
-    return allLinks.filter(link => link.roles.includes(role));
+    return allLinks.filter(link => link.roles.includes(normalizedRole));
   };
 
   const allowedLinks = getAllowedLinks(userRole);
 
   const handleLogout = () => {
     localStorage.removeItem('icamsToken');
+    localStorage.removeItem('user');
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
     setIsMobileMenuOpen(false);
     setIsDesktopMenuOpen(false);
     window.location.href = '/login';
