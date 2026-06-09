@@ -5,6 +5,9 @@ const initialForm = {
   name: '',
   idNumber: '',
   organization: '',
+  phone: '',
+  email: '',
+  address: '',
   host: '',
   purpose: '',
 };
@@ -53,8 +56,8 @@ export default function Visitors() {
     event.preventDefault();
     setError('');
 
-    if (!formValues.name || !formValues.idNumber || !formValues.host || !formValues.purpose) {
-      setError('Name, ID number, host and purpose are required.');
+    if (!formValues.name || !formValues.idNumber || !formValues.phone || !formValues.host || !formValues.purpose) {
+      setError('Name, ID number, phone number, host and purpose are required.');
       return;
     }
 
@@ -102,6 +105,9 @@ export default function Visitors() {
           <p><strong>ID Number:</strong> ${visitor.idNumber}</p>
           <p><strong>Host:</strong> ${visitor.host?.name || '-'}</p>
           <p><strong>Purpose:</strong> ${visitor.purpose}</p>
+          <p><strong>Phone:</strong> ${visitor.phone || 'N/A'}</p>
+          <p><strong>Email:</strong> ${visitor.email || 'N/A'}</p>
+          <p><strong>Address:</strong> ${visitor.address || 'N/A'}</p>
           <p><strong>Organization:</strong> ${visitor.organization || 'N/A'}</p>
           <p><strong>Badge #:</strong> ${visitor.badgeNumber || 'N/A'}</p>
           <p><strong>Entry:</strong> ${new Date(visitor.entryTime).toLocaleString()}</p>
@@ -156,6 +162,18 @@ export default function Visitors() {
           <label>
             Purpose of Visit
             <input name="purpose" value={formValues.purpose} onChange={handleChange} placeholder="Meeting, delivery, consultation..." />
+          </label>
+          <label>
+            Phone Number
+            <input name="phone" value={formValues.phone} onChange={handleChange} placeholder="Phone number" />
+          </label>
+          <label>
+            Email Address
+            <input name="email" type="email" value={formValues.email} onChange={handleChange} placeholder="visitor@example.com" />
+          </label>
+          <label>
+            Residential / Office Address
+            <input name="address" value={formValues.address} onChange={handleChange} placeholder="Physical address" />
           </label>
           <label>
             Organization
