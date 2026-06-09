@@ -11,6 +11,7 @@ export default function Attendance() {
   const [showReport, setShowReport] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const [currentAttendance, setCurrentAttendance] = useState(null);
+  const canViewFullAttendance = ['Super Admin', 'HR Officer'].includes(localStorage.getItem('userRole') || '');
 
   // Filters and pagination
   const [filters, setFilters] = useState({
@@ -179,7 +180,8 @@ export default function Attendance() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await api.get(`/attendance?date=${today}`);
-      const todayRecord = response.data.records.find(r => r.user._id === JSON.parse(localStorage.getItem('user'))._id);
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const todayRecord = response.data.records.find((record) => record.user?._id === (currentUser.id || currentUser._id));
       setCurrentAttendance(todayRecord);
     } catch (error) {
       console.error('Failed to check current attendance:', error);
@@ -393,7 +395,7 @@ export default function Attendance() {
                 {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? '🚪 Check Out' : '🚪 Check In/Out'}
               </button>
               <button onClick={handleGenerateQR}>📱 Generate QR Code</button>
-              <button onClick={generateReport}>📈 Generate Report</button>
+              {canViewFullAttendance && <button onClick={generateReport}>📈 Generate Report</button>}
             </>
           )}
           {activeTab === 'leave' && (

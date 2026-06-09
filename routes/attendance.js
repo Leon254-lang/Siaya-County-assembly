@@ -61,6 +61,11 @@ router.get('/', verifyToken, async (req, res) => {
     }
 
     const skip = (page - 1) * limit;
+    const canViewFullAttendance = ['Super Admin', 'HR Officer'].includes(req.user?.role?.name);
+
+    if (!canViewFullAttendance) {
+      query.user = req.user._id;
+    }
 
     const records = await Attendance.find(query)
       .populate('user', 'name email department role')
@@ -336,6 +341,10 @@ router.get('/summary/:userId/:year/:month', verifyToken, async (req, res) => {
 router.get('/report', verifyToken, async (req, res) => {
   try {
     const { startDate, endDate, department, userType } = req.query;
+
+    if (!['Super Admin', 'HR Officer'].includes(req.user?.role?.name)) {
+      return res.status(403).json({ message: 'Only HR officers can view the full attendance report.' });
+    }
 
     let query = {};
     if (startDate && endDate) {

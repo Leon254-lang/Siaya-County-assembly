@@ -13,8 +13,10 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { email, password });
       localStorage.setItem('icamsToken', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('userName', response.data.user.name);
       localStorage.setItem('userRole', response.data.user.role);
+      localStorage.setItem('userId', response.data.user.id || response.data.user._id || '');
       setMessage('Login successful.');
       // Redirect based on role
       const role = response.data.user.role;
