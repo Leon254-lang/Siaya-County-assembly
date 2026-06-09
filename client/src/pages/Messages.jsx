@@ -62,21 +62,29 @@ export default function Messages() {
     event.preventDefault();
     setMessage('');
 
-    if (!compose.subject || !compose.body) {
+    const subject = compose.subject.trim();
+    const body = compose.body.trim();
+
+    if (!subject || !body) {
       setMessage('Subject and body are required.');
       return;
     }
 
     try {
-      await api.post('/communications/messages', {
-        subject: compose.subject,
-        body: compose.body,
-        to: compose.to,
-        toDepartment: compose.toDepartment,
-      });
+      const payload = {
+        subject,
+        body,
+        to: compose.to.filter(Boolean),
+        toDepartment: compose.toDepartment || undefined,
+      };
+
+      await api.post('/communications/messages', payload);
       setCompose({ subject: '', body: '', to: [], toDepartment: '' });
+      setActiveTab('sent');
+      setSelected(null);
+      await fetchSent();
+      await fetchInbox();
       setMessage('Message sent successfully.');
-      fetchSent();
     } catch (error) {
       console.error('Failed to send message:', error);
       setMessage(error.response?.data?.message || 'Failed to send message.');
