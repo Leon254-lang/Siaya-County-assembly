@@ -6,6 +6,7 @@ export default function NavBar() {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -17,13 +18,14 @@ export default function NavBar() {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    // Close menu when window is resized to desktop size
     const handleResize = () => {
       if (window.innerWidth > 768) {
         setIsMobileMenuOpen(false);
+      } else {
+        setIsDesktopMenuOpen(false);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -60,12 +62,15 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem('icamsToken');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
     setIsMobileMenuOpen(false);
+    setIsDesktopMenuOpen(false);
     window.location.href = '/login';
   };
 
   const handleLinkClick = () => {
     setIsMobileMenuOpen(false);
+    setIsDesktopMenuOpen(false);
   };
 
   return (
@@ -84,29 +89,132 @@ export default function NavBar() {
         >
           ☰
         </button>
-        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-          {isLoggedIn ? (
-            <>
-              {allowedLinks.map(link => (
-                <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
-              ))}
-              {userRole === 'Super Admin' && (
-                <Link to="/register" onClick={handleLinkClick}>Register</Link>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
-                <span style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem' }}>👤 {userName}</span>
-                <button onClick={handleLogout}>Logout</button>
-              </div>
-            </>
-          ) : (
-            <>
+        <div className="nav-actions">
+          <button
+            className="desktop-menu-toggle"
+            type="button"
+            onClick={() => setIsDesktopMenuOpen((prev) => !prev)}
+            aria-label="Toggle navigation menu"
+          >
+            Menu ▾
+          </button>
+
+          <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+            {isLoggedIn ? (
+              <>
+                {allowedLinks.map(link => (
+                  <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
+                ))}
+                {userRole === 'Super Admin' && (
+                  <Link to="/register" onClick={handleLinkClick}>Register</Link>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', width: '100%', justifyContent: 'center' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: '500', fontSize: '0.9rem' }}>👤 {userName}</span>
+                  <button onClick={handleLogout}>Logout</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link to="/login" onClick={handleLinkClick}>Login</Link>
+              </>
+            )}
+          </div>
+
+          <div className={`desktop-dropdown ${isDesktopMenuOpen ? 'open' : ''}`}>
+            {isLoggedIn ? (
+              <>
+                {allowedLinks.map(link => (
+                  <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
+                ))}
+                {userRole === 'Super Admin' && (
+                  <Link to="/register" onClick={handleLinkClick}>Register</Link>
+                )}
+                <button type="button" onClick={handleLogout}>Logout</button>
+              </>
+            ) : (
               <Link to="/login" onClick={handleLinkClick}>Login</Link>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </nav>
       <style>{`
+        @media screen and (min-width: 769px) {
+          .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+          }
+
+          .desktop-menu-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 0.55rem 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+          }
+
+          .desktop-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            min-width: 260px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 14px;
+            box-shadow: var(--shadow-hover);
+            flex-direction: column;
+            padding: 0.5rem;
+            z-index: 120;
+          }
+
+          .desktop-dropdown.open {
+            display: flex;
+          }
+
+          .desktop-dropdown a,
+          .desktop-dropdown button {
+            width: 100%;
+            text-align: left;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+          }
+
+          .desktop-dropdown a:hover,
+          .desktop-dropdown button:hover {
+            background: rgba(178, 34, 52, 0.08);
+          }
+
+          .nav-links {
+            display: none;
+          }
+        }
+
         @media screen and (max-width: 768px) {
+          .nav-actions {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+          }
+
+          .desktop-menu-toggle,
+          .desktop-dropdown {
+            display: none;
+          }
+
           .mobile-menu-toggle {
             display: flex !important;
             align-items: center;
