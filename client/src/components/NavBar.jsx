@@ -176,6 +176,8 @@ export default function NavBar() {
             top: calc(100% + 0.5rem);
             right: 0;
             min-width: 260px;
+            max-height: 80vh;
+            overflow-y: auto;
             background: rgba(255, 255, 255, 0.98);
             border: 1px solid rgba(0, 0, 0, 0.08);
             border-radius: 14px;
@@ -256,7 +258,8 @@ export default function NavBar() {
           }
 
           .nav-links.mobile-open {
-            max-height: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
             padding: 1rem;
           }
 
