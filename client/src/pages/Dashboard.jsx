@@ -65,6 +65,14 @@ const quickLinks = [
   },
 ];
 
+const hrResponsibilities = [
+  'Maintain staff personal files, employment records and HR documents.',
+  'Track leave applications, attendance registers and related reports.',
+  'Support recruitment, onboarding, training, promotion and welfare activities.',
+  'Prepare correspondence, meeting notices, monthly returns and archival records.',
+  'Coordinate employee relations, policy implementation and confidential HR workflows.',
+];
+
 const formatDateTime = (value) => {
   if (!value) return 'TBD';
   return new Date(value).toLocaleString();
@@ -279,6 +287,45 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {userRole === 'HR Officer' && (
+            <section className="modules-section">
+              <div className="section-header theme-green">
+                <h2>👩‍💼 HR Officer Workspace</h2>
+                <p>Use this workspace to manage staff records, attendance, leave, correspondence and HR administration from one dashboard.</p>
+              </div>
+              <div className="modules-grid">
+                <div className="module-card">
+                  <h3>📋 HR Records & Files</h3>
+                  <p>Access staff files, employment records, reports and document workflows for filing, archiving and confidential HR administration.</p>
+                  <Link to="/documents" className="module-link">Open Documents</Link>
+                </div>
+                <div className="module-card">
+                  <h3>⏰ Attendance & Leave</h3>
+                  <p>Monitor attendance, manage leave applications and maintain staff attendance registers for consistent reporting.</p>
+                  <Link to="/attendance" className="module-link">Open Attendance</Link>
+                </div>
+                <div className="module-card">
+                  <h3>💬 Staff Communications</h3>
+                  <p>Prepare notices, circulate updates and manage internal correspondence through announcements and messages.</p>
+                  <Link to="/messages" className="module-link">Open Messages</Link>
+                </div>
+                <div className="module-card">
+                  <h3>👥 Recruitment & Staff Support</h3>
+                  <p>Coordinate recruitment support, intern records, training documents and staff welfare-related activities from one place.</p>
+                  <Link to="/interns" className="module-link">Open Interns</Link>
+                </div>
+              </div>
+              <div className="card" style={{ marginTop: '1rem' }}>
+                <h3>Core HR responsibilities</h3>
+                <ul>
+                  {hrResponsibilities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
 
           {/* Governance & Operations */}
           <section className="modules-section">
