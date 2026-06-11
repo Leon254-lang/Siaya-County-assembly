@@ -231,6 +231,14 @@ export default function Dashboard() {
               <Link to={link.path} className="link-arrow">→</Link>
             </div>
           ))}
+          {userRole === 'Super Admin' && (
+            <div className="quick-link-card">
+              <div className="link-logo">👤</div>
+              <h3>Manage Users</h3>
+              <p>Update staff details, roles, status and remove user accounts from one secure control page.</p>
+              <Link to="/manage-users" className="link-arrow">→</Link>
+            </div>
+          )}
           {(userRole === 'Super Admin' || userRole === 'ICT Admin') && (
             <div className="quick-link-card">
               <div className="link-logo">🛡️</div>
