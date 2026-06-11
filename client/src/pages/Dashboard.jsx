@@ -73,6 +73,20 @@ const hrResponsibilities = [
   'Coordinate employee relations, policy implementation and confidential HR workflows.',
 ];
 
+const ictResponsibilities = [
+  'Plan and oversee the Assembly\'s ICT infrastructure and operations.',
+  'Manage computer networks, servers, internet connectivity and digital systems.',
+  'Supervise ICT officers, technicians and support staff.',
+  'Develop and implement ICT policies, standards and procedures.',
+  'Ensure cybersecurity, data protection and secure access management.',
+  'Manage ICT projects, implementations, maintenance and repairs.',
+  'Monitor system performance, backup, disaster recovery and continuity plans.',
+  'Manage the Assembly website, digital platforms, email and user accounts.',
+  'Provide technical support to MCAs and staff and coordinate training.',
+  'Prepare budgets, procurement specifications, reports and strategic ICT plans.',
+  'Support automation, records management, video conferencing and chamber ICT systems.',
+];
+
 const normalizeRole = (value) => {
   if (typeof value === 'string') return value.trim();
   if (value && typeof value === 'object') return value.name || value.role || '';
@@ -296,6 +310,45 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {userRole === 'ICT Admin' && (
+            <section className="modules-section">
+              <div className="section-header theme-red">
+                <h2>💻 ICT Head of Department Workspace</h2>
+                <p>Use this workspace to oversee ICT infrastructure, support, cybersecurity, systems, and digital operations for the Assembly.</p>
+              </div>
+              <div className="modules-grid">
+                <div className="module-card">
+                  <h3>🛠️ ICT Operations</h3>
+                  <p>Monitor systems, support requests, maintenance planning, devices and infrastructure health across the Assembly.</p>
+                  <Link to="/tickets" className="module-link">Open Helpdesk</Link>
+                </div>
+                <div className="module-card">
+                  <h3>📊 Systems & Reports</h3>
+                  <p>Review reports, procurement links, digital platforms and workflow automation for day-to-day ICT administration.</p>
+                  <Link to="/documents" className="module-link">Open Documents</Link>
+                </div>
+                <div className="module-card">
+                  <h3>🔐 Security & Access</h3>
+                  <p>Coordinate cybersecurity, access rights, audit visibility, backups and continuity planning for critical Assembly systems.</p>
+                  <Link to="/audit-logs" className="module-link">Open Audit Logs</Link>
+                </div>
+                <div className="module-card">
+                  <h3>📡 Digital Communication</h3>
+                  <p>Support digital communication, website operations, announcements and coordinated public-facing ICT services.</p>
+                  <Link to="/messages" className="module-link">Open Messages</Link>
+                </div>
+              </div>
+              <div className="card" style={{ marginTop: '1rem' }}>
+                <h3>Core ICT responsibilities</h3>
+                <ul>
+                  {ictResponsibilities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
 
           {userRole === 'HR Officer' && (
             <section className="modules-section">

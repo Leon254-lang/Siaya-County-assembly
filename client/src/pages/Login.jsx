@@ -25,7 +25,7 @@ export default function Login() {
       const role = userRole;
       const redirectMap = {
         'Super Admin': '/dashboard',
-        'ICT Admin': '/tickets',
+        'ICT Admin': '/dashboard',
         'HR Officer': '/dashboard',
         'Finance Officer': '/finance',
         'Committee Officer': '/committees',
