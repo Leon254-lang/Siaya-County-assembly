@@ -93,6 +93,23 @@ const normalizeRole = (value) => {
   return '';
 };
 
+const clerkResponsibilities = [
+  'Provide administrative leadership and management of Assembly operations.',
+  'Advise the Speaker and MCAs on parliamentary procedures and practices.',
+  'Prepare Assembly calendars, schedules and order papers.',
+  'Coordinate Assembly sittings, committee meetings and official functions.',
+  'Keep and maintain official records, reports and proceedings.',
+  'Custody of Assembly documents, minutes and legislative records.',
+  'Supervise departments and staff within the Assembly.',
+  'Implement resolutions and decisions made by the County Assembly.',
+  'Manage human resource and administrative matters.',
+  'Oversee financial management, budget implementation and procurement.',
+  'Prepare administrative and performance reports and strategic plans.',
+  'Facilitate communication with external stakeholders and public participation.',
+  'Ensure compliance with legal, regulatory and policy requirements.',
+  'Coordinate records management, archiving and official correspondence.',
+];
+
 const formatDateTime = (value) => {
   if (!value) return 'TBD';
   return new Date(value).toLocaleString();
@@ -343,6 +360,45 @@ export default function Dashboard() {
                 <h3>Core ICT responsibilities</h3>
                 <ul>
                   {ictResponsibilities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {userRole === 'Clerk' && (
+            <section className="modules-section">
+              <div className="section-header theme-black">
+                <h2>📘 Clerk’s Office Workspace</h2>
+                <p>Use this workspace to oversee Assembly administration, legislative records, committee coordination, public participation and official communications.</p>
+              </div>
+              <div className="modules-grid">
+                <div className="module-card">
+                  <h3>📄 Legislative Records</h3>
+                  <p>Manage documents, minutes, proceedings and official records for sittings, committees and Assembly operations.</p>
+                  <Link to="/documents" className="module-link">Open Documents</Link>
+                </div>
+                <div className="module-card">
+                  <h3>🗓️ Assembly Calendar</h3>
+                  <p>Coordinate schedules, order papers, meetings, functions and committee calendars in one place.</p>
+                  <Link to="/meetings" className="module-link">Open Meetings</Link>
+                </div>
+                <div className="module-card">
+                  <h3>🧾 Committee & Sessions</h3>
+                  <p>Support committee operations, legislative processes, sessions and reports for the Clerk’s office.</p>
+                  <Link to="/committees" className="module-link">Open Committees</Link>
+                </div>
+                <div className="module-card">
+                  <h3>📣 Public Engagement</h3>
+                  <p>Coordinate messages, announcements and engagement activities with the public and external stakeholders.</p>
+                  <Link to="/messages" className="module-link">Open Messages</Link>
+                </div>
+              </div>
+              <div className="card" style={{ marginTop: '1rem' }}>
+                <h3>Core Clerk responsibilities</h3>
+                <ul>
+                  {clerkResponsibilities.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>

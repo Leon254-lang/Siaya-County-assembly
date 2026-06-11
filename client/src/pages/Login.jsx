@@ -31,7 +31,7 @@ export default function Login() {
         'Committee Officer': '/committees',
         'Procurement Officer': '/procurement',
         'Security Officer': '/visitors',
-        'Clerk': '/documents',
+        'Clerk': '/dashboard',
         'MCA': '/voting',
         'Intern': '/interns',
       };
