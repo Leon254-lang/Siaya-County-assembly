@@ -73,6 +73,12 @@ const hrResponsibilities = [
   'Coordinate employee relations, policy implementation and confidential HR workflows.',
 ];
 
+const normalizeRole = (value) => {
+  if (typeof value === 'string') return value.trim();
+  if (value && typeof value === 'object') return value.name || value.role || '';
+  return '';
+};
+
 const formatDateTime = (value) => {
   if (!value) return 'TBD';
   return new Date(value).toLocaleString();
@@ -88,8 +94,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem('icamsToken');
+    const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const role = normalizeRole(storedUser?.role || localStorage.getItem('userRole'));
+
     setIsLoggedIn(!!token);
-    setUserRole(localStorage.getItem('userRole') || '');
+    setUserRole(role);
   }, []);
 
   useEffect(() => {
