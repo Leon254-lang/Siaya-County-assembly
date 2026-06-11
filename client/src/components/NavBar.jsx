@@ -67,6 +67,7 @@ export default function NavBar() {
   };
 
   const allowedLinks = getAllowedLinks(userRole);
+  const logoSrc = '/uploads/siayalogo.jpeg';
 
   const handleLogout = () => {
     localStorage.removeItem('icamsToken');
@@ -89,7 +90,7 @@ export default function NavBar() {
       <nav className="nav-bar">
         <div className="brand">
           <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }} onClick={handleLinkClick}>
-            <img src="/uploads/siayalogo.jpeg" alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
+            <img src={logoSrc} alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
           </Link>
         </div>
         <button 

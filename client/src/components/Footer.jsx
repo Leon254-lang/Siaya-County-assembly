@@ -20,7 +20,11 @@ export default function Footer() {
     <footer className="app-footer">
       <div className="footer-top">
         <div className="footer-brand">
-          <div className="footer-brand-mark">🏛️</div>
+          <img
+            src="/uploads/siayalogo.jpeg"
+            alt="Siaya County Assembly Logo"
+            style={{ height: '56px', width: 'auto', marginRight: '12px', objectFit: 'contain' }}
+          />
           <div>
             <h3>Siaya County Assembly</h3>
             <p>
