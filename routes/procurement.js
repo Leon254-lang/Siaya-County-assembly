@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const Procurement = require('../models/Procurement');
+const ProcurementRecord = require('../models/ProcurementRecord');
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, '../uploads/procurement');
@@ -75,6 +76,17 @@ router.post('/upload', verifyToken, upload.array('files', 30), async (req, res) 
       await doc.save();
       await doc.populate('uploadedBy', 'name email');
       await doc.populate('department', 'name');
+
+      await ProcurementRecord.create({
+        type: 'document',
+        title: doc.originalName,
+        category: 'Procurement Document',
+        reference: doc.filename,
+        status: 'Stored',
+        date: new Date().toISOString().slice(0, 10),
+        description,
+      });
+
       return doc;
     }));
 
@@ -121,6 +133,10 @@ router.delete('/:documentId', verifyToken, async (req, res) => {
 
     // Delete from database
     await Procurement.findByIdAndDelete(req.params.documentId);
+    await ProcurementRecord.deleteMany({
+      type: 'document',
+      reference: document.filename,
+    });
 
     res.json({ message: 'Document deleted successfully' });
   } catch (error) {

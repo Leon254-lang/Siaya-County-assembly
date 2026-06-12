@@ -21,7 +21,7 @@ export default function Footer() {
       <div className="footer-top">
         <div className="footer-brand">
           <img
-            src="/uploads/siayalogo.jpeg"
+            src="/siaya-county-speaker.jpg"
             alt="Siaya County Assembly Logo"
             style={{ height: '56px', width: 'auto', marginRight: '12px', objectFit: 'contain' }}
           />

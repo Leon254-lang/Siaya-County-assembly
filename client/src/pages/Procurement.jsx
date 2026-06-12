@@ -15,13 +15,12 @@ const formatDateTime = (value) => {
 };
 
 const procurementActivities = [
-  'Preparing purchase requisitions.',
-  'Receiving and reviewing procurement requests from departments.',
-  'Preparing requests for quotations (RFQs) and tender documents.',
-  'Assisting in supplier/vendor registration and record keeping.',
-  'Comparing quotations and preparing evaluation summaries.',
-  'Processing Local Purchase Orders (LPOs) and Local Service Orders (LSOs).',
-  'Maintaining procurement files and documentation.',
+  'Create and manage procurement plans.',
+  'Create purchase requisitions.',
+  'Review and approve requisitions within assigned authority levels.',
+  'Generate purchase orders.',
+  'Track procurement requests from initiation to completion.',
+  'Manage procurement budgets and allocations.',
 ];
 
 const storesActivities = [
@@ -61,7 +60,51 @@ const logbookExamples = [
 
 export default function Procurement() {
   const [files, setFiles] = useState([]);
+  const [plans, setPlans] = useState([
+    { id: 1, name: 'ICT Equipment Refresh', department: 'ICT', budget: 850000, status: 'Approved', deadline: '2026-06-30' },
+    { id: 2, name: 'Office Supplies Batch', department: 'Administration', budget: 320000, status: 'In Progress', deadline: '2026-07-10' },
+  ]);
+  const [requisitions, setRequisitions] = useState([
+    { id: 101, title: 'Laptop Procurement', department: 'ICT', amount: 450000, status: 'Pending Approval', priority: 'High', requestedBy: 'Deputy Clerk', createdAt: '2026-06-11' },
+    { id: 102, title: 'Stationery Supply', department: 'Administration', amount: 120000, status: 'Approved', priority: 'Medium', requestedBy: 'Procurement Officer', createdAt: '2026-06-10' },
+  ]);
+  const [purchaseOrders, setPurchaseOrders] = useState([
+    { id: 201, requisitionId: 102, supplier: 'County Supplies Ltd', amount: 120000, status: 'Issued', issuedAt: '2026-06-11' },
+  ]);
+  const [tenders, setTenders] = useState([
+    { id: 401, title: 'ICT Equipment Supply', status: 'Open', bids: 4, closingDate: '2026-06-20', recommendation: 'Pending Evaluation' },
+    { id: 402, title: 'Office Furniture Supply', status: 'Awarded', bids: 6, closingDate: '2026-06-14', recommendation: 'Recommended: County Supplies Ltd' },
+  ]);
+  const [inventoryItems, setInventoryItems] = useState([
+    { id: 501, name: 'Laptop', category: 'ICT', stock: 18, reorderLevel: 5, status: 'Available' },
+    { id: 502, name: 'Printer Paper', category: 'Office', stock: 3, reorderLevel: 10, status: 'Low Stock' },
+  ]);
+  const [contracts, setContracts] = useState([
+    { id: 601, title: 'ICT Equipment Maintenance', supplier: 'TechHub Solutions', expiryDate: '2026-12-31', performance: 'On Track', documentStatus: 'Stored electronically' },
+    { id: 602, title: 'Office Supplies Framework', supplier: 'County Supplies Ltd', expiryDate: '2026-09-30', performance: 'Needs Review', documentStatus: 'Stored electronically' },
+  ]);
+  const [reports, setReports] = useState([
+    { id: 701, title: 'Procurement Report', status: 'Ready', summary: 'Monthly procurement activity and request status.' },
+    { id: 702, title: 'Supplier Performance Report', status: 'Ready', summary: 'Supplier ratings, categories, and delivery performance.' },
+    { id: 703, title: 'Tender Evaluation Report', status: 'Ready', summary: 'Bid comparison and recommendation outcomes.' },
+    { id: 704, title: 'Expenditure & Procurement Summary', status: 'Ready', summary: 'Budget usage, orders issued, and procurement spend.' },
+  ]);
+  const [documentRecords, setDocumentRecords] = useState([
+    { id: 801, title: 'Quotation - Office Furniture', category: 'Quotation', reference: 'QTN/2026/001', status: 'Stored', date: '2026-06-01' },
+    { id: 802, title: 'Invoice - ICT Supplies', category: 'Invoice', reference: 'INV/2026/042', status: 'Matched', date: '2026-06-05' },
+    { id: 803, title: 'Contract - Maintenance Services', category: 'Contract', reference: 'CNT/2026/018', status: 'Archived', date: '2026-06-08' },
+  ]);
+  const [auditTrail, setAuditTrail] = useState([
+    { id: 901, event: 'Purchase requisition approved', actor: 'Procurement Officer', time: '09:45 AM' },
+    { id: 902, event: 'Low stock alert triggered for printer paper', actor: 'Stores Clerk', time: '11:10 AM' },
+    { id: 903, event: 'Contract expiry reminder generated', actor: 'Compliance Unit', time: '01:25 PM' },
+  ]);
+  const [suppliers, setSuppliers] = useState([
+    { id: 301, name: 'County Supplies Ltd', category: 'Office Supplies', performance: 'Excellent', status: 'Active', contact: 'procurement@countysupplies.co.ke' },
+    { id: 302, name: 'TechHub Solutions', category: 'ICT Equipment', performance: 'Good', status: 'Active', contact: 'sales@techhubsolutions.co.ke' },
+  ]);
   const [loading, setLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -70,6 +113,15 @@ export default function Procurement() {
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [userRole, setUserRole] = useState(null);
   const [deleting, setDeleting] = useState({});
+  const [planForm, setPlanForm] = useState({ name: '', department: '', budget: '', deadline: '', status: 'In Progress' });
+  const [requisitionForm, setRequisitionForm] = useState({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
+  const [supplierForm, setSupplierForm] = useState({ name: '', category: '', performance: 'Good', status: 'Active', contact: '' });
+  const [tenderForm, setTenderForm] = useState({ title: '', closingDate: '', status: 'Open', bids: '', recommendation: '' });
+  const [inventoryForm, setInventoryForm] = useState({ name: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
+  const [contractForm, setContractForm] = useState({ title: '', supplier: '', expiryDate: '', performance: 'On Track', documentStatus: 'Stored electronically' });
+  const [reportForm, setReportForm] = useState({ title: '', type: 'Procurement Report', summary: '' });
+  const [documentForm, setDocumentForm] = useState({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' });
+  const [documentSearch, setDocumentSearch] = useState('');
 
   const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
   const canUpload =
@@ -80,6 +132,7 @@ export default function Procurement() {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
     fetchFiles();
+    fetchRecords();
   }, []);
 
   const fetchFiles = async () => {
@@ -93,6 +146,29 @@ export default function Procurement() {
       setErrorMessage('Could not load procurement documents. Please refresh or check your connection.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecords = async () => {
+    try {
+      setRecordsLoading(true);
+      const response = await api.get('/procurement-records');
+      const records = response.data.records || [];
+      if (records.length) {
+        setPlans(records.filter((item) => item.type === 'plan'));
+        setRequisitions(records.filter((item) => item.type === 'requisition'));
+        setPurchaseOrders(records.filter((item) => item.type === 'po'));
+        setSuppliers(records.filter((item) => item.type === 'supplier'));
+        setTenders(records.filter((item) => item.type === 'tender'));
+        setInventoryItems(records.filter((item) => item.type === 'inventory'));
+        setContracts(records.filter((item) => item.type === 'contract'));
+        setReports(records.filter((item) => item.type === 'report'));
+        setDocumentRecords(records.filter((item) => item.type === 'document'));
+      }
+    } catch (error) {
+      console.error('Failed to load procurement records:', error);
+    } finally {
+      setRecordsLoading(false);
     }
   };
 
@@ -165,6 +241,360 @@ export default function Procurement() {
 
   const fileCount = files.length;
   const latestUpload = files[0] ? formatDateTime(files[0].uploadedAt) : 'No uploads yet';
+  const totalBudget = plans.reduce((sum, item) => sum + Number(item.budget || 0), 0);
+  const pendingApprovals = requisitions.filter((item) => item.status === 'Pending Approval').length;
+  const completedOrders = purchaseOrders.filter((item) => item.status === 'Completed' || item.status === 'Issued').length;
+  const lowStockItems = inventoryItems.filter((item) => item.stock <= item.reorderLevel);
+  const renewalReminders = contracts.filter((item) => {
+    const expiry = new Date(item.expiryDate);
+    const today = new Date();
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 45;
+  });
+  const workflowCompletion = Math.min(100, Math.round(((plans.length + requisitions.length + purchaseOrders.length + suppliers.length + tenders.length + inventoryItems.length + contracts.length) / 70) * 100));
+  const openTenders = tenders.filter((item) => item.status === 'Open' || item.status === 'Under Evaluation').length;
+  const totalExpenditure = purchaseOrders.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const supplierStats = suppliers.reduce((acc, item) => {
+    acc[item.performance] = (acc[item.performance] || 0) + 1;
+    return acc;
+  }, {});
+  const complianceChecks = [
+    'Procurement records are archived and accessible for audit review.',
+    'Approved requisitions and purchase orders are aligned with policy thresholds.',
+    'Supplier performance and tender outcomes are regularly reviewed.',
+  ];
+  const notifications = [
+    {
+      id: 'approval',
+      title: 'Pending approvals',
+      detail: `${pendingApprovals} requisition${pendingApprovals === 1 ? '' : 's'} need${pendingApprovals === 1 ? 's' : ''} review.`,
+      tone: 'warning',
+    },
+    {
+      id: 'stock',
+      title: 'Low stock alerts',
+      detail: `${lowStockItems.length} item${lowStockItems.length === 1 ? '' : 's'} are below or at reorder level.`,
+      tone: 'danger',
+    },
+    {
+      id: 'renewal',
+      title: 'Contract renewal reminders',
+      detail: `${renewalReminders.length} contract${renewalReminders.length === 1 ? '' : 's'} need${renewalReminders.length === 1 ? 's' : ''} renewal attention soon.`,
+      tone: 'info',
+    },
+  ];
+
+  const handlePlanFormChange = (event) => {
+    const { name, value } = event.target;
+    setPlanForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRequisitionFormChange = (event) => {
+    const { name, value } = event.target;
+    setRequisitionForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSupplierFormChange = (event) => {
+    const { name, value } = event.target;
+    setSupplierForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleTenderFormChange = (event) => {
+    const { name, value } = event.target;
+    setTenderForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleInventoryFormChange = (event) => {
+    const { name, value } = event.target;
+    setInventoryForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleContractFormChange = (event) => {
+    const { name, value } = event.target;
+    setContractForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleReportFormChange = (event) => {
+    const { name, value } = event.target;
+    setReportForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDocumentFormChange = (event) => {
+    const { name, value } = event.target;
+    setDocumentForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePlanSubmit = async (event) => {
+    event.preventDefault();
+    if (!planForm.name || !planForm.department || !planForm.budget) return;
+
+    const record = {
+      type: 'plan',
+      title: planForm.name,
+      department: planForm.department,
+      budget: Number(planForm.budget),
+      status: planForm.status,
+      deadline: planForm.deadline || 'TBD',
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setPlans((prev) => [
+        { id: response.data._id, name: response.data.title, department: response.data.department, budget: response.data.budget, status: response.data.status, deadline: response.data.deadline },
+        ...prev,
+      ]);
+      setPlanForm({ name: '', department: '', budget: '', deadline: '', status: 'In Progress' });
+    } catch (error) {
+      console.error('Failed to save plan:', error);
+      setErrorMessage('Unable to save procurement plan to the backend.');
+    }
+  };
+
+  const handleRequisitionSubmit = async (event) => {
+    event.preventDefault();
+    if (!requisitionForm.title || !requisitionForm.department || !requisitionForm.amount) return;
+
+    const record = {
+      type: 'requisition',
+      title: requisitionForm.title,
+      department: requisitionForm.department,
+      amount: Number(requisitionForm.amount),
+      status: 'Pending Approval',
+      priority: requisitionForm.priority,
+      requestedBy: requisitionForm.requestedBy || 'Department Head',
+      description: requisitionForm.description,
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setRequisitions((prev) => [
+        { id: response.data._id, title: response.data.title, department: response.data.department, amount: response.data.amount, status: response.data.status, priority: response.data.priority, requestedBy: response.data.requestedBy, createdAt: new Date(response.data.createdAt).toISOString().slice(0, 10) },
+        ...prev,
+      ]);
+      setRequisitionForm({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
+    } catch (error) {
+      console.error('Failed to save requisition:', error);
+      setErrorMessage('Unable to save requisition to the backend.');
+    }
+  };
+
+  const updateRequisitionStatus = async (id, status) => {
+    try {
+      let updatedRecord = null;
+      if (typeof id === 'string' && id.length >= 8) {
+        const response = await api.put(`/procurement-records/${id}`, { status });
+        updatedRecord = response.data;
+      }
+
+      setRequisitions((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          return { ...item, status: updatedRecord?.status || status };
+        })
+      );
+
+      await fetchRecords();
+    } catch (error) {
+      console.error('Failed to update requisition status:', error);
+      setErrorMessage('Unable to update requisition status in the backend.');
+    }
+  };
+
+  const generatePurchaseOrder = async (requisition) => {
+    try {
+      const response = await api.post('/procurement-records', {
+        type: 'po',
+        requisitionId: requisition.id,
+        supplier: `${requisition.department} Vendor`,
+        amount: requisition.amount,
+        status: 'Issued',
+        issuedAt: new Date().toISOString().slice(0, 10),
+        title: `PO for ${requisition.title}`,
+      });
+
+      setPurchaseOrders((prev) => [
+        {
+          id: response.data._id,
+          requisitionId: response.data.requisitionId,
+          supplier: response.data.supplier,
+          amount: response.data.amount,
+          status: response.data.status,
+          issuedAt: response.data.issuedAt,
+        },
+        ...prev,
+      ]);
+
+      await api.put(`/procurement-records/${requisition.id}`, { status: 'Approved' });
+      await fetchRecords();
+    } catch (error) {
+      console.error('Failed to generate purchase order:', error);
+      setErrorMessage('Unable to save purchase order to the backend.');
+      return;
+    }
+  };
+
+  const handleSupplierSubmit = async (event) => {
+    event.preventDefault();
+    if (!supplierForm.name || !supplierForm.category) return;
+
+    const record = {
+      type: 'supplier',
+      title: supplierForm.name,
+      category: supplierForm.category,
+      performance: supplierForm.performance,
+      status: supplierForm.status,
+      contact: supplierForm.contact || 'Contact details pending',
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setSuppliers((prev) => [
+        { id: response.data._id, name: response.data.title, category: response.data.category, performance: response.data.performance, status: response.data.status, contact: response.data.contact },
+        ...prev,
+      ]);
+      setSupplierForm({ name: '', category: '', performance: 'Good', status: 'Active', contact: '' });
+    } catch (error) {
+      console.error('Failed to save supplier:', error);
+      setErrorMessage('Unable to save supplier record to the backend.');
+    }
+  };
+
+  const handleTenderSubmit = async (event) => {
+    event.preventDefault();
+    if (!tenderForm.title || !tenderForm.closingDate) return;
+
+    const record = {
+      type: 'tender',
+      title: tenderForm.title,
+      status: tenderForm.status,
+      bids: Number(tenderForm.bids) || 0,
+      closingDate: tenderForm.closingDate,
+      recommendation: tenderForm.recommendation || 'Pending Evaluation',
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setTenders((prev) => [
+        { id: response.data._id, title: response.data.title, status: response.data.status, bids: response.data.bids, closingDate: response.data.closingDate, recommendation: response.data.recommendation },
+        ...prev,
+      ]);
+      setTenderForm({ title: '', closingDate: '', status: 'Open', bids: '', recommendation: '' });
+    } catch (error) {
+      console.error('Failed to save tender:', error);
+      setErrorMessage('Unable to save tender record to the backend.');
+    }
+  };
+
+  const handleInventorySubmit = async (event) => {
+    event.preventDefault();
+    if (!inventoryForm.name || !inventoryForm.category) return;
+
+    const record = {
+      type: 'inventory',
+      title: inventoryForm.name,
+      category: inventoryForm.category,
+      stock: Number(inventoryForm.stock) || 0,
+      reorderLevel: Number(inventoryForm.reorderLevel) || 0,
+      status: Number(inventoryForm.stock) <= Number(inventoryForm.reorderLevel) ? 'Low Stock' : inventoryForm.status,
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setInventoryItems((prev) => [
+        { id: response.data._id, name: response.data.title, category: response.data.category, stock: response.data.stock, reorderLevel: response.data.reorderLevel, status: response.data.status },
+        ...prev,
+      ]);
+      setInventoryForm({ name: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
+    } catch (error) {
+      console.error('Failed to save inventory:', error);
+      setErrorMessage('Unable to save inventory record to the backend.');
+    }
+  };
+
+  const handleContractSubmit = async (event) => {
+    event.preventDefault();
+    if (!contractForm.title || !contractForm.supplier || !contractForm.expiryDate) return;
+
+    const record = {
+      type: 'contract',
+      title: contractForm.title,
+      supplier: contractForm.supplier,
+      expiryDate: contractForm.expiryDate,
+      performance: contractForm.performance,
+      documentStatus: contractForm.documentStatus,
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setContracts((prev) => [
+        { id: response.data._id, title: response.data.title, supplier: response.data.supplier, expiryDate: response.data.expiryDate, performance: response.data.performance, documentStatus: response.data.documentStatus },
+        ...prev,
+      ]);
+      setContractForm({ title: '', supplier: '', expiryDate: '', performance: 'On Track', documentStatus: 'Stored electronically' });
+    } catch (error) {
+      console.error('Failed to save contract:', error);
+      setErrorMessage('Unable to save contract record to the backend.');
+    }
+  };
+
+  const handleReportSubmit = async (event) => {
+    event.preventDefault();
+    if (!reportForm.title) return;
+
+    const record = {
+      type: 'report',
+      title: reportForm.title,
+      status: 'Ready',
+      summary: reportForm.summary || 'Report generated for procurement review.',
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setReports((prev) => [
+        { id: response.data._id, title: response.data.title, status: response.data.status, summary: response.data.summary },
+        ...prev,
+      ]);
+      setReportForm({ title: '', type: 'Procurement Report', summary: '' });
+    } catch (error) {
+      console.error('Failed to save report:', error);
+      setErrorMessage('Unable to save report record to the backend.');
+    }
+  };
+
+  const handleDocumentSubmit = async (event) => {
+    event.preventDefault();
+    if (!documentForm.title || !documentForm.reference) return;
+
+    const record = {
+      type: 'document',
+      title: documentForm.title,
+      category: documentForm.category,
+      reference: documentForm.reference,
+      status: documentForm.status,
+      date: documentForm.date || new Date().toISOString().slice(0, 10),
+    };
+
+    try {
+      const response = await api.post('/procurement-records', record);
+      setDocumentRecords((prev) => [
+        { id: response.data._id, title: response.data.title, category: response.data.category, reference: response.data.reference, status: response.data.status, date: response.data.date },
+        ...prev,
+      ]);
+      setDocumentForm({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' });
+    } catch (error) {
+      console.error('Failed to save document record:', error);
+      setErrorMessage('Unable to save document record to the backend.');
+    }
+  };
+
+  const filteredDocumentRecords = documentRecords.filter((item) => {
+    const query = documentSearch.trim().toLowerCase();
+    if (!query) return true;
+
+    return [item.title, item.category, item.reference, item.status].some((value) =>
+      String(value).toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="card procurement-card">
@@ -265,6 +695,69 @@ export default function Procurement() {
       )}
 
       <div className="procurement-controls">
+        <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
+          <div className="summary-card">
+            <h3>Procurement Plans</h3>
+            <strong>{plans.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Pending Approvals</h3>
+            <strong>{pendingApprovals}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Purchase Orders</h3>
+            <strong>{purchaseOrders.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Budget Allocated</h3>
+            <strong>{new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(totalBudget)}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Registered Suppliers</h3>
+            <strong>{suppliers.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Active Tenders</h3>
+            <strong>{tenders.filter((item) => item.status === 'Open').length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Low Stock Items</h3>
+            <strong>{inventoryItems.filter((item) => item.stock <= item.reorderLevel).length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Active Contracts</h3>
+            <strong>{contracts.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Available Reports</h3>
+            <strong>{reports.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Alerts</h3>
+            <strong>{notifications.length}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Pending Requisitions</h3>
+            <strong>{pendingApprovals}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Active Tenders</h3>
+            <strong>{openTenders}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Expenditure Summary</h3>
+            <strong>{new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(totalExpenditure)}</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Supplier Statistics</h3>
+            <strong>{suppliers.length} active suppliers</strong>
+          </div>
+          <div className="summary-card">
+            <h3>Real-Time Progress</h3>
+            <strong>{workflowCompletion}%</strong>
+          </div>
+        </div>
+
         <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', width: '100%' }}>
           <section className="card" style={{ padding: '1rem' }}>
             <h3 style={{ marginTop: 0 }}>Procurement Activities</h3>
@@ -287,6 +780,45 @@ export default function Procurement() {
             <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{logbookExamples.map((item) => <li key={item}>{item}</li>)}</ul>
           </section>
         </div>
+        <section className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Audit, Compliance & Workflow Status</h3>
+          <p style={{ marginTop: '-0.25rem' }}>Maintain procurement records for auditing, ensure compliance with procurement regulations, view audit trails, and monitor performance indicators in real time.</p>
+          <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            <article className="card" style={{ padding: '0.9rem', backgroundColor: '#f7f9fc' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Audit Trail</h4>
+              {auditTrail.map((item) => (
+                <div key={item.id} style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e5eaf2' }}>
+                  <strong>{item.event}</strong>
+                  <div className="file-meta">Actor: {item.actor}</div>
+                  <div className="file-meta">Time: {item.time}</div>
+                </div>
+              ))}
+            </article>
+            <article className="card" style={{ padding: '0.9rem', backgroundColor: '#fffaf2' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Compliance Checks</h4>
+              <ul style={{ margin: '0.25rem 0 0 1rem', paddingLeft: '0.75rem' }}>
+                {complianceChecks.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </article>
+            <article className="card" style={{ padding: '0.9rem', backgroundColor: '#f3fbff' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Performance Indicators</h4>
+              <div className="file-meta">Open tenders: {openTenders}</div>
+              <div className="file-meta">Supplier ratings: {Object.entries(supplierStats).map(([key, value]) => `${key}: ${value}`).join(' · ') || 'No data yet'}</div>
+              <div className="file-meta">Procurement progress: {workflowCompletion}%</div>
+              <div className="file-meta">Total expenditure tracked: {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(totalExpenditure)}</div>
+            </article>
+            <article className="card" style={{ padding: '0.9rem', backgroundColor: '#fff8e6' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Live Alerts</h4>
+              {notifications.map((item) => (
+                <div key={item.id} style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid #ffe0a3' }}>
+                  <strong>{item.title}</strong>
+                  <div className="file-meta">{item.detail}</div>
+                </div>
+              ))}
+            </article>
+          </div>
+        </section>
+
         <div className="storage-note">
           <strong>Storage folder:</strong> <code>/uploads/procurement/</code>
         </div>
@@ -303,6 +835,282 @@ export default function Procurement() {
             More Procurements
           </a>
         </div>
+      </div>
+
+      <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', width: '100%', marginTop: '1rem' }}>
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Supplier Management</h3>
+          <form onSubmit={handleSupplierSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="name" value={supplierForm.name} onChange={handleSupplierFormChange} placeholder="Supplier name" required />
+            <input name="category" value={supplierForm.category} onChange={handleSupplierFormChange} placeholder="Goods / services offered" required />
+            <input name="contact" value={supplierForm.contact} onChange={handleSupplierFormChange} placeholder="Contact email / phone" />
+            <select name="performance" value={supplierForm.performance} onChange={handleSupplierFormChange}>
+              <option value="Excellent">Excellent</option>
+              <option value="Good">Good</option>
+              <option value="Average">Average</option>
+              <option value="Needs Review">Needs Review</option>
+            </select>
+            <select name="status" value={supplierForm.status} onChange={handleSupplierFormChange}>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Under Review">Under Review</option>
+            </select>
+            <button type="submit" className="button">Register Supplier</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Tender Management</h3>
+          <form onSubmit={handleTenderSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="title" value={tenderForm.title} onChange={handleTenderFormChange} placeholder="Tender title" required />
+            <input name="closingDate" type="date" value={tenderForm.closingDate} onChange={handleTenderFormChange} required />
+            <input name="bids" type="number" min="0" value={tenderForm.bids} onChange={handleTenderFormChange} placeholder="Number of bids received" />
+            <select name="status" value={tenderForm.status} onChange={handleTenderFormChange}>
+              <option value="Open">Open</option>
+              <option value="Under Evaluation">Under Evaluation</option>
+              <option value="Awarded">Awarded</option>
+            </select>
+            <input name="recommendation" value={tenderForm.recommendation} onChange={handleTenderFormChange} placeholder="Recommendation / award notice" />
+            <button type="submit" className="button">Publish Tender</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Inventory & Stores Management</h3>
+          <form onSubmit={handleInventorySubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="name" value={inventoryForm.name} onChange={handleInventoryFormChange} placeholder="Item / goods name" required />
+            <input name="category" value={inventoryForm.category} onChange={handleInventoryFormChange} placeholder="Category" required />
+            <input name="stock" type="number" min="0" value={inventoryForm.stock} onChange={handleInventoryFormChange} placeholder="Current stock level" required />
+            <input name="reorderLevel" type="number" min="0" value={inventoryForm.reorderLevel} onChange={handleInventoryFormChange} placeholder="Reorder level" required />
+            <select name="status" value={inventoryForm.status} onChange={handleInventoryFormChange}>
+              <option value="Available">Available</option>
+              <option value="Low Stock">Low Stock</option>
+              <option value="Out of Stock">Out of Stock</option>
+            </select>
+            <button type="submit" className="button">Record Goods / Update Stock</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Contract Management</h3>
+          <form onSubmit={handleContractSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="title" value={contractForm.title} onChange={handleContractFormChange} placeholder="Contract title" required />
+            <input name="supplier" value={contractForm.supplier} onChange={handleContractFormChange} placeholder="Supplier / contractor" required />
+            <input name="expiryDate" type="date" value={contractForm.expiryDate} onChange={handleContractFormChange} required />
+            <select name="performance" value={contractForm.performance} onChange={handleContractFormChange}>
+              <option value="On Track">On Track</option>
+              <option value="Needs Review">Needs Review</option>
+              <option value="At Risk">At Risk</option>
+            </select>
+            <input name="documentStatus" value={contractForm.documentStatus} onChange={handleContractFormChange} placeholder="Electronic storage status" />
+            <button type="submit" className="button">Create Contract</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Reporting</h3>
+          <form onSubmit={handleReportSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="title" value={reportForm.title} onChange={handleReportFormChange} placeholder="Report title" required />
+            <select name="type" value={reportForm.type} onChange={handleReportFormChange}>
+              <option>Procurement Report</option>
+              <option>Supplier Performance Report</option>
+              <option>Tender Evaluation Report</option>
+              <option>Expenditure & Procurement Summary</option>
+            </select>
+            <textarea name="summary" value={reportForm.summary} onChange={handleReportFormChange} rows="3" placeholder="Brief report summary" />
+            <button type="submit" className="button">Generate Report</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Document Management</h3>
+          <p style={{ marginTop: '-0.25rem' }}>Upload procurement documents, store quotations, invoices, and contracts, and retrieve archived records quickly.</p>
+          <form onSubmit={handleDocumentSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="title" value={documentForm.title} onChange={handleDocumentFormChange} placeholder="Document title" required />
+            <select name="category" value={documentForm.category} onChange={handleDocumentFormChange}>
+              <option value="Quotation">Quotation</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Contract">Contract</option>
+              <option value="Tender">Tender</option>
+            </select>
+            <input name="reference" value={documentForm.reference} onChange={handleDocumentFormChange} placeholder="Reference number" required />
+            <input name="date" type="date" value={documentForm.date} onChange={handleDocumentFormChange} />
+            <select name="status" value={documentForm.status} onChange={handleDocumentFormChange}>
+              <option value="Stored">Stored</option>
+              <option value="Matched">Matched</option>
+              <option value="Archived">Archived</option>
+            </select>
+            <button type="submit" className="button">Store Document Record</button>
+          </form>
+          <div className="card" style={{ padding: '0.75rem', marginTop: '0.75rem', backgroundColor: '#f7fbff' }}>
+            <input
+              type="search"
+              placeholder="Search quotations, invoices, contracts, or references"
+              value={documentSearch}
+              onChange={(e) => setDocumentSearch(e.target.value)}
+              style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid #d0d7de' }}
+            />
+          </div>
+          <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.75rem' }}>
+            {filteredDocumentRecords.map((item) => (
+              <article key={item.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{item.title}</strong>
+                <div className="file-meta">{item.category} · Ref: {item.reference}</div>
+                <div className="file-meta">Status: {item.status} · Date: {item.date}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Create Procurement Plan</h3>
+          <form onSubmit={handlePlanSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="name" value={planForm.name} onChange={handlePlanFormChange} placeholder="Plan title" required />
+            <input name="department" value={planForm.department} onChange={handlePlanFormChange} placeholder="Department" required />
+            <input name="budget" type="number" min="0" value={planForm.budget} onChange={handlePlanFormChange} placeholder="Allocated budget" required />
+            <input name="deadline" type="date" value={planForm.deadline} onChange={handlePlanFormChange} />
+            <select name="status" value={planForm.status} onChange={handlePlanFormChange}>
+              <option value="In Progress">In Progress</option>
+              <option value="Approved">Approved</option>
+              <option value="Completed">Completed</option>
+            </select>
+            <button type="submit" className="button">Save Plan</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Create Purchase Requisition</h3>
+          <form onSubmit={handleRequisitionSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <input name="title" value={requisitionForm.title} onChange={handleRequisitionFormChange} placeholder="Item or service required" required />
+            <input name="department" value={requisitionForm.department} onChange={handleRequisitionFormChange} placeholder="Department" required />
+            <input name="amount" type="number" min="0" value={requisitionForm.amount} onChange={handleRequisitionFormChange} placeholder="Estimated amount" required />
+            <input name="requestedBy" value={requisitionForm.requestedBy} onChange={handleRequisitionFormChange} placeholder="Requested by" />
+            <select name="priority" value={requisitionForm.priority} onChange={handleRequisitionFormChange}>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+            <textarea name="description" value={requisitionForm.description} onChange={handleRequisitionFormChange} rows="3" placeholder="Justification / specification" />
+            <button type="submit" className="button">Submit Requisition</button>
+          </form>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Approval & Order Tracking</h3>
+          <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+            <li>Pending approvals: {pendingApprovals}</li>
+            <li>Issued orders: {completedOrders}</li>
+            <li>Budget covered by current plans: {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(totalBudget)}</li>
+          </ul>
+        </section>
+      </div>
+
+      <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', width: '100%', marginTop: '1rem' }}>
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Current Procurement Plans</h3>
+          <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+            {plans.map((plan) => (
+              <li key={plan.id} style={{ marginBottom: '0.4rem' }}>
+                <strong>{plan.name}</strong> — {plan.department} · {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(plan.budget)} · {plan.status}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Requisition Review</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {requisitions.map((item) => (
+              <article key={item.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{item.title}</strong>
+                <div className="file-meta">{item.department} · {item.requestedBy} · {item.priority} priority</div>
+                <div className="file-meta">KES {item.amount.toLocaleString()} · {item.status}</div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <button type="button" className="button small-button" onClick={() => updateRequisitionStatus(item.id, 'Approved')}>Approve</button>
+                  <button type="button" className="button small-button" style={{ backgroundColor: '#dc3545', color: 'white' }} onClick={() => updateRequisitionStatus(item.id, 'Rejected')}>Reject</button>
+                  <button type="button" className="button small-button" onClick={() => generatePurchaseOrder(item)}>Generate PO</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Supplier Database</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {suppliers.map((supplier) => (
+              <article key={supplier.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{supplier.name}</strong>
+                <div className="file-meta">Category: {supplier.category}</div>
+                <div className="file-meta">Performance: {supplier.performance} · Status: {supplier.status}</div>
+                <div className="file-meta">Contact: {supplier.contact}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Tender Pipeline</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {tenders.map((tender) => (
+              <article key={tender.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{tender.title}</strong>
+                <div className="file-meta">Status: {tender.status} · Bids: {tender.bids}</div>
+                <div className="file-meta">Closing date: {tender.closingDate}</div>
+                <div className="file-meta">Recommendation: {tender.recommendation}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Inventory Availability</h3>
+          <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+            {inventoryItems.map((item) => (
+              <li key={item.id} style={{ marginBottom: '0.4rem' }}>
+                <strong>{item.name}</strong> — {item.category} · Stock: {item.stock} · Reorder: {item.reorderLevel} · {item.status}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Contract Register</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {contracts.map((contract) => (
+              <article key={contract.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{contract.title}</strong>
+                <div className="file-meta">Supplier: {contract.supplier}</div>
+                <div className="file-meta">Expiry: {contract.expiryDate} · Performance: {contract.performance}</div>
+                <div className="file-meta">Documents: {contract.documentStatus}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Report Library</h3>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {reports.map((item) => (
+              <article key={item.id} className="note" style={{ padding: '0.75rem' }}>
+                <strong>{item.title}</strong>
+                <div className="file-meta">Status: {item.status}</div>
+                <div className="file-meta">{item.summary}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" style={{ padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>Purchase Orders</h3>
+          <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+            {purchaseOrders.map((order) => (
+              <li key={order.id} style={{ marginBottom: '0.4rem' }}>
+                <strong>PO-{order.id}</strong> · Supplier: {order.supplier} · {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(order.amount)} · {order.status}
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
 
       <div className="procurement-file-list">
