@@ -4000,10 +4000,9 @@ tbody tr:last-child td {
 
 .leader-card {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
   border-radius: var(--border-radius);
   padding: 1.5rem;
-  box-shadow: var(--shadow);
+
   border: 1px solid rgba(255, 255, 255, 0.2);
   text-align: center;
 }
