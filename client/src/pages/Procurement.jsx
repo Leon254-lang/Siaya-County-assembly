@@ -857,27 +857,30 @@ export default function Procurement() {
             </p>
           </div>
           <div className="procurement-badges">
-            <span className="procurement-badge">📁 Upload documents</span>
-            <span className="procurement-badge">🧾 Review requisitions</span>
-            <span className="procurement-badge">📦 Track orders</span>
+            <span className="procurement-badge"><strong>📁</strong> Upload documents</span>
+            <span className="procurement-badge"><strong>🧾</strong> Review requisitions</span>
+            <span className="procurement-badge"><strong>📦</strong> Track purchase orders</span>
           </div>
         </section>
 
         <div className="procurement-focus-grid" style={{ width: '100%', marginBottom: '1rem' }}>
-          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #fff7f7 0%, #fff 100%)' }}>
+          <article className="summary-card executive-focus-card" style={{ background: 'linear-gradient(135deg, #fff7f7 0%, #fff 100%)' }}>
             <span>What to do now</span>
             <strong>{pendingApprovals} pending review</strong>
-            <small style={{ color: 'var(--text-secondary)' }}>Approve or reject requisitions and generate purchase orders from one place.</small>
+            <small style={{ color: 'var(--text-secondary)' }}>Approve requisitions and convert them into purchase orders in a single flow.</small>
+            <div className="executive-bar"><span style={{ width: `${Math.min(100, pendingApprovals * 20)}%` }} /></div>
           </article>
-          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #f4fbff 0%, #fff 100%)' }}>
+          <article className="summary-card executive-focus-card" style={{ background: 'linear-gradient(135deg, #f4fbff 0%, #fff 100%)' }}>
             <span>Supplier & tenders</span>
             <strong>{suppliers.length} suppliers · {tenders.filter((item) => item.status === 'Open').length} open tenders</strong>
-            <small style={{ color: 'var(--text-secondary)' }}>Register suppliers and publish tender updates faster.</small>
+            <small style={{ color: 'var(--text-secondary)' }}>Track supplier availability, tender activity, and award readiness from one view.</small>
+            <div className="executive-bar"><span style={{ width: `${Math.min(100, (suppliers.length + openTenders) * 6)}%` }} /></div>
           </article>
-          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #fffaf2 0%, #fff 100%)' }}>
+          <article className="summary-card executive-focus-card" style={{ background: 'linear-gradient(135deg, #fffaf2 0%, #fff 100%)' }}>
             <span>Operational health</span>
             <strong>{lowStockItems.length} low-stock items</strong>
-            <small style={{ color: 'var(--text-secondary)' }}>Monitor renewal reminders and inventory alerts before they escalate.</small>
+            <small style={{ color: 'var(--text-secondary)' }}>Watch contract renewals and inventory alerts before they affect service delivery.</small>
+            <div className="executive-bar"><span style={{ width: `${Math.min(100, lowStockItems.length * 25)}%` }} /></div>
           </article>
         </div>
 
@@ -970,7 +973,7 @@ export default function Procurement() {
             </ul>
           </section>
         </div>
-        <section className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
+        <section className="card executive-panel" style={{ padding: '1rem', marginTop: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>Audit, Compliance & Workflow Status</h3>
           <p style={{ marginTop: '-0.25rem' }}>Maintain procurement records for auditing, ensure compliance with procurement regulations, view audit trails, and monitor performance indicators in real time.</p>
           <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
@@ -994,7 +997,11 @@ export default function Procurement() {
               <h4 style={{ marginTop: 0, marginBottom: '0.35rem' }}>Performance Indicators</h4>
               <div className="file-meta">Open tenders: {openTenders}</div>
               <div className="file-meta">Supplier ratings: {Object.entries(supplierStats).map(([key, value]) => `${key}: ${value}`).join(' · ') || 'No data yet'}</div>
-              <div className="file-meta">Procurement progress: {workflowCompletion}%</div>
+              <div className="executive-progress-wrap">
+                <div className="executive-progress-label">Procurement progress</div>
+                <div className="executive-progress-track"><span style={{ width: `${workflowCompletion}%` }} /></div>
+                <strong>{workflowCompletion}%</strong>
+              </div>
               <div className="file-meta">Total expenditure tracked: {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(totalExpenditure)}</div>
             </article>
             <article className="card" style={{ padding: '0.9rem', backgroundColor: '#fff8e6' }}>
