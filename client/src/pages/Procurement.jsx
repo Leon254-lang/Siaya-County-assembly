@@ -699,6 +699,39 @@ export default function Procurement() {
       )}
 
       <div className="procurement-controls">
+        <section className="procurement-hero card" style={{ width: '100%', padding: '1rem 1.1rem' }}>
+          <div>
+            <span className="eyebrow">Procurement dashboard</span>
+            <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.35rem' }}>Keep plans, approvals, suppliers, and documents in one clear workspace.</h2>
+            <p style={{ margin: '0 0 0.75rem', color: 'var(--text-secondary)' }}>
+              Use the top actions to upload files, create records, and track progress without jumping between screens.
+            </p>
+          </div>
+          <div className="procurement-badges">
+            <span className="procurement-badge">📁 Upload documents</span>
+            <span className="procurement-badge">🧾 Review requisitions</span>
+            <span className="procurement-badge">📦 Track orders</span>
+          </div>
+        </section>
+
+        <div className="procurement-focus-grid" style={{ width: '100%', marginBottom: '1rem' }}>
+          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #fff7f7 0%, #fff 100%)' }}>
+            <span>What to do now</span>
+            <strong>{pendingApprovals} pending review</strong>
+            <small style={{ color: 'var(--text-secondary)' }}>Approve or reject requisitions and generate purchase orders from one place.</small>
+          </article>
+          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #f4fbff 0%, #fff 100%)' }}>
+            <span>Supplier & tenders</span>
+            <strong>{suppliers.length} suppliers · {tenders.filter((item) => item.status === 'Open').length} open tenders</strong>
+            <small style={{ color: 'var(--text-secondary)' }}>Register suppliers and publish tender updates faster.</small>
+          </article>
+          <article className="summary-card" style={{ background: 'linear-gradient(135deg, #fffaf2 0%, #fff 100%)' }}>
+            <span>Operational health</span>
+            <strong>{lowStockItems.length} low-stock items</strong>
+            <small style={{ color: 'var(--text-secondary)' }}>Monitor renewal reminders and inventory alerts before they escalate.</small>
+          </article>
+        </div>
+
         <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
           <div className="summary-card">
             <h3>Procurement Plans</h3>
@@ -764,24 +797,28 @@ export default function Procurement() {
 
         <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', width: '100%' }}>
           <section className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Procurement Activities</h3>
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{procurementActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+            <h3 style={{ marginTop: 0 }}>Quick workflow</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+              <li>Start with a procurement plan, then route requisitions for approval.</li>
+              <li>Generate purchase orders directly from approved requests.</li>
+              <li>Keep supplier, tender, inventory, and contract records in one place.</li>
+            </ul>
           </section>
           <section className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Stores and Inventory Management</h3>
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{storesActivities.map((item) => <li key={item}>{item}</li>)}</ul>
+            <h3 style={{ marginTop: 0 }}>Monitoring made simple</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+              <li>Watch low-stock items and contract expiry dates before they become urgent.</li>
+              <li>Review procurement progress, expenditure, and supplier performance at a glance.</li>
+              <li>Use reports and document records for faster audit-ready follow-up.</li>
+            </ul>
           </section>
           <section className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Records Management</h3>
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{recordsActivities.map((item) => <li key={item}>{item}</li>)}</ul>
-          </section>
-          <section className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>ICT-Related Tasks</h3>
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{itActivities.map((item) => <li key={item}>{item}</li>)}</ul>
-          </section>
-          <section className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Logbook Entry Examples</h3>
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>{logbookExamples.map((item) => <li key={item}>{item}</li>)}</ul>
+            <h3 style={{ marginTop: 0 }}>How to use this page</h3>
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+              <li>Upload files from the top panel.</li>
+              <li>Create or review records in the cards below.</li>
+              <li>Refresh the page whenever you want the latest status from the backend.</li>
+            </ul>
           </section>
         </div>
         <section className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
