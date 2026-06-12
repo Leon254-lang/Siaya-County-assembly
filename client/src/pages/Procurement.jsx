@@ -565,6 +565,155 @@ export default function Procurement() {
     }
   };
 
+  const handlePrintTender = (tender) => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      setErrorMessage('Please allow pop-ups to print tender documents.');
+      return;
+    }
+
+    const content = `
+      <html>
+        <head>
+          <title>Print Tender - ${tender.title}</title>
+          <style>
+            @page { size: A4; margin: 16mm; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 18px; background: #fff; }
+            .header { border-bottom: 2px solid #b22234; padding-bottom: 10px; margin-bottom: 12px; }
+            .title { font-size: 22px; font-weight: 700; color: #111827; margin: 0; }
+            .sub { color: #4b5563; font-size: 12px; margin-top: 4px; }
+            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .box { border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; background: #fff; }
+            .label { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+            .value { font-size: 14px; font-weight: 600; color: #111827; }
+            .note { color: #374151; font-size: 12px; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">Tender Document</div>
+            <div class="sub">Siaya County Assembly Procurement Office · Official printout</div>
+          </div>
+          <div class="grid">
+            <div class="box"><div class="label">Tender title</div><div class="value">${tender.title || 'Untitled tender'}</div></div>
+            <div class="box"><div class="label">Status</div><div class="value">${tender.status || 'Pending'}</div></div>
+            <div class="box"><div class="label">Bids received</div><div class="value">${tender.bids || 0}</div></div>
+            <div class="box"><div class="label">Closing date</div><div class="value">${tender.closingDate || 'Not specified'}</div></div>
+          </div>
+          <div class="box" style="margin-top:12px;">
+            <div class="label">Recommendation / award notice</div>
+            <div class="value">${tender.recommendation || 'Pending evaluation'}</div>
+          </div>
+          <div class="note">Generated from the procurement dashboard. Print this page for official tender record keeping.</div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const handlePrintSupplier = (supplier) => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      setErrorMessage('Please allow pop-ups to print supplier documents.');
+      return;
+    }
+
+    const content = `
+      <html>
+        <head>
+          <title>Print Supplier - ${supplier.name}</title>
+          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
+        </head>
+        <body>
+          <div class="header"><div class="title">Supplier Record</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
+          <div class="grid">
+            <div class="box"><div class="label">Supplier name</div><div class="value">${supplier.name || 'Unnamed supplier'}</div></div>
+            <div class="box"><div class="label">Category</div><div class="value">${supplier.category || 'Not specified'}</div></div>
+            <div class="box"><div class="label">Performance</div><div class="value">${supplier.performance || 'Not rated'}</div></div>
+            <div class="box"><div class="label">Status</div><div class="value">${supplier.status || 'Active'}</div></div>
+          </div>
+          <div class="box" style="margin-top:12px;"><div class="label">Contact</div><div class="value">${supplier.contact || 'Not provided'}</div></div>
+          <div class="note">Generated from the procurement dashboard. Print this page for supplier documentation.</div>
+        </body>
+      </html>`;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const handlePrintContract = (contract) => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      setErrorMessage('Please allow pop-ups to print contract documents.');
+      return;
+    }
+
+    const content = `
+      <html>
+        <head>
+          <title>Print Contract - ${contract.title}</title>
+          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
+        </head>
+        <body>
+          <div class="header"><div class="title">Contract Record</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
+          <div class="grid">
+            <div class="box"><div class="label">Contract title</div><div class="value">${contract.title || 'Untitled contract'}</div></div>
+            <div class="box"><div class="label">Supplier</div><div class="value">${contract.supplier || 'Not specified'}</div></div>
+            <div class="box"><div class="label">Expiry date</div><div class="value">${contract.expiryDate || 'Not specified'}</div></div>
+            <div class="box"><div class="label">Performance</div><div class="value">${contract.performance || 'On Track'}</div></div>
+          </div>
+          <div class="box" style="margin-top:12px;"><div class="label">Document status</div><div class="value">${contract.documentStatus || 'Stored electronically'}</div></div>
+          <div class="note">Generated from the procurement dashboard. Print this page for contract administration.</div>
+        </body>
+      </html>`;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const handlePrintPurchaseOrder = (order) => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      setErrorMessage('Please allow pop-ups to print purchase orders.');
+      return;
+    }
+
+    const content = `
+      <html>
+        <head>
+          <title>Print Purchase Order - ${order.id}</title>
+          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
+        </head>
+        <body>
+          <div class="header"><div class="title">Purchase Order</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
+          <div class="grid">
+            <div class="box"><div class="label">PO number</div><div class="value">PO-${order.id || '000'}</div></div>
+            <div class="box"><div class="label">Status</div><div class="value">${order.status || 'Issued'}</div></div>
+            <div class="box"><div class="label">Supplier</div><div class="value">${order.supplier || 'Not specified'}</div></div>
+            <div class="box"><div class="label">Amount</div><div class="value">${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(order.amount || 0)}</div></div>
+          </div>
+          <div class="note">Generated from the procurement dashboard. Print this page for purchase order records.</div>
+        </body>
+      </html>`;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
   const handleDocumentSubmit = async (event) => {
     event.preventDefault();
     if (!documentForm.title || !documentForm.reference) return;
@@ -1085,6 +1234,9 @@ export default function Procurement() {
                 <div className="file-meta">Category: {supplier.category}</div>
                 <div className="file-meta">Performance: {supplier.performance} · Status: {supplier.status}</div>
                 <div className="file-meta">Contact: {supplier.contact}</div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button type="button" className="button small-button" onClick={() => handlePrintSupplier(supplier)}>Print Supplier</button>
+                </div>
               </article>
             ))}
           </div>
@@ -1099,6 +1251,9 @@ export default function Procurement() {
                 <div className="file-meta">Status: {tender.status} · Bids: {tender.bids}</div>
                 <div className="file-meta">Closing date: {tender.closingDate}</div>
                 <div className="file-meta">Recommendation: {tender.recommendation}</div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button type="button" className="button small-button" onClick={() => handlePrintTender(tender)}>Print Tender</button>
+                </div>
               </article>
             ))}
           </div>
@@ -1124,6 +1279,9 @@ export default function Procurement() {
                 <div className="file-meta">Supplier: {contract.supplier}</div>
                 <div className="file-meta">Expiry: {contract.expiryDate} · Performance: {contract.performance}</div>
                 <div className="file-meta">Documents: {contract.documentStatus}</div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button type="button" className="button small-button" onClick={() => handlePrintContract(contract)}>Print Contract</button>
+                </div>
               </article>
             ))}
           </div>
@@ -1146,8 +1304,11 @@ export default function Procurement() {
           <h3 style={{ marginTop: 0 }}>Purchase Orders</h3>
           <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
             {purchaseOrders.map((order) => (
-              <li key={order.id} style={{ marginBottom: '0.4rem' }}>
-                <strong>PO-{order.id}</strong> · Supplier: {order.supplier} · {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(order.amount)} · {order.status}
+              <li key={order.id} style={{ marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center' }}>
+                <span>
+                  <strong>PO-{order.id}</strong> · Supplier: {order.supplier} · {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(order.amount)} · {order.status}
+                </span>
+                <button type="button" className="button small-button" onClick={() => handlePrintPurchaseOrder(order)}>Print PO</button>
               </li>
             ))}
           </ul>
