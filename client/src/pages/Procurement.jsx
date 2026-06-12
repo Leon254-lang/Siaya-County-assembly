@@ -112,6 +112,7 @@ export default function Procurement() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [userRole, setUserRole] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState('');
   const [deleting, setDeleting] = useState({});
   const [planForm, setPlanForm] = useState({ name: '', department: '', budget: '', deadline: '', status: 'In Progress' });
   const [requisitionForm, setRequisitionForm] = useState({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
@@ -126,11 +127,14 @@ export default function Procurement() {
   const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
   const canUpload =
     isHOD ||
+    userRole === 'Procurement Officer' ||
     userRole?.includes('Admin');
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
+    const userId = localStorage.getItem('userId');
     setUserRole(role);
+    setCurrentUserId(userId || '');
     fetchFiles();
     fetchRecords();
   }, []);
@@ -185,7 +189,7 @@ export default function Procurement() {
     }
 
     if (!canUpload) {
-      setErrorMessage('Only HOD, Admin, or Super Admin can upload procurement documents.');
+      setErrorMessage('Only Procurement Officer, HOD, Admin, or Super Admin can upload procurement documents.');
       return;
     }
 
@@ -210,7 +214,7 @@ export default function Procurement() {
     } catch (error) {
       console.error('Upload failed:', error);
       if (error?.response?.status === 403) {
-        setErrorMessage('You do not have permission to upload procurement documents. Only HOD or Admin users can upload.');
+        setErrorMessage('You do not have permission to upload procurement documents. Only Procurement Officer, HOD, or Admin users can upload.');
       } else {
         setErrorMessage(error?.response?.data?.message || 'Unable to upload documents.');
       }
@@ -678,7 +682,7 @@ export default function Procurement() {
         {!canUpload && (
           <div className="upload-panel">
             <div className="warning-box" style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '4px', color: '#664d03' }}>
-              <strong>ℹ️ Upload Restricted:</strong> Only HOD, Admin, or Super Admin can upload procurement documents.
+              <strong>ℹ️ Upload Restricted:</strong> Only Procurement Officer, HOD, Admin, or Super Admin can upload procurement documents.
             </div>
           </div>
         )}
@@ -1151,7 +1155,7 @@ export default function Procurement() {
                         <a href={file.url} target="_blank" rel="noreferrer" className="button small-button">
                           Download
                         </a>
-                        {isHOD && (
+                        {(canUpload || file.uploadedBy?._id === currentUserId || file.uploadedBy === currentUserId) && (
                           <button
                             onClick={() => handleDelete(file._id)}
                             disabled={deleting[file._id]}
