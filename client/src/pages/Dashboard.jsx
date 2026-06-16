@@ -40,11 +40,11 @@ const features = [
 
 const quickLinks = [
   {
-    title: 'Know Your Leaders',
-    logo: '👥',
-    description: 'Meet the elected officials and key personnel leading Siaya County Assembly, including the Speaker, Members of County Assembly (MCAs), and executive committee.',
-    path: '/leaders',
-  },
+  title: 'Know Your Leaders',
+  logo: '👥',
+  description: 'Get to know the dedicated leaders serving the people of Siaya County. Access comprehensive profiles of the Speaker, MCAs, County Assembly committees, and key administrative officials. Learn about their responsibilities, leadership journeys, represented wards, ongoing initiatives, and contributions to policy-making, oversight, and community development. This platform promotes transparency, accountability, and citizen engagement by providing easy access to information about your elected and appointed leaders.',
+  path: '/leaders',
+},
   {
     title: 'Procurement',
     logo: '📋',
