@@ -45,6 +45,7 @@ const itActivities = [
   'Scanning and archiving procurement documents.',
   'Troubleshooting computers, printers, and scanners used in the department.',
   'Supporting electronic document management systems.',
+  'Assisting with procurement software user accounts and permissions.',
 ];
 
 const logbookExamples = [
