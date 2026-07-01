@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 const categories = ['Budget', 'Expenditure', 'Payment', 'Procurement'];
 const approvalStatuses = ['Pending', 'Approved', 'Rejected'];
 const recordStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected', 'Paid', 'Completed'];
+const requisitionPriorities = ['Low', 'Medium', 'High'];
 
 const formatCurrency = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return 'KES 0.00';
@@ -19,10 +21,21 @@ export default function Finance() {
   const [summary, setSummary] = useState({});
   const [departments, setDepartments] = useState([]);
   const [userRole, setUserRole] = useState('');
+  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [requisitionMessage, setRequisitionMessage] = useState('');
+  const [requisitionError, setRequisitionError] = useState('');
+  const [requisitionForm, setRequisitionForm] = useState({
+    title: '',
+    departmentId: '',
+    amount: '',
+    priority: 'Medium',
+    requestedBy: '',
+    description: '',
+  });
   const [form, setForm] = useState({
     title: '',
     category: 'Budget',
@@ -41,7 +54,9 @@ export default function Finance() {
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
+    const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
     setUserRole(role || '');
+    setUserName(storedUser?.name || localStorage.getItem('userName') || 'Department');
     fetchInitialData();
   }, []);
 
@@ -73,12 +88,52 @@ export default function Finance() {
 
   const fetchDepartments = async () => {
     const response = await api.get('/departments');
-    setDepartments(response.data.departments || []);
+    setDepartments(response.data || []);
   };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRequisitionInputChange = (event) => {
+    const { name, value } = event.target;
+    setRequisitionForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRequisitionSubmit = async (event) => {
+    event.preventDefault();
+    setRequisitionMessage('');
+    setRequisitionError('');
+
+    const selectedDepartment = departments.find((dept) => dept._id === requisitionForm.departmentId);
+    const departmentName = selectedDepartment?.name || requisitionForm.departmentId;
+
+    const payload = {
+      type: 'requisition',
+      title: requisitionForm.title,
+      department: departmentName,
+      amount: Number(requisitionForm.amount) || 0,
+      priority: requisitionForm.priority,
+      requestedBy: requisitionForm.requestedBy || userName || 'Department',
+      description: requisitionForm.description,
+      status: 'Pending Approval',
+    };
+
+    try {
+      await api.post('/procurement-records', payload);
+      setRequisitionMessage('Purchase requisition submitted successfully.');
+      setRequisitionForm({
+        title: '',
+        departmentId: '',
+        amount: '',
+        priority: 'Medium',
+        requestedBy: '',
+        description: '',
+      });
+    } catch (error) {
+      setRequisitionError(error.response?.data?.message || 'Unable to submit requisition.');
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -157,6 +212,76 @@ export default function Finance() {
           <strong>{formatCurrency(summary.totalPayments || 0)}</strong>
         </div>
       </div>
+
+      <section className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <h2>Submit Department Requisition</h2>
+            <p style={{ margin: 0, color: '#475569' }}>Create a purchase requisition and send it into the procurement queue for review.</p>
+          </div>
+          <Link to="/procurement" className="module-link">Go to Procurement</Link>
+        </div>
+
+        {requisitionMessage && <div className="message success-message">{requisitionMessage}</div>}
+        {requisitionError && <div className="message error-message">{requisitionError}</div>}
+
+        <form onSubmit={handleRequisitionSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+          <div className="grid-columns" style={{ gap: '1rem' }}>
+            <label>
+              Requisition title
+              <input name="title" value={requisitionForm.title} onChange={handleRequisitionInputChange} required />
+            </label>
+            <label>
+              Department
+              <select name="departmentId" value={requisitionForm.departmentId} onChange={handleRequisitionInputChange} required>
+                <option value="">Select department</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>{dept.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Amount
+              <input name="amount" type="number" min="0" value={requisitionForm.amount} onChange={handleRequisitionInputChange} required />
+            </label>
+            <label>
+              Priority
+              <select name="priority" value={requisitionForm.priority} onChange={handleRequisitionInputChange}>
+                {requisitionPriorities.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Requested by
+              <input name="requestedBy" value={requisitionForm.requestedBy} onChange={handleRequisitionInputChange} />
+            </label>
+          </div>
+
+          <label>
+            Description
+            <textarea name="description" rows="3" value={requisitionForm.description} onChange={handleRequisitionInputChange} />
+          </label>
+
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button type="submit">Submit requisition</button>
+            <button type="button" className="secondary" onClick={() => {
+              setRequisitionForm({
+                title: '',
+                departmentId: '',
+                amount: '',
+                priority: 'Medium',
+                requestedBy: '',
+                description: '',
+              });
+              setRequisitionMessage('');
+              setRequisitionError('');
+            }}>
+              Clear form
+            </button>
+          </div>
+        </form>
+      </section>
 
       {message && <div className="message success-message">{message}</div>}
       {errorMessage && <div className="message error-message">{errorMessage}</div>}

@@ -137,6 +137,11 @@ export default function Dashboard() {
   const [nextMeetings, setNextMeetings] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [latestRequisitions, setLatestRequisitions] = useState([]);
+  const [requisitionForm, setRequisitionForm] = useState({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
+  const [requisitionMessage, setRequisitionMessage] = useState('');
+  const [requisitionError, setRequisitionError] = useState('');
   const [loadingMeetings, setLoadingMeetings] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -148,6 +153,12 @@ export default function Dashboard() {
 
     setIsLoggedIn(!!token);
     setUserRole(role);
+    if (storedUser?.department?.name) {
+      setRequisitionForm((prev) => ({ ...prev, department: storedUser.department.name }));
+    }
+    if (storedUser?.name) {
+      setRequisitionForm((prev) => ({ ...prev, requestedBy: storedUser.name }));
+    }
   }, []);
 
   useEffect(() => {
@@ -171,8 +182,61 @@ export default function Dashboard() {
       }
     };
 
+    const loadDashboardData = async () => {
+      try {
+        const [departmentsRes, procurementRes] = await Promise.all([
+          api.get('/departments'),
+          api.get('/procurement-records'),
+        ]);
+        setDepartments(departmentsRes.data || []);
+        const requisitions = (procurementRes.data.records || []).filter((item) => item.type === 'requisition');
+        const sorted = requisitions
+          .slice()
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5);
+        setLatestRequisitions(sorted);
+      } catch (error) {
+        console.error('Failed to load dashboard procurement data', error);
+      }
+    };
+
     loadMeetings();
+    loadDashboardData();
   }, [isLoggedIn]);
+
+  const handleRequisitionInputChange = (event) => {
+    const { name, value } = event.target;
+    setRequisitionForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRequisitionSubmit = async (event) => {
+    event.preventDefault();
+    setRequisitionMessage('');
+    setRequisitionError('');
+
+    const payload = {
+      type: 'requisition',
+      title: requisitionForm.title,
+      department: requisitionForm.department,
+      amount: Number(requisitionForm.amount) || 0,
+      priority: requisitionForm.priority,
+      requestedBy: requisitionForm.requestedBy || 'Department',
+      description: requisitionForm.description,
+      status: 'Pending Approval',
+    };
+
+    try {
+      await api.post('/procurement-records', payload);
+      setRequisitionMessage('Purchase requisition submitted successfully. Procurement will see it in the latest requisitions list.');
+      setRequisitionForm({ title: '', department: requisitionForm.department, amount: '', priority: 'Medium', requestedBy: requisitionForm.requestedBy, description: '' });
+      const procurementRes = await api.get('/procurement-records');
+      const requisitions = (procurementRes.data.records || []).filter((item) => item.type === 'requisition');
+      setLatestRequisitions(requisitions.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5));
+    } catch (error) {
+      setRequisitionError(error.response?.data?.message || 'Unable to submit requisition.');
+      console.error('Failed to submit requisition', error);
+    }
+  };
 
   return (
     <div className="dashboard">
@@ -371,6 +435,98 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="modules-section" style={{ marginBottom: '1.5rem' }}>
+            <div className="section-header theme-blue">
+              <h2>Department Requisition Request</h2>
+              <p>Submit a department purchase requisition and send it directly into procurement for review.</p>
+            </div>
+            <div className="card" style={{ padding: '1.25rem' }}>
+              {requisitionMessage && <div className="message success-message">{requisitionMessage}</div>}
+              {requisitionError && <div className="message error-message">{requisitionError}</div>}
+              <form onSubmit={handleRequisitionSubmit} style={{ display: 'grid', gap: '1rem' }}>
+                <div className="grid-columns" style={{ gap: '1rem' }}>
+                  <label>
+                    Requisition title
+                    <input name="title" value={requisitionForm.title} onChange={handleRequisitionInputChange} required />
+                  </label>
+                  <label>
+                    Department
+                    <select name="department" value={requisitionForm.department} onChange={handleRequisitionInputChange} required>
+                      <option value="">Select department</option>
+                      {departments.map((dept) => (
+                        <option key={dept._id} value={dept.name}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Amount
+                    <input name="amount" type="number" min="0" value={requisitionForm.amount} onChange={handleRequisitionInputChange} required />
+                  </label>
+                  <label>
+                    Priority
+                    <select name="priority" value={requisitionForm.priority} onChange={handleRequisitionInputChange}>
+                      {['Low', 'Medium', 'High'].map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Requested by
+                    <input name="requestedBy" value={requisitionForm.requestedBy} onChange={handleRequisitionInputChange} />
+                  </label>
+                </div>
+                <label>
+                  Description
+                  <textarea name="description" rows="3" value={requisitionForm.description} onChange={handleRequisitionInputChange} />
+                </label>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button type="submit">Submit requisition</button>
+                  <button type="button" className="secondary" onClick={() => {
+                    setRequisitionForm((prev) => ({ ...prev, title: '', amount: '', priority: 'Medium', description: '' }));
+                    setRequisitionMessage('');
+                    setRequisitionError('');
+                  }}>Clear form</button>
+                </div>
+              </form>
+            </div>
+
+            <div className="card" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                <div>
+                  <h3>Latest department requisitions</h3>
+                  <p style={{ margin: 0, color: '#475569' }}>These requests are routed directly into procurement and are visible in the Procurement Officer dashboard.</p>
+                </div>
+                <Link to="/procurement" className="module-link">Open Procurement</Link>
+              </div>
+              {latestRequisitions.length === 0 ? (
+                <div className="empty-state" style={{ marginTop: '1rem' }}>No requisitions found yet.</div>
+              ) : (
+                <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                  <table className="file-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Department</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {latestRequisitions.map((item) => (
+                        <tr key={item._id || item.id}>
+                          <td>{item.title}</td>
+                          <td>{item.department || 'N/A'}</td>
+                          <td>{new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(item.amount || 0)}</td>
+                          <td>{item.status || 'Pending Approval'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
