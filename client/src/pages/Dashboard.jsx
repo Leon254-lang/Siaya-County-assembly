@@ -17,6 +17,24 @@ const heroImages = [
   },
 ];
 
+const heroStats = [
+  {
+    label: 'Live modules',
+    value: '12',
+    detail: 'Manage documents, attendance, meetings, and public feedback in one portal.',
+  },
+  {
+    label: 'Meeting schedules',
+    value: '8+',
+    detail: 'View confirmed assembly and committee sittings with reminders and calendar access.',
+  },
+  {
+    label: 'Public feedback',
+    value: 'Open',
+    detail: 'Receive and manage public participation enquiries and report submissions.',
+  },
+];
+
 const imageFallback = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%234f46e5"/%3E%3Cstop offset="1" stop-color="%2306b6d4"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="900" height="600" fill="url(%23g)"/%3E%3Ctext x="50%25" y="50%25" fill="%23ffffff" font-family="Inter, sans-serif" font-size="36" text-anchor="middle" dominant-baseline="middle"%3ESiaya County Assembly%3C/text%3E%3C/svg%3E';
 
 const features = [
@@ -161,27 +179,41 @@ export default function Dashboard() {
       <section className="hero">
         <div className="hero-copy">
           <span>County Assembly of Siaya</span>
-          <h1>Welcome to the official Siaya County Assembly system</h1>
-          <p>Explore county services, manage meetings, documents, attendance, visitors, interns and public feedback through one central platform.</p>
+          <h1>Secure digital access to assembly services, meetings, documents and citizen engagement</h1>
+          <p>Manage county assembly operations, stay informed on sittings and announcements, and participate in public feedback from one central portal.</p>
+
           <div className="hero-actions">
             <Link to="/login" className="hero-action">Secure Access</Link>
             <Link to="/faq" className="hero-action secondary">Explore Services</Link>
           </div>
+
+          <div className="hero-quickstats">
+            {heroStats.map((stat) => (
+              <div className="hero-stat" key={stat.label}>
+                <span>{stat.label}</span>
+                <strong>{stat.value}</strong>
+                <p>{stat.detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="hero-images">
-          {heroImages.map((image) => (
-            <div className="hero-image" key={image.alt}>
-              <img
-                src={image.src}
-                alt={image.alt}
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = imageFallback;
-                }}
-              />
-            </div>
-          ))}
+
+        <div className="hero-visual">
+          <div className="hero-images">
+            {heroImages.map((image) => (
+              <div className="hero-image" key={image.alt}>
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = imageFallback;
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -203,8 +235,8 @@ export default function Dashboard() {
         </div>
         <div className="stat-card green">
           <span>Secure Access</span>
-          <h3>Super Admin only</h3>
-          <p>Only authorized users can register staff and edit the system.</p>
+          <h3>Role-based</h3>
+          <p>Only authorized staff can register users, approve actions, and manage official records.</p>
         </div>
       </section>
 
@@ -250,7 +282,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <div className="info-grid">
+      <div className="hero-feature-grid">
         <div className="info-card find-us-card">
           <h2>How to Find Us</h2>
           <p>Our offices are located at the Siaya County Assembly Complex, along Riat Road in Siaya town. We are centrally positioned for easy access by county staff, residents, and visitors.</p>
@@ -261,11 +293,19 @@ export default function Dashboard() {
           </ul>
           <p><strong>Contact:</strong> +254 700 000 000 | <a href="mailto:info@siaya.go.ke">info@siaya.go.ke</a></p>
         </div>
-      </div>
 
-      <div className="card">
-        <h1>Integrated County Assembly Management System</h1>
-        <p>Streamline county operations with our comprehensive digital platform. Access all modules from the navigation above or explore the features below.</p>
+        <div className="card summary-card">
+          <h2>Integrated County Assembly Management System</h2>
+          <p>Streamline county operations with our comprehensive digital platform. Access all modules from the navigation above or explore the features below.</p>
+          <ul>
+            <li>Single access point for documents, meetings, attendance and public participation.</li>
+            <li>Role-based controls for secure administration and audit-ready workflows.</li>
+            <li>Real-time updates for announcements, schedules and citizen feedback.</li>
+          </ul>
+          <div className="summary-actions">
+            <Link to="/login" className="hero-action">Get Started</Link>
+          </div>
+        </div>
       </div>
 
       {!isLoggedIn ? (
@@ -276,7 +316,7 @@ export default function Dashboard() {
         </section>
       ) : (
         <>
-          <div className="dashboard-grid">
+          <section className="dashboard-preview">
             <div className="dashboard-card reminder-card">
               <h2>Upcoming Meeting Reminders</h2>
               {loadingMeetings ? (
@@ -334,7 +374,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
           {userRole === 'ICT Admin' && (
             <section className="modules-section">

@@ -12,17 +12,19 @@ export default function Login() {
     event.preventDefault();
     try {
       const response = await api.post('/auth/login', { email, password });
-      const userRole = response.data.user.role?.name || response.data.user.role || 'User';
-      const user = { ...response.data.user, role: userRole };
-
       localStorage.setItem('icamsToken', response.data.token);
+
+      const meResponse = await api.get('/auth/me');
+      const meUser = meResponse.data;
+      const userRole = meUser.role?.name || meUser.role || response.data.user.role || 'User';
+      const user = { ...meUser, role: userRole };
+
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userRole', userRole);
       localStorage.setItem('userId', user.id || user._id || '');
       setMessage('Login successful.');
-      // Redirect based on role
-      const role = userRole;
+
       const redirectMap = {
         'Super Admin': '/dashboard',
         'ICT Admin': '/dashboard',
@@ -35,7 +37,7 @@ export default function Login() {
         'MCA': '/mcas',
         'Intern': '/interns',
       };
-      const redirectPath = redirectMap[role] || '/dashboard';
+      const redirectPath = redirectMap[userRole] || '/dashboard';
       setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
       setMessage(error.response?.data?.message || 'Login failed.');
@@ -43,21 +45,48 @@ export default function Login() {
   };
 
   return (
-    <div className="card">
-      <h1>Login</h1>
-      <p>Please register first and then log in with your credentials.</p>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Email
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
-        </label>
-        <label>
-          Password
-          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
-        </label>
-        <button type="submit">Sign In</button>
-      </form>
-      {message && <div className="message">{message}</div>}
+    <div className="login-page">
+      <div className="login-panel">
+        <div className="login-copy">
+          <span>Siaya County Assembly</span>
+          <h1>Secure access to the county assembly management portal</h1>
+          <p>Sign in to manage meetings, documents, attendance, public participation and member workflows from one secure platform.</p>
+        </div>
+
+        <div className="login-card card">
+          <div className="login-card-head">
+            <div className="login-card-icon">🔐</div>
+            <div>
+              <h2>Sign in to your account</h2>
+              <p>Use your registered email and password to continue.</p>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <label>
+              Email
+              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+            </label>
+            <label>
+              Password
+              <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
+            </label>
+            <button type="submit">Sign In</button>
+          </form>
+          {message && <div className="message">{message}</div>}
+        </div>
+      </div>
+
+      <aside className="login-side">
+        <div className="login-side-card">
+          <h2>Why sign in?</h2>
+          <ul>
+            <li>Access role-based dashboards and county workflows.</li>
+            <li>Review assembly notices, meetings and committee schedules.</li>
+            <li>Upload official documents and manage attendance records.</li>
+            <li>Receive public feedback and monitor participation.</li>
+          </ul>
+        </div>
+      </aside>
     </div>
   );
 }
