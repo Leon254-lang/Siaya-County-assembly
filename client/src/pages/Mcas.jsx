@@ -51,6 +51,7 @@ export default function Mcas() {
   const [motionText, setMotionText] = useState('');
   const [questions, setQuestions] = useState([]);
   const [petitionItems, setPetitionItems] = useState([]);
+  const [participationItems, setParticipationItems] = useState([]);
   const [committees, setCommittees] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -90,9 +91,10 @@ export default function Mcas() {
       const feedbackItems = feedbackRes.data || [];
       setQuestions(feedbackItems.filter((item) => item.category === 'feedback_report' || item.category === 'public_comment'));
       setPetitionItems(feedbackItems.filter((item) => item.category === 'public_comment'));
+      setParticipationItems(feedbackItems.filter((item) => item.category === 'event_notice'));
       setNotifications(announcementsRes.data || []);
       setMessages(messagesRes.data || []);
-      setDocuments(documentsRes.data || []);
+      setDocuments((documentsRes.data && documentsRes.data.documents) || documentsRes.data || []);
       setVotingSummary(null);
 
       setMessage('');
@@ -485,6 +487,11 @@ export default function Mcas() {
                   <h3>📁 Documents</h3>
                   <p>Access meeting reports, legislative documents, and reference files.</p>
                   <span className="module-link">View Documents</span>
+                </Link>
+                <Link to="/feedback" className="module-card">
+                  <h3>👥 Participation</h3>
+                  <p>Manage public comments, event notices, and community feedback.</p>
+                  <span className="module-link">Open Participation</span>
                 </Link>
               </div>
             </div>
@@ -1002,17 +1009,17 @@ export default function Mcas() {
             <div className="card">
               <h2>Public Participation</h2>
               <p>Upcoming citizen forums and public participation events are shown here.</p>
-              {documents.filter((doc) => doc.category === 'event_notice' || doc.type === 'public_event').length === 0 ? (
-                <p>No public participation events found.</p>
+              {participationItems.length === 0 ? (
+                <p>No public participation events found. Visit the Public Participation page to create or manage notices.</p>
               ) : (
                 <div className="list-panel">
-                  {documents.filter((doc) => doc.category === 'event_notice' || doc.type === 'public_event').map((doc) => (
-                    <div key={doc._id || doc.fileName} className="list-item">
+                  {participationItems.map((item) => (
+                    <div key={item._id} className="list-item">
                       <div>
-                        <strong>{doc.title || doc.fileName}</strong>
-                        <p>{doc.description?.slice(0, 100) || 'Public participation event details.'}</p>
+                        <strong>{item.title}</strong>
+                        <p>{item.description?.slice(0, 100) || 'Public participation event details.'}</p>
                       </div>
-                      <span>{formatDate(doc.eventDate)}</span>
+                      <span>{item.eventDate ? formatDate(item.eventDate) : 'No date'}</span>
                     </div>
                   ))}
                 </div>
