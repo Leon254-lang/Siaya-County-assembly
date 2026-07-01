@@ -32,7 +32,7 @@ export default function Login() {
         'Procurement Officer': '/procurement',
         'Security Officer': '/visitors',
         'Clerk': '/dashboard',
-        'MCA': '/voting',
+        'MCA': '/mcas',
         'Intern': '/interns',
       };
       const redirectPath = redirectMap[role] || '/dashboard';
