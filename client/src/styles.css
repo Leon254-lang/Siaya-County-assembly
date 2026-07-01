@@ -863,6 +863,22 @@ h1, h3, p {
   transform: translateY(-1px);
 }
 
+.back-button {
+  font-weight: 700;
+  color: var(--primary-color);
+  background: rgba(178, 34, 52, 0.08);
+  border: 1px solid rgba(178, 34, 52, 0.18);
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 1rem;
+}
+
+.back-button:hover {
+  background: rgba(178, 34, 52, 0.16);
+}
+
 @media (max-width: 900px) {
   .form-row,
   .details-grid,

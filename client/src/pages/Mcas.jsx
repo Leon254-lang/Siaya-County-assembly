@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const formatDate = (value) => {
@@ -35,6 +36,7 @@ const computeAttendanceSummary = (records) => {
 };
 
 export default function Mcas() {
+  const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const userId = currentUser._id || '';
 
@@ -356,8 +358,13 @@ export default function Mcas() {
   return (
     <div className="page mca-dashboard">
       <div className="page-header">
-        <h1>MCA Dashboard</h1>
-        <p>Manage bills, motions, questions, petitions, attendance, voting, and constituency work from one place.</p>
+        <button type="button" className="back-button" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
+        <div>
+          <h1>MCA Dashboard</h1>
+          <p>Manage bills, motions, questions, petitions, attendance, voting, and constituency work from one place.</p>
+        </div>
       </div>
 
       {message && (
@@ -443,6 +450,42 @@ export default function Mcas() {
                 <span>Upcoming Assembly Sitting</span>
                 <h3>{upcomingSitting ? formatDate(upcomingSitting.startTime || upcomingSitting.date) : 'None'}</h3>
                 <p>{upcomingSitting ? upcomingSitting.title || upcomingSitting.agenda : 'No sittings scheduled.'}</p>
+              </div>
+            </div>
+
+            <div className="card quick-actions-card">
+              <h2>Quick Actions</h2>
+              <div className="modules-grid">
+                <Link to="/bills" className="module-card">
+                  <h3>📄 Bills & Motions</h3>
+                  <p>View bills, propose motions, and track legislative progress.</p>
+                  <span className="module-link">Go to Bills</span>
+                </Link>
+                <Link to="/meetings" className="module-card">
+                  <h3>🗓️ Meetings</h3>
+                  <p>See upcoming sittings, committee meetings, and agendas.</p>
+                  <span className="module-link">View Meetings</span>
+                </Link>
+                <Link to="/attendance" className="module-card">
+                  <h3>📅 Attendance</h3>
+                  <p>Review your attendance records and download reports.</p>
+                  <span className="module-link">Open Attendance</span>
+                </Link>
+                <Link to="/voting" className="module-card">
+                  <h3>✅ Voting</h3>
+                  <p>Track votes, participate in decisions, and review outcomes.</p>
+                  <span className="module-link">Open Voting</span>
+                </Link>
+                <Link to="/committees" className="module-card">
+                  <h3>🏛️ Committees</h3>
+                  <p>View your committee assignments and upcoming committee work.</p>
+                  <span className="module-link">Open Committees</span>
+                </Link>
+                <Link to="/documents" className="module-card">
+                  <h3>📁 Documents</h3>
+                  <p>Access meeting reports, legislative documents, and reference files.</p>
+                  <span className="module-link">View Documents</span>
+                </Link>
               </div>
             </div>
 
