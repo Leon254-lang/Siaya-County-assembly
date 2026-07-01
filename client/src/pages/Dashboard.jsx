@@ -382,66 +382,66 @@ export default function Dashboard() {
                 <p>Core functions available in the Clerk’s office dashboard.</p>
               </div>
               <div className="modules-grid">
-                <div className="module-card">
+                <Link to="/clerk-dashboard" className="module-card">
                   <h3>📊 Dashboard</h3>
                   <p>View pending approvals, upcoming sittings, notifications, and statistics.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/mcas" className="module-card">
                   <h3>👥 Member Management</h3>
                   <p>Register, update, suspend, and manage MCAs and staff records.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/sessions" className="module-card">
                   <h3>🗓️ Assembly Sessions</h3>
                   <p>Schedule sittings, publish agendas, record attendance, and manage calendars.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/bills" className="module-card">
                   <h3>🧾 Bills Management</h3>
                   <p>Create, review, approve, track, and archive bills through different legislative stages.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/announcements" className="module-card">
                   <h3>📝 Motions & Petitions</h3>
                   <p>Receive, assign, approve, and track motions and public petitions.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/committees" className="module-card">
                   <h3>🏛️ Committee Management</h3>
                   <p>Create committees, assign members, schedule meetings, and upload reports.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/meetings" className="module-card">
                   <h3>📄 Minutes & Hansard</h3>
                   <p>Record proceedings, upload minutes, and maintain official Assembly records.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/documents" className="module-card">
                   <h3>📁 Document Management</h3>
                   <p>Upload, organize, search, approve, and archive official documents.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/messages" className="module-card">
                   <h3>✉️ Correspondence</h3>
                   <p>Receive and send official letters, memos, notices, and circulars.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/feedback" className="module-card">
                   <h3>🌍 Public Participation</h3>
                   <p>Publish notices, receive public submissions, and manage feedback.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/manage-users" className="module-card">
                   <h3>🔐 User Management</h3>
                   <p>Create accounts, assign roles, reset passwords, and manage permissions.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/announcements" className="module-card">
                   <h3>📈 Reports</h3>
                   <p>Generate attendance, committee, legislative, financial, and activity reports.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/announcements" className="module-card">
                   <h3>🔔 Notifications</h3>
                   <p>Send meeting reminders, announcements, and approval requests.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/finance" className="module-card">
                   <h3>💰 Budget & Finance (Optional)</h3>
                   <p>View budgets, approve expenditures, and monitor Assembly finances.</p>
-                </div>
-                <div className="module-card">
+                </Link>
+                <Link to="/audit-logs" className="module-card">
                   <h3>🛡️ Audit Logs</h3>
                   <p>Track all user activities for accountability and security.</p>
-                </div>
+                </Link>
               </div>
             </section>
           )}

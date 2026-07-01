@@ -981,6 +981,20 @@ h1, h3, p {
   flex-grow: 1;
 }
 
+/* Style for Link components used as module cards */
+a.module-card {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.module-card h3 {
+  color: var(--text-primary);
+}
+
+a.module-card p {
+  color: var(--text-secondary);
+}
+
 .module-link {
   display: inline-flex;
   align-items: center;
