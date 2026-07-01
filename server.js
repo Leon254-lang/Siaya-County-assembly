@@ -18,7 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve static files from the React build folder
 app.use(express.static(path.join(__dirname, 'client/dist')));
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({ message: 'ICAMS API is running' });
 });
 
