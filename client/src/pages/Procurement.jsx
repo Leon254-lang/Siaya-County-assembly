@@ -1,793 +1,1024 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+const formatCurrency = (value) => {
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(amount);
 };
 
-const formatDateTime = (value) => {
+const formatDate = (value) => {
   if (!value) return 'N/A';
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-const procurementActivities = [
-  'Create and manage procurement plans.',
-  'Create purchase requisitions.',
-  'Review and approve requisitions within assigned authority levels.',
-  'Generate purchase orders.',
-  'Track procurement requests from initiation to completion.',
-  'Manage procurement budgets and allocations.',
-];
-
-const storesActivities = [
-  'Receiving goods delivered by suppliers.',
-  'Verifying quantities and quality against delivery notes and LPOs.',
-  'Updating stock records and inventory registers.',
-  'Issuing items to departments.',
-  'Conducting stock-taking and inventory audits.',
-];
-
-const recordsActivities = [
-  'Filing procurement documents.',
-  'Maintaining supplier databases.',
-  'Organizing tender records and contract files.',
-  'Digitizing procurement records.',
-];
-
-const itActivities = [
-  'Data entry into procurement management systems.',
-  'Managing procurement spreadsheets in Excel.',
-  'Generating reports and summaries.',
-  'Scanning and archiving procurement documents.',
-  'Troubleshooting computers, printers, and scanners used in the department.',
-  'Supporting electronic document management systems.',
-  'Assisting with procurement software user accounts and permissions.',
-];
-
-const logbookExamples = [
-  'Assisted in filing procurement documents.',
-  'Prepared and updated supplier records.',
-  'Received and verified delivered goods.',
-  'Updated inventory records in Excel.',
-  'Scanned and archived procurement documents.',
-  'Assisted in preparing requests for quotations.',
-  'Generated procurement reports.',
-  'Maintained procurement department computer systems.',
-];
+const statusBadge = (status) => {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized.includes('pending') || normalized.includes('open')) return 'badge badge-warning';
+  if (normalized.includes('approved') || normalized.includes('issued') || normalized.includes('on track')) return 'badge badge-success';
+  if (normalized.includes('rejected') || normalized.includes('needs review') || normalized.includes('poor') || normalized.includes('expiring')) return 'badge badge-danger';
+  return 'badge badge-secondary';
+};
 
 export default function Procurement() {
-  const [files, setFiles] = useState([]);
-  const [plans, setPlans] = useState([
-    { id: 1, name: 'ICT Equipment Refresh', department: 'ICT', budget: 850000, status: 'Approved', deadline: '2026-06-30' },
-    { id: 2, name: 'Office Supplies Batch', department: 'Administration', budget: 320000, status: 'In Progress', deadline: '2026-07-10' },
-    { id: 3, name: 'Furniture Replacement', department: 'Facilities', budget: 600000, status: 'Approved', deadline: '2026-08-15' },
-    { id: 4, name: 'Vehicle Maintenance', department: 'Transport', budget: 150000, status: 'In Progress', deadline: '2026-09-30' },
-  ]);
-  const [requisitions, setRequisitions] = useState([
-    { id: 101, title: 'Laptop Procurement', department: 'ICT', amount: 450000, status: 'Pending Approval', priority: 'High', requestedBy: 'Deputy Clerk', createdAt: '2026-06-11' },
-    { id: 102, title: 'Stationery Supply', department: 'Administration', amount: 120000, status: 'Approved', priority: 'Medium', requestedBy: 'Procurement Officer', createdAt: '2026-06-10' },
-  ]);
-  const [purchaseOrders, setPurchaseOrders] = useState([
-    { id: 201, requisitionId: 102, supplier: 'County Supplies Ltd', amount: 120000, status: 'Issued', issuedAt: '2026-06-11' },
-  ]);
-  const [tenders, setTenders] = useState([
-    { id: 401, title: 'ICT Equipment Supply', status: 'Open', bids: 4, closingDate: '2026-06-20', recommendation: 'Pending Evaluation' },
-    { id: 402, title: 'Office Furniture Supply', status: 'Awarded', bids: 6, closingDate: '2026-06-14', recommendation: 'Recommended: County Supplies Ltd' },
-  ]);
-  const [inventoryItems, setInventoryItems] = useState([
-    { id: 501, name: 'Laptop', category: 'ICT', stock: 18, reorderLevel: 5, status: 'Available' },
-    { id: 502, name: 'Printer Paper', category: 'Office', stock: 3, reorderLevel: 10, status: 'Low Stock' },
-  ]);
-  const [contracts, setContracts] = useState([
-    { id: 601, title: 'ICT Equipment Maintenance', supplier: 'TechHub Solutions', expiryDate: '2026-12-31', performance: 'On Track', documentStatus: 'Stored electronically' },
-    { id: 602, title: 'Office Supplies Framework', supplier: 'County Supplies Ltd', expiryDate: '2026-09-30', performance: 'Needs Review', documentStatus: 'Stored electronically' },
-  ]);
-  const [reports, setReports] = useState([
-    { id: 701, title: 'Procurement Report', status: 'Ready', summary: 'Monthly procurement activity and request status.' },
-    { id: 702, title: 'Supplier Performance Report', status: 'Ready', summary: 'Supplier ratings, categories, and delivery performance.' },
-    { id: 703, title: 'Tender Evaluation Report', status: 'Ready', summary: 'Bid comparison and recommendation outcomes.' },
-    { id: 704, title: 'Expenditure & Procurement Summary', status: 'Ready', summary: 'Budget usage, orders issued, and procurement spend.' },
-  ]);
-  const [documentRecords, setDocumentRecords] = useState([
-    { id: 801, title: 'Quotation - Office Furniture', category: 'Quotation', reference: 'QTN/2026/001', status: 'Stored', date: '2026-06-01' },
-    { id: 802, title: 'Invoice - ICT Supplies', category: 'Invoice', reference: 'INV/2026/042', status: 'Matched', date: '2026-06-05' },
-    { id: 803, title: 'Contract - Maintenance Services', category: 'Contract', reference: 'CNT/2026/018', status: 'Archived', date: '2026-06-08' },
-  ]);
-  const [auditTrail, setAuditTrail] = useState([
-    { id: 901, event: 'Purchase requisition approved', actor: 'Procurement Officer', time: '09:45 AM' },
-    { id: 902, event: 'Low stock alert triggered for printer paper', actor: 'Stores Clerk', time: '11:10 AM' },
-    { id: 903, event: 'Contract expiry reminder generated', actor: 'Compliance Unit', time: '01:25 PM' },
-  ]);
-  const [suppliers, setSuppliers] = useState([
-    { id: 301, name: 'County Supplies Ltd', category: 'Office Supplies', performance: 'Excellent', status: 'Active', contact: 'procurement@countysupplies.co.ke' },
-    { id: 302, name: 'TechHub Solutions', category: 'ICT Equipment', performance: 'Good', status: 'Active', contact: 'sales@techhubsolutions.co.ke' },
-  ]);
+  const [records, setRecords] = useState([]);
+  const [procurementFiles, setProcurementFiles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [recordsLoading, setRecordsLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [fileInputKey, setFileInputKey] = useState(Date.now());
-  const [userRole, setUserRole] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState('');
-  const [deleting, setDeleting] = useState({});
-  const [planForm, setPlanForm] = useState({ name: '', department: '', budget: '', deadline: '', status: 'In Progress' });
+  const [activeForm, setActiveForm] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [requisitionForm, setRequisitionForm] = useState({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
-  const [supplierForm, setSupplierForm] = useState({ name: '', category: '', performance: 'Good', status: 'Active', contact: '' });
-  const [tenderForm, setTenderForm] = useState({ title: '', closingDate: '', status: 'Open', bids: '', recommendation: '' });
-  const [inventoryForm, setInventoryForm] = useState({ name: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
+  const [supplierForm, setSupplierForm] = useState({ title: '', category: '', performance: 'Good', status: 'Active', contact: '' });
+  const [tenderForm, setTenderForm] = useState({ title: '', closingDate: '', status: 'Open', bids: '0', recommendation: 'Pending Evaluation' });
   const [contractForm, setContractForm] = useState({ title: '', supplier: '', expiryDate: '', performance: 'On Track', documentStatus: 'Stored electronically' });
-  const [reportForm, setReportForm] = useState({ title: '', type: 'Procurement Report', summary: '' });
+  const [planForm, setPlanForm] = useState({ title: '', department: '', budget: '', status: 'In Progress', deadline: '' });
+  const [inventoryForm, setInventoryForm] = useState({ title: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
+  const [reportForm, setReportForm] = useState({ title: '', summary: '', status: 'Ready' });
   const [documentForm, setDocumentForm] = useState({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' });
-  const [documentSearch, setDocumentSearch] = useState('');
 
-  const isHOD = userRole === 'HOD' || userRole === 'Super Admin';
-  const canUpload =
-    isHOD ||
-    userRole === 'Procurement Officer' ||
-    userRole?.includes('Admin');
+  const procurementRecords = records || [];
+  const requisitions = procurementRecords.filter((item) => item.type === 'requisition');
+  const suppliers = procurementRecords.filter((item) => item.type === 'supplier');
+  const tenders = procurementRecords.filter((item) => item.type === 'tender');
+  const purchaseOrders = procurementRecords.filter((item) => item.type === 'po');
+  const inventoryItems = procurementRecords.filter((item) => item.type === 'inventory');
+  const contracts = procurementRecords.filter((item) => item.type === 'contract');
+  const plans = procurementRecords.filter((item) => item.type === 'plan');
+  const reports = procurementRecords.filter((item) => item.type === 'report');
+  const documentRecords = procurementRecords.filter((item) => item.type === 'document');
+
+  const pendingRequisitions = requisitions.filter((item) => item.status?.toLowerCase().includes('pending')).length;
+  const rfqsInProgress = tenders.filter((item) => ['open', 'under evaluation', 'pending'].some((status) => item.status?.toLowerCase().includes(status))).length;
+  const openTenders = tenders.filter((item) => item.status?.toLowerCase().includes('open')).length;
+  const purchaseOrdersIssued = purchaseOrders.filter((item) => ['issued', 'approved'].some((status) => item.status?.toLowerCase().includes(status))).length;
+  const deliveriesPendingInspection = inventoryItems.filter((item) => ['pending inspection', 'low stock', 'awaiting inspection'].some((status) => item.status?.toLowerCase().includes(status))).length;
+  const contractsExpiringSoon = contracts.filter((item) => {
+    if (!item.expiryDate) return false;
+    const expiry = new Date(item.expiryDate);
+    const diff = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+    return diff >= 0 && diff <= 60;
+  }).length;
+  const supplierPerformanceAlerts = suppliers.filter((item) => ['needs review', 'poor', 'at risk', 'unreliable'].some((value) => item.performance?.toLowerCase().includes(value))).length;
+  const notificationCount = pendingRequisitions + deliveriesPendingInspection + contractsExpiringSoon + supplierPerformanceAlerts;
+
+  const summaryMetrics = [
+    { label: 'Pending Purchase Requisitions', value: pendingRequisitions, anchor: '#requisitions' },
+    { label: 'RFQs in Progress', value: rfqsInProgress, anchor: '#tenders' },
+    { label: 'Open Tenders', value: openTenders, anchor: '#tenders' },
+    { label: 'Purchase Orders Issued', value: purchaseOrdersIssued, anchor: '#purchase-orders' },
+    { label: 'Deliveries Pending Inspection', value: deliveriesPendingInspection, anchor: '#delivery-management' },
+    { label: 'Contracts Expiring Soon', value: contractsExpiringSoon, anchor: '#contracts' },
+    { label: 'Supplier Performance Alerts', value: supplierPerformanceAlerts, anchor: '#suppliers' },
+    { label: 'Notifications', value: notificationCount, anchor: '#notifications' },
+  ];
+
+  const notifications = [
+    {
+      title: 'New requisitions for review',
+      detail: `${pendingRequisitions} requisition${pendingRequisitions === 1 ? '' : 's'} require validation before forwarding to approval.`,
+    },
+    {
+      title: 'Tender milestones',
+      detail: `${openTenders} open tender${openTenders === 1 ? '' : 's'} are accepting submissions.`,
+    },
+    {
+      title: 'Contract expiry reminders',
+      detail: `${contractsExpiringSoon} contract${contractsExpiringSoon === 1 ? '' : 's'} are due to expire within 60 days.`,
+    },
+    {
+      title: 'Pending inspection',
+      detail: `${deliveriesPendingInspection} delivery item${deliveriesPendingInspection === 1 ? '' : 's'} need inspection or verification.`,
+    },
+  ];
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    const userId = localStorage.getItem('userId');
-    setUserRole(role);
-    setCurrentUserId(userId || '');
-    fetchFiles();
-    fetchRecords();
+    loadProcurementData();
   }, []);
 
-  const fetchFiles = async () => {
+  const loadProcurementData = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setErrorMessage('');
-      const response = await api.get('/procurement/files');
-      setFiles(response.data.files || []);
-    } catch (error) {
-      console.error('Failed to load procurement documents:', error);
-      setErrorMessage('Could not load procurement documents. Please refresh or check your connection.');
+      const [recordsResponse, filesResponse] = await Promise.all([
+        api.get('/procurement-records'),
+        api.get('/procurement/files'),
+      ]);
+      setRecords(recordsResponse.data.records || []);
+      setProcurementFiles(filesResponse.data.files || []);
+    } catch (err) {
+      console.error(err);
+      setError('Unable to load procurement dashboard data.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchRecords = async () => {
+  const updateRecord = async (id, payload, successMessage) => {
+    setError('');
+    setMessage('');
     try {
-      setRecordsLoading(true);
-      const response = await api.get('/procurement-records');
-      const records = response.data.records || [];
-      if (records.length) {
-        setPlans(records.filter((item) => item.type === 'plan'));
-        setRequisitions(records.filter((item) => item.type === 'requisition'));
-        setPurchaseOrders(records.filter((item) => item.type === 'po'));
-        setSuppliers(records.filter((item) => item.type === 'supplier'));
-        setTenders(records.filter((item) => item.type === 'tender'));
-        setInventoryItems(records.filter((item) => item.type === 'inventory'));
-        setContracts(records.filter((item) => item.type === 'contract'));
-        setReports(records.filter((item) => item.type === 'report'));
-        setDocumentRecords(records.filter((item) => item.type === 'document'));
-      }
-    } catch (error) {
-      console.error('Failed to load procurement records:', error);
-    } finally {
-      setRecordsLoading(false);
+      await api.put(`/procurement-records/${id}`, payload);
+      setMessage(successMessage);
+      await loadProcurementData();
+    } catch (err) {
+      console.error(err);
+      setError('Unable to update record.');
     }
   };
 
-  const handleFilesSelected = (event) => {
-    const filesArray = Array.from(event.target.files || []);
-    setSelectedFiles(filesArray);
-    setErrorMessage('');
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFiles.length) {
-      setErrorMessage('Please select one or more files first.');
-      return;
-    }
-
-    if (!canUpload) {
-      setErrorMessage('Only Procurement Officer, HOD, Admin, or Super Admin can upload procurement documents.');
-      return;
-    }
-
-    const data = new FormData();
-    selectedFiles.forEach((file) => data.append('files', file));
-    if (description) {
-      data.append('description', description);
-    }
-
+  const createRecord = async (type, payload, resetForm, successMessage) => {
+    setError('');
+    setMessage('');
     try {
-      setUploading(true);
-      setUploadMessage('Uploading documents...');
-      setErrorMessage('');
-      await api.post('/procurement/upload', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setUploadMessage('Documents uploaded successfully.');
-      setDescription('');
-      setSelectedFiles([]);
-      setFileInputKey(Date.now());
-      fetchFiles();
-    } catch (error) {
-      console.error('Upload failed:', error);
-      if (error?.response?.status === 403) {
-        setErrorMessage('You do not have permission to upload procurement documents. Only Procurement Officer, HOD, or Admin users can upload.');
-      } else {
-        setErrorMessage(error?.response?.data?.message || 'Unable to upload documents.');
-      }
-      setUploadMessage('');
-    } finally {
-      setUploading(false);
+      await api.post('/procurement-records', { type, ...payload });
+      setMessage(successMessage);
+      resetForm();
+      await loadProcurementData();
+      setActiveForm('');
+    } catch (err) {
+      console.error(err);
+      setError('Unable to save the new record.');
     }
   };
 
-  const handleDelete = async (documentId) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) {
-      return;
-    }
-
-    try {
-      setDeleting({ ...deleting, [documentId]: true });
-      setErrorMessage('');
-      await api.delete(`/procurement/${documentId}`);
-      setUploadMessage('Document deleted successfully.');
-      fetchFiles();
-    } catch (error) {
-      console.error('Delete failed:', error);
-      setErrorMessage(error?.response?.data?.message || 'Unable to delete document.');
-    } finally {
-      setDeleting({ ...deleting, [documentId]: false });
-    }
-  };
-
-  const fileCount = files.length;
-  const latestUpload = files[0] ? formatDateTime(files[0].uploadedAt) : 'No uploads yet';
-  const totalBudget = plans.reduce((sum, item) => sum + Number(item.budget || 0), 0);
-  const pendingApprovals = requisitions.filter((item) => item.status === 'Pending Approval').length;
-  const completedOrders = purchaseOrders.filter((item) => item.status === 'Completed' || item.status === 'Issued').length;
-  const lowStockItems = inventoryItems.filter((item) => item.stock <= item.reorderLevel);
-  const renewalReminders = contracts.filter((item) => {
-    const expiry = new Date(item.expiryDate);
-    const today = new Date();
-    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 45;
-  });
-  const workflowCompletion = Math.min(100, Math.round(((plans.length + requisitions.length + purchaseOrders.length + suppliers.length + tenders.length + inventoryItems.length + contracts.length) / 70) * 100));
-  const openTenders = tenders.filter((item) => item.status === 'Open' || item.status === 'Under Evaluation').length;
-  const totalExpenditure = purchaseOrders.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const supplierStats = suppliers.reduce((acc, item) => {
-    acc[item.performance] = (acc[item.performance] || 0) + 1;
-    return acc;
-  }, {});
-  const complianceChecks = [
-    'Procurement records are archived and accessible for audit review.',
-    'Approved requisitions and purchase orders are aligned with policy thresholds.',
-    'Supplier performance and tender outcomes are regularly reviewed.',
-  ];
-  const notifications = [
-    {
-      id: 'approval',
-      title: 'Pending approvals',
-      detail: `${pendingApprovals} requisition${pendingApprovals === 1 ? '' : 's'} need${pendingApprovals === 1 ? 's' : ''} review.`,
-      tone: 'warning',
-    },
-    {
-      id: 'stock',
-      title: 'Low stock alerts',
-      detail: `${lowStockItems.length} item${lowStockItems.length === 1 ? '' : 's'} are below or at reorder level.`,
-      tone: 'danger',
-    },
-    {
-      id: 'renewal',
-      title: 'Contract renewal reminders',
-      detail: `${renewalReminders.length} contract${renewalReminders.length === 1 ? '' : 's'} need${renewalReminders.length === 1 ? 's' : ''} renewal attention soon.`,
-      tone: 'info',
-    },
-  ];
-
-  const handlePlanFormChange = (event) => {
-    const { name, value } = event.target;
-    setPlanForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleRequisitionFormChange = (event) => {
-    const { name, value } = event.target;
-    setRequisitionForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSupplierFormChange = (event) => {
-    const { name, value } = event.target;
-    setSupplierForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleTenderFormChange = (event) => {
-    const { name, value } = event.target;
-    setTenderForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleInventoryFormChange = (event) => {
-    const { name, value } = event.target;
-    setInventoryForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleContractFormChange = (event) => {
-    const { name, value } = event.target;
-    setContractForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleReportFormChange = (event) => {
-    const { name, value } = event.target;
-    setReportForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleDocumentFormChange = (event) => {
-    const { name, value } = event.target;
-    setDocumentForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePlanSubmit = async (event) => {
+  const handleRequisitionSave = (event) => {
     event.preventDefault();
-    if (!planForm.name || !planForm.department || !planForm.budget) return;
-
-    const record = {
-      type: 'plan',
-      title: planForm.name,
-      department: planForm.department,
-      budget: Number(planForm.budget),
-      status: planForm.status,
-      deadline: planForm.deadline || 'TBD',
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setPlans((prev) => [
-        { id: response.data._id, name: response.data.title, department: response.data.department, budget: response.data.budget, status: response.data.status, deadline: response.data.deadline },
-        ...prev,
-      ]);
-      setPlanForm({ name: '', department: '', budget: '', deadline: '', status: 'In Progress' });
-    } catch (error) {
-      console.error('Failed to save plan:', error);
-      setErrorMessage('Unable to save procurement plan to the backend.');
-    }
-  };
-
-  const handleRequisitionSubmit = async (event) => {
-    event.preventDefault();
-    if (!requisitionForm.title || !requisitionForm.department || !requisitionForm.amount) return;
-
-    const record = {
-      type: 'requisition',
-      title: requisitionForm.title,
-      department: requisitionForm.department,
-      amount: Number(requisitionForm.amount),
-      status: 'Pending Approval',
-      priority: requisitionForm.priority,
-      requestedBy: requisitionForm.requestedBy || 'Department Head',
-      description: requisitionForm.description,
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setRequisitions((prev) => [
-        { id: response.data._id, title: response.data.title, department: response.data.department, amount: response.data.amount, status: response.data.status, priority: response.data.priority, requestedBy: response.data.requestedBy, createdAt: new Date(response.data.createdAt).toISOString().slice(0, 10) },
-        ...prev,
-      ]);
-      setRequisitionForm({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' });
-    } catch (error) {
-      console.error('Failed to save requisition:', error);
-      setErrorMessage('Unable to save requisition to the backend.');
-    }
-  };
-
-  const updateRequisitionStatus = async (id, status) => {
-    try {
-      let updatedRecord = null;
-      if (typeof id === 'string' && id.length >= 8) {
-        const response = await api.put(`/procurement-records/${id}`, { status });
-        updatedRecord = response.data;
-      }
-
-      setRequisitions((prev) =>
-        prev.map((item) => {
-          if (item.id !== id) return item;
-          return { ...item, status: updatedRecord?.status || status };
-        })
-      );
-
-      await fetchRecords();
-    } catch (error) {
-      console.error('Failed to update requisition status:', error);
-      setErrorMessage('Unable to update requisition status in the backend.');
-    }
-  };
-
-  const generatePurchaseOrder = async (requisition) => {
-    try {
-      const response = await api.post('/procurement-records', {
-        type: 'po',
-        requisitionId: requisition.id,
-        supplier: `${requisition.department} Vendor`,
-        amount: requisition.amount,
-        status: 'Issued',
-        issuedAt: new Date().toISOString().slice(0, 10),
-        title: `PO for ${requisition.title}`,
-      });
-
-      setPurchaseOrders((prev) => [
-        {
-          id: response.data._id,
-          requisitionId: response.data.requisitionId,
-          supplier: response.data.supplier,
-          amount: response.data.amount,
-          status: response.data.status,
-          issuedAt: response.data.issuedAt,
-        },
-        ...prev,
-      ]);
-
-      await api.put(`/procurement-records/${requisition.id}`, { status: 'Approved' });
-      await fetchRecords();
-    } catch (error) {
-      console.error('Failed to generate purchase order:', error);
-      setErrorMessage('Unable to save purchase order to the backend.');
-      return;
-    }
-  };
-
-  const handleSupplierSubmit = async (event) => {
-    event.preventDefault();
-    if (!supplierForm.name || !supplierForm.category) return;
-
-    const record = {
-      type: 'supplier',
-      title: supplierForm.name,
-      category: supplierForm.category,
-      performance: supplierForm.performance,
-      status: supplierForm.status,
-      contact: supplierForm.contact || 'Contact details pending',
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setSuppliers((prev) => [
-        { id: response.data._id, name: response.data.title, category: response.data.category, performance: response.data.performance, status: response.data.status, contact: response.data.contact },
-        ...prev,
-      ]);
-      setSupplierForm({ name: '', category: '', performance: 'Good', status: 'Active', contact: '' });
-    } catch (error) {
-      console.error('Failed to save supplier:', error);
-      setErrorMessage('Unable to save supplier record to the backend.');
-    }
-  };
-
-  const handleTenderSubmit = async (event) => {
-    event.preventDefault();
-    if (!tenderForm.title || !tenderForm.closingDate) return;
-
-    const record = {
-      type: 'tender',
-      title: tenderForm.title,
-      status: tenderForm.status,
-      bids: Number(tenderForm.bids) || 0,
-      closingDate: tenderForm.closingDate,
-      recommendation: tenderForm.recommendation || 'Pending Evaluation',
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setTenders((prev) => [
-        { id: response.data._id, title: response.data.title, status: response.data.status, bids: response.data.bids, closingDate: response.data.closingDate, recommendation: response.data.recommendation },
-        ...prev,
-      ]);
-      setTenderForm({ title: '', closingDate: '', status: 'Open', bids: '', recommendation: '' });
-    } catch (error) {
-      console.error('Failed to save tender:', error);
-      setErrorMessage('Unable to save tender record to the backend.');
-    }
-  };
-
-  const handleInventorySubmit = async (event) => {
-    event.preventDefault();
-    if (!inventoryForm.name || !inventoryForm.category) return;
-
-    const record = {
-      type: 'inventory',
-      title: inventoryForm.name,
-      category: inventoryForm.category,
-      stock: Number(inventoryForm.stock) || 0,
-      reorderLevel: Number(inventoryForm.reorderLevel) || 0,
-      status: Number(inventoryForm.stock) <= Number(inventoryForm.reorderLevel) ? 'Low Stock' : inventoryForm.status,
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setInventoryItems((prev) => [
-        { id: response.data._id, name: response.data.title, category: response.data.category, stock: response.data.stock, reorderLevel: response.data.reorderLevel, status: response.data.status },
-        ...prev,
-      ]);
-      setInventoryForm({ name: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
-    } catch (error) {
-      console.error('Failed to save inventory:', error);
-      setErrorMessage('Unable to save inventory record to the backend.');
-    }
-  };
-
-  const handleContractSubmit = async (event) => {
-    event.preventDefault();
-    if (!contractForm.title || !contractForm.supplier || !contractForm.expiryDate) return;
-
-    const record = {
-      type: 'contract',
-      title: contractForm.title,
-      supplier: contractForm.supplier,
-      expiryDate: contractForm.expiryDate,
-      performance: contractForm.performance,
-      documentStatus: contractForm.documentStatus,
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setContracts((prev) => [
-        { id: response.data._id, title: response.data.title, supplier: response.data.supplier, expiryDate: response.data.expiryDate, performance: response.data.performance, documentStatus: response.data.documentStatus },
-        ...prev,
-      ]);
-      setContractForm({ title: '', supplier: '', expiryDate: '', performance: 'On Track', documentStatus: 'Stored electronically' });
-    } catch (error) {
-      console.error('Failed to save contract:', error);
-      setErrorMessage('Unable to save contract record to the backend.');
-    }
-  };
-
-  const handleReportSubmit = async (event) => {
-    event.preventDefault();
-    if (!reportForm.title) return;
-
-    const record = {
-      type: 'report',
-      title: reportForm.title,
-      status: 'Ready',
-      summary: reportForm.summary || 'Report generated for procurement review.',
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setReports((prev) => [
-        { id: response.data._id, title: response.data.title, status: response.data.status, summary: response.data.summary },
-        ...prev,
-      ]);
-      setReportForm({ title: '', type: 'Procurement Report', summary: '' });
-    } catch (error) {
-      console.error('Failed to save report:', error);
-      setErrorMessage('Unable to save report record to the backend.');
-    }
-  };
-
-  const handlePrintTender = (tender) => {
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      setErrorMessage('Please allow pop-ups to print tender documents.');
-      return;
-    }
-
-    const content = `
-      <html>
-        <head>
-          <title>Print Tender - ${tender.title}</title>
-          <style>
-            @page { size: A4; margin: 16mm; }
-            body { font-family: Arial, Helvetica, sans-serif; color: #111827; padding: 18px; background: #fff; }
-            .header { border-bottom: 2px solid #b22234; padding-bottom: 10px; margin-bottom: 12px; }
-            .title { font-size: 22px; font-weight: 700; color: #111827; margin: 0; }
-            .sub { color: #4b5563; font-size: 12px; margin-top: 4px; }
-            .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .box { border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; background: #fff; }
-            .label { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
-            .value { font-size: 14px; font-weight: 600; color: #111827; }
-            .note { color: #374151; font-size: 12px; margin-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="title">Tender Document</div>
-            <div class="sub">Siaya County Assembly Procurement Office · Official printout</div>
-          </div>
-          <div class="grid">
-            <div class="box"><div class="label">Tender title</div><div class="value">${tender.title || 'Untitled tender'}</div></div>
-            <div class="box"><div class="label">Status</div><div class="value">${tender.status || 'Pending'}</div></div>
-            <div class="box"><div class="label">Bids received</div><div class="value">${tender.bids || 0}</div></div>
-            <div class="box"><div class="label">Closing date</div><div class="value">${tender.closingDate || 'Not specified'}</div></div>
-          </div>
-          <div class="box" style="margin-top:12px;">
-            <div class="label">Recommendation / award notice</div>
-            <div class="value">${tender.recommendation || 'Pending evaluation'}</div>
-          </div>
-          <div class="note">Generated from the procurement dashboard. Print this page for official tender record keeping.</div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-
-  const handlePrintSupplier = (supplier) => {
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      setErrorMessage('Please allow pop-ups to print supplier documents.');
-      return;
-    }
-
-    const content = `
-      <html>
-        <head>
-          <title>Print Supplier - ${supplier.name}</title>
-          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
-        </head>
-        <body>
-          <div class="header"><div class="title">Supplier Record</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
-          <div class="grid">
-            <div class="box"><div class="label">Supplier name</div><div class="value">${supplier.name || 'Unnamed supplier'}</div></div>
-            <div class="box"><div class="label">Category</div><div class="value">${supplier.category || 'Not specified'}</div></div>
-            <div class="box"><div class="label">Performance</div><div class="value">${supplier.performance || 'Not rated'}</div></div>
-            <div class="box"><div class="label">Status</div><div class="value">${supplier.status || 'Active'}</div></div>
-          </div>
-          <div class="box" style="margin-top:12px;"><div class="label">Contact</div><div class="value">${supplier.contact || 'Not provided'}</div></div>
-          <div class="note">Generated from the procurement dashboard. Print this page for supplier documentation.</div>
-        </body>
-      </html>`;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-
-  const handlePrintContract = (contract) => {
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      setErrorMessage('Please allow pop-ups to print contract documents.');
-      return;
-    }
-
-    const content = `
-      <html>
-        <head>
-          <title>Print Contract - ${contract.title}</title>
-          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
-        </head>
-        <body>
-          <div class="header"><div class="title">Contract Record</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
-          <div class="grid">
-            <div class="box"><div class="label">Contract title</div><div class="value">${contract.title || 'Untitled contract'}</div></div>
-            <div class="box"><div class="label">Supplier</div><div class="value">${contract.supplier || 'Not specified'}</div></div>
-            <div class="box"><div class="label">Expiry date</div><div class="value">${contract.expiryDate || 'Not specified'}</div></div>
-            <div class="box"><div class="label">Performance</div><div class="value">${contract.performance || 'On Track'}</div></div>
-          </div>
-          <div class="box" style="margin-top:12px;"><div class="label">Document status</div><div class="value">${contract.documentStatus || 'Stored electronically'}</div></div>
-          <div class="note">Generated from the procurement dashboard. Print this page for contract administration.</div>
-        </body>
-      </html>`;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-
-  const handlePrintPurchaseOrder = (order) => {
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      setErrorMessage('Please allow pop-ups to print purchase orders.');
-      return;
-    }
-
-    const content = `
-      <html>
-        <head>
-          <title>Print Purchase Order - ${order.id}</title>
-          <style>@page{size:A4;margin:16mm;}body{font-family:Arial,Helvetica,sans-serif;color:#111827;padding:18px;background:#fff;}.header{border-bottom:2px solid #b22234;padding-bottom:10px;margin-bottom:12px;}.title{font-size:22px;font-weight:700;color:#111827;margin:0;}.sub{color:#4b5563;font-size:12px;margin-top:4px;}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}.box{border:1px solid #d1d5db;border-radius:10px;padding:12px;background:#fff;}.label{color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}.value{font-size:14px;font-weight:600;color:#111827;}.note{color:#374151;font-size:12px;margin-top:10px;}</style>
-        </head>
-        <body>
-          <div class="header"><div class="title">Purchase Order</div><div class="sub">Siaya County Assembly Procurement Office · Official printout</div></div>
-          <div class="grid">
-            <div class="box"><div class="label">PO number</div><div class="value">PO-${order.id || '000'}</div></div>
-            <div class="box"><div class="label">Status</div><div class="value">${order.status || 'Issued'}</div></div>
-            <div class="box"><div class="label">Supplier</div><div class="value">${order.supplier || 'Not specified'}</div></div>
-            <div class="box"><div class="label">Amount</div><div class="value">${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(order.amount || 0)}</div></div>
-          </div>
-          <div class="note">Generated from the procurement dashboard. Print this page for purchase order records.</div>
-        </body>
-      </html>`;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-
-  const handleDocumentSubmit = async (event) => {
-    event.preventDefault();
-    if (!documentForm.title || !documentForm.reference) return;
-
-    const record = {
-      type: 'document',
-      title: documentForm.title,
-      category: documentForm.category,
-      reference: documentForm.reference,
-      status: documentForm.status,
-      date: documentForm.date || new Date().toISOString().slice(0, 10),
-    };
-
-    try {
-      const response = await api.post('/procurement-records', record);
-      setDocumentRecords((prev) => [
-        { id: response.data._id, title: response.data.title, category: response.data.category, reference: response.data.reference, status: response.data.status, date: response.data.date },
-        ...prev,
-      ]);
-      setDocumentForm({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' });
-    } catch (error) {
-      console.error('Failed to save document record:', error);
-      setErrorMessage('Unable to save document record to the backend.');
-    }
-  };
-
-  const filteredDocumentRecords = documentRecords.filter((item) => {
-    const query = documentSearch.trim().toLowerCase();
-    if (!query) return true;
-
-    return [item.title, item.category, item.reference, item.status].some((value) =>
-      String(value).toLowerCase().includes(query)
+    createRecord(
+      'requisition',
+      {
+        title: requisitionForm.title,
+        department: requisitionForm.department,
+        amount: Number(requisitionForm.amount || 0),
+        priority: requisitionForm.priority,
+        requestedBy: requisitionForm.requestedBy || 'Department',
+        description: requisitionForm.description,
+        status: 'Pending Approval',
+      },
+      () => setRequisitionForm({ title: '', department: '', amount: '', priority: 'Medium', requestedBy: '', description: '' }),
+      'Purchase requisition created successfully.'
     );
-  });
+  };
 
-  const clerkModules = [
-    { title: 'Dashboard', description: 'View pending approvals, upcoming sittings, notifications, and statistics.' },
-    { title: 'Member Management', description: 'Register, update, suspend, and manage MCAs and staff records.' },
-    { title: 'Assembly Sessions', description: 'Schedule sittings, publish agendas, record attendance, and manage calendars.' },
-    { title: 'Bills Management', description: 'Create, review, approve, track, and archive bills through different legislative stages.' },
-    { title: 'Motions & Petitions', description: 'Receive, assign, approve, and track motions and public petitions.' },
-    { title: 'Committee Management', description: 'Create committees, assign members, schedule meetings, and upload reports.' },
-    { title: 'Minutes & Hansard', description: 'Record proceedings, upload minutes, and maintain official Assembly records.' },
-    { title: 'Document Management', description: 'Upload, organize, search, approve, and archive official documents.' },
-    { title: 'Correspondence', description: 'Receive and send official letters, memos, notices, and circulars.' },
-    { title: 'Public Participation', description: 'Publish notices, receive public submissions, and manage feedback.' },
-    { title: 'User Management', description: 'Create accounts, assign roles, reset passwords, and manage permissions.' },
-    { title: 'Reports', description: 'Generate attendance, committee, legislative, financial, and activity reports.' },
-    { title: 'Notifications', description: 'Send meeting reminders, announcements, and approval requests.' },
-    { title: 'Budget & Finance (Optional)', description: 'View budgets, approve expenditures, and monitor Assembly finances.' },
-    { title: 'Audit Logs', description: 'Track all user activities for accountability and security.' },
-  ];
+  const handleSupplierSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'supplier',
+      {
+        title: supplierForm.title,
+        category: supplierForm.category,
+        performance: supplierForm.performance,
+        status: supplierForm.status,
+        contact: supplierForm.contact,
+      },
+      () => setSupplierForm({ title: '', category: '', performance: 'Good', status: 'Active', contact: '' }),
+      'Supplier record created successfully.'
+    );
+  };
+
+  const handleTenderSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'tender',
+      {
+        title: tenderForm.title,
+        status: tenderForm.status,
+        closingDate: tenderForm.closingDate,
+        bids: Number(tenderForm.bids || 0),
+        recommendation: tenderForm.recommendation,
+      },
+      () => setTenderForm({ title: '', closingDate: '', status: 'Open', bids: '0', recommendation: 'Pending Evaluation' }),
+      'Tender record created successfully.'
+    );
+  };
+
+  const handleContractSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'contract',
+      {
+        title: contractForm.title,
+        supplier: contractForm.supplier,
+        expiryDate: contractForm.expiryDate,
+        performance: contractForm.performance,
+        documentStatus: contractForm.documentStatus,
+      },
+      () => setContractForm({ title: '', supplier: '', expiryDate: '', performance: 'On Track', documentStatus: 'Stored electronically' }),
+      'Contract record created successfully.'
+    );
+  };
+
+  const handlePlanSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'plan',
+      {
+        title: planForm.title,
+        department: planForm.department,
+        budget: Number(planForm.budget || 0),
+        status: planForm.status,
+        deadline: planForm.deadline,
+      },
+      () => setPlanForm({ title: '', department: '', budget: '', status: 'In Progress', deadline: '' }),
+      'Procurement plan created successfully.'
+    );
+  };
+
+  const handleInventorySave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'inventory',
+      {
+        title: inventoryForm.title,
+        category: inventoryForm.category,
+        stock: Number(inventoryForm.stock || 0),
+        reorderLevel: Number(inventoryForm.reorderLevel || 0),
+        status: inventoryForm.status,
+      },
+      () => setInventoryForm({ title: '', category: '', stock: '', reorderLevel: '', status: 'Available' }),
+      'Inventory record created successfully.'
+    );
+  };
+
+  const handleReportSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'report',
+      {
+        title: reportForm.title,
+        status: reportForm.status,
+        summary: reportForm.summary,
+      },
+      () => setReportForm({ title: '', summary: '', status: 'Ready' }),
+      'Report record created successfully.'
+    );
+  };
+
+  const handleDocumentSave = (event) => {
+    event.preventDefault();
+    createRecord(
+      'document',
+      {
+        title: documentForm.title,
+        category: documentForm.category,
+        reference: documentForm.reference,
+        status: documentForm.status,
+        date: documentForm.date || new Date().toISOString().slice(0, 10),
+      },
+      () => setDocumentForm({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' }),
+      'Document metadata saved successfully.'
+    );
+  };
+
+  const getFormMarkup = () => {
+    switch (activeForm) {
+      case 'requisition':
+        return (
+          <form onSubmit={handleRequisitionSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Create Purchase Requisition</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Title
+                <input name="title" value={requisitionForm.title} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Department
+                <input name="department" value={requisitionForm.department} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Amount
+                <input name="amount" type="number" min="0" value={requisitionForm.amount} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Priority
+                <select name="priority" value={requisitionForm.priority} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Low</option>
+                  <option>Medium</option>
+                  <option>High</option>
+                </select>
+              </label>
+              <label>
+                Requested By
+                <input name="requestedBy" value={requisitionForm.requestedBy} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+            </div>
+            <label>
+              Description
+              <textarea name="description" rows="3" value={requisitionForm.description} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save requisition</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'supplier':
+        return (
+          <form onSubmit={handleSupplierSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Register Supplier</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Supplier Name
+                <input name="title" value={supplierForm.title} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Category
+                <input name="category" value={supplierForm.category} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Contact
+                <input name="contact" value={supplierForm.contact} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+              <label>
+                Performance
+                <select name="performance" value={supplierForm.performance} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Excellent</option>
+                  <option>Good</option>
+                  <option>Needs Review</option>
+                  <option>Poor</option>
+                </select>
+              </label>
+              <label>
+                Status
+                <select name="status" value={supplierForm.status} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                  <option>Suspended</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save supplier</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'tender':
+        return (
+          <form onSubmit={handleTenderSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Create Tender / RFQ</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Title
+                <input name="title" value={tenderForm.title} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Closing Date
+                <input name="closingDate" type="date" value={tenderForm.closingDate} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Status
+                <select name="status" value={tenderForm.status} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Open</option>
+                  <option>Under Evaluation</option>
+                  <option>Awarded</option>
+                  <option>Closed</option>
+                </select>
+              </label>
+              <label>
+                Bids Received
+                <input name="bids" type="number" min="0" value={tenderForm.bids} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+            </div>
+            <label>
+              Recommendation
+              <textarea name="recommendation" rows="2" value={tenderForm.recommendation} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save tender</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'contract':
+        return (
+          <form onSubmit={handleContractSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Record Contract</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Contract Title
+                <input name="title" value={contractForm.title} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Supplier
+                <input name="supplier" value={contractForm.supplier} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Expiry Date
+                <input name="expiryDate" type="date" value={contractForm.expiryDate} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Performance
+                <select name="performance" value={contractForm.performance} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>On Track</option>
+                  <option>Needs Review</option>
+                  <option>Delayed</option>
+                </select>
+              </label>
+              <label>
+                Document Status
+                <select name="documentStatus" value={contractForm.documentStatus} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Stored electronically</option>
+                  <option>Pending upload</option>
+                  <option>Signed</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save contract</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'plan':
+        return (
+          <form onSubmit={handlePlanSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Create Procurement Plan</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Plan Title
+                <input name="title" value={planForm.title} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Department
+                <input name="department" value={planForm.department} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Budget
+                <input name="budget" type="number" min="0" value={planForm.budget} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Deadline
+                <input name="deadline" type="date" value={planForm.deadline} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+              <label>
+                Status
+                <select name="status" value={planForm.status} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>In Progress</option>
+                  <option>Approved</option>
+                  <option>Completed</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save plan</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'inventory':
+        return (
+          <form onSubmit={handleInventorySave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Record Delivery / Inventory</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Item Name
+                <input name="title" value={inventoryForm.title} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Category
+                <input name="category" value={inventoryForm.category} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Stock
+                <input name="stock" type="number" min="0" value={inventoryForm.stock} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Reorder Level
+                <input name="reorderLevel" type="number" min="0" value={inventoryForm.reorderLevel} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Status
+                <select name="status" value={inventoryForm.status} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Available</option>
+                  <option>Low Stock</option>
+                  <option>Pending Inspection</option>
+                  <option>Awaiting Inspection</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save inventory</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'report':
+        return (
+          <form onSubmit={handleReportSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Generate Report Record</h3>
+            <label>
+              Title
+              <input name="title" value={reportForm.title} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+            </label>
+            <label>
+              Summary
+              <textarea name="summary" rows="3" value={reportForm.summary} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+            </label>
+            <label>
+              Status
+              <select name="status" value={reportForm.status} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                <option>Ready</option>
+                <option>Draft</option>
+                <option>Under Review</option>
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save report</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      case 'document':
+        return (
+          <form onSubmit={handleDocumentSave} className="form-card" style={{ gap: '0.75rem' }}>
+            <h3>Register Procurement Document</h3>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Title
+                <input name="title" value={documentForm.title} onChange={(e) => setDocumentForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Category
+                <select name="category" value={documentForm.category} onChange={(e) => setDocumentForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Quotation</option>
+                  <option>Invoice</option>
+                  <option>Contract</option>
+                  <option>Delivery Note</option>
+                  <option>Compliance</option>
+                </select>
+              </label>
+              <label>
+                Reference
+                <input name="reference" value={documentForm.reference} onChange={(e) => setDocumentForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Status
+                <select name="status" value={documentForm.status} onChange={(e) => setDocumentForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Stored</option>
+                  <option>Reviewed</option>
+                  <option>Archived</option>
+                </select>
+              </label>
+              <label>
+                Date
+                <input name="date" type="date" value={documentForm.date} onChange={(e) => setDocumentForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Save document</button>
+              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+            </div>
+          </form>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="card procurement-card">
-      <div className="procurement-header">
-        <div>
-          <span className="eyebrow">Clerk’s Office</span>
-          <h1>Module Functions</h1>
-          <p>Core functions available through the Clerk’s page.</p>
-        </div>
+    <div className="card procurement-card" style={{ padding: '1.5rem', display: 'grid', gap: '1.5rem' }}>
+      <div className="page-header">
+        <span className="eyebrow">Procurement Officer</span>
+        <h1>Procurement Control Center</h1>
+        <p>Manage requisitions, suppliers, RFQs, tenders, purchase orders, deliveries, contracts, planning, documents and notifications from one organized portal.</p>
       </div>
 
-      <div className="procurement-info-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', width: '100%', marginTop: '1rem' }}>
-        {clerkModules.map((module) => (
-          <section key={module.title} className="card" style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>{module.title}</h3>
-            <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)' }}>{module.description}</p>
-          </section>
+      {error && <div className="message error-message">{error}</div>}
+      {message && <div className="message success-message">{message}</div>}
+
+      <section className="dashboard-grid" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        {summaryMetrics.map((metric) => (
+          <a key={metric.label} href={metric.anchor} className="summary-card" style={{ display: 'block', textDecoration: 'none' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#334155' }}>{metric.label}</p>
+            </div>
+            <p style={{ margin: '0.85rem 0 0', fontSize: '2rem', fontWeight: 700, color: '#0f172a' }}>{metric.value}</p>
+          </a>
         ))}
-      </div>
+      </section>
+
+      <section className="grid-columns" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1.2fr 0.8fr' }}>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <h2>Quick Actions</h2>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <button type="button" onClick={() => setActiveForm('requisition')}>New Purchase Requisition</button>
+            <button type="button" onClick={() => setActiveForm('supplier')}>Register Supplier</button>
+            <button type="button" onClick={() => setActiveForm('tender')}>Create RFQ / Tender</button>
+            <button type="button" onClick={() => setActiveForm('contract')}>Log Contract</button>
+            <button type="button" onClick={() => setActiveForm('plan')}>Create Procurement Plan</button>
+            <button type="button" onClick={() => setActiveForm('inventory')}>Record Delivery / Inventory</button>
+            <button type="button" onClick={() => setActiveForm('document')}>Register Document</button>
+            <button type="button" onClick={() => setActiveForm('report')}>Generate Report Record</button>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <h2>Connections</h2>
+          <p>Use existing app pages for related procurement workflows and document handling.</p>
+          <ul style={{ paddingLeft: '1.15rem', margin: '1rem 0 0', color: '#475569' }}>
+            <li><Link to="/documents">Document repository and contract storage</Link></li>
+            <li><Link to="/finance">Finance tracking and purchase order integration</Link></li>
+            <li><Link to="/meetings">Meeting schedules for tender evaluations</Link></li>
+            <li><Link to="/dashboard">Assembly dashboard overview</Link></li>
+          </ul>
+          <div style={{ marginTop: '1rem' }}>
+            <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Procurement documents</p>
+            <p style={{ margin: 0 }}>{procurementFiles.length} uploaded document{procurementFiles.length === 1 ? '' : 's'} available for review.</p>
+          </div>
+        </div>
+      </section>
+
+      {activeForm && (
+        <section className="card" style={{ padding: '1.25rem' }}>
+          {getFormMarkup()}
+        </section>
+      )}
+
+      {loading ? (
+        <div className="card" style={{ padding: '1.25rem' }}>Loading procurement records…</div>
+      ) : (
+        <>
+          <section id="requisitions" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Purchase Requisitions</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Verify requisitions, request clarification, and forward requests for approval.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('requisition')}>New requisition</button>
+            </div>
+            {requisitions.length === 0 ? (
+              <div className="empty-state">No purchase requisitions found.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Department</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Priority</th>
+                      <th>Requested By</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {requisitions.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.department || 'N/A'}</td>
+                        <td>{formatCurrency(item.amount)}</td>
+                        <td><span className={statusBadge(item.status)}>{item.status || 'Pending'}</span></td>
+                        <td>{item.priority || 'Medium'}</td>
+                        <td>{item.requestedBy || 'Department'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Approved' }, 'Requisition approved.')}>Approve</button>
+                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Clarification Requested' }, 'Clarification requested for requisition.')}>Request Clarification</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="suppliers" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Supplier Management</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Register suppliers, monitor performance, and suspend or update supplier status.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('supplier')}>Register supplier</button>
+            </div>
+            {suppliers.length === 0 ? (
+              <div className="empty-state">No supplier records available.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Performance</th>
+                      <th>Status</th>
+                      <th>Contact</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {suppliers.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.category}</td>
+                        <td>{item.performance}</td>
+                        <td><span className={statusBadge(item.status)}>{item.status}</span></td>
+                        <td>{item.contact || 'N/A'}</td>
+                        <td>
+                          <button type="button" onClick={() => updateRecord(item._id || item.id, { status: item.status === 'Active' ? 'Suspended' : 'Active' }, `Supplier ${item.status === 'Active' ? 'suspended' : 're-activated'} successfully.`)}>
+                            {item.status === 'Active' ? 'Suspend' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="tenders" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>RFQ & Tender Management</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Create RFQs and tenders, view submissions, compare bids and publish outcomes.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('tender')}>Create tender</button>
+            </div>
+            {tenders.length === 0 ? (
+              <div className="empty-state">No tenders or RFQs found.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Status</th>
+                      <th>Bids</th>
+                      <th>Closing Date</th>
+                      <th>Recommendation</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tenders.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td><span className={statusBadge(item.status)}>{item.status}</span></td>
+                        <td>{item.bids || 0}</td>
+                        <td>{formatDate(item.closingDate)}</td>
+                        <td>{item.recommendation || 'Pending'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Under Evaluation' }, 'Tender moved to evaluation.')}>Evaluate</button>
+                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Awarded' }, 'Tender marked as awarded.')}>Publish award</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="purchase-orders" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Purchase Orders</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Track issued purchase orders, amend status, and prepare suppliers for delivery.</p>
+              </div>
+            </div>
+            {purchaseOrders.length === 0 ? (
+              <div className="empty-state">No purchase orders issued yet.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>PO Title</th>
+                      <th>Supplier</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Issued At</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseOrders.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title || `PO-${item._id || item.id}`}</td>
+                        <td>{item.supplier || 'N/A'}</td>
+                        <td>{formatCurrency(item.amount)}</td>
+                        <td><span className={statusBadge(item.status)}>{item.status}</span></td>
+                        <td>{formatDate(item.issuedAt)}</td>
+                        <td>
+                          <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Completed' }, 'Purchase order marked complete.')}>Complete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="delivery-management" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Delivery & Inventory Coordination</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Record deliveries, verify quantities, and track low-stock items or pending inspection actions.</p>
+              </div>
+            </div>
+            {inventoryItems.length === 0 ? (
+              <div className="empty-state">No inventory or delivery records found.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Category</th>
+                      <th>Stock</th>
+                      <th>Reorder Level</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryItems.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.category}</td>
+                        <td>{item.stock}</td>
+                        <td>{item.reorderLevel}</td>
+                        <td><span className={statusBadge(item.status)}>{item.status}</span></td>
+                        <td>
+                          <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Available' }, 'Inventory item marked available.')}>Mark available</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="contracts" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Contract Management</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Monitor contract durations, renewals and signed document tracking.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('contract')}>Add contract</button>
+            </div>
+            {contracts.length === 0 ? (
+              <div className="empty-state">No contracts recorded yet.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Supplier</th>
+                      <th>Expiry</th>
+                      <th>Performance</th>
+                      <th>Document</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contracts.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.supplier}</td>
+                        <td>{formatDate(item.expiryDate)}</td>
+                        <td>{item.performance}</td>
+                        <td>{item.documentStatus}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="procurement-planning" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Procurement Planning</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Prepare, allocate and monitor annual procurement plans.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('plan')}>New plan</button>
+            </div>
+            {plans.length === 0 ? (
+              <div className="empty-state">No procurement plans created yet.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Plan</th>
+                      <th>Department</th>
+                      <th>Budget</th>
+                      <th>Status</th>
+                      <th>Deadline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plans.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.department}</td>
+                        <td>{formatCurrency(item.budget)}</td>
+                        <td>{item.status}</td>
+                        <td>{formatDate(item.deadline)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="reports" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Reports</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Generate procurement status, supplier performance and contract outcome reports.</p>
+              </div>
+              <button type="button" onClick={() => setActiveForm('report')}>New report</button>
+            </div>
+            {reports.length === 0 ? (
+              <div className="empty-state">No report records yet.</div>
+            ) : (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Status</th>
+                      <th>Summary</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reports.map((item) => (
+                      <tr key={item._id || item.id}>
+                        <td>{item.title}</td>
+                        <td>{item.status}</td>
+                        <td>{item.summary}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="document-management" className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <h2>Document Management</h2>
+                <p style={{ margin: 0, color: '#475569' }}>Store procurement documents, upload quotations, archive contracts, and search records.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setActiveForm('document')}>Register document</button>
+                <Link to="/documents"><button type="button" className="secondary">Open documents</button></Link>
+              </div>
+            </div>
+            <div style={{ marginTop: '1rem' }}>
+              <p style={{ margin: 0, color: '#475569' }}>Procurement file uploads: {procurementFiles.length} document{procurementFiles.length === 1 ? '' : 's'} available.</p>
+            </div>
+            {procurementFiles.length > 0 && (
+              <div className="table-card" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th>File</th>
+                      <th>Uploaded By</th>
+                      <th>Department</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {procurementFiles.map((file) => (
+                      <tr key={file._id || file.id}>
+                        <td>{file.originalName || file.filename}</td>
+                        <td>{file.uploadedBy?.name || 'N/A'}</td>
+                        <td>{file.department?.name || 'N/A'}</td>
+                        <td>{formatDate(file.uploadedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section id="notifications" className="card" style={{ padding: '1.25rem' }}>
+            <h2>Notifications</h2>
+            <div style={{ display: 'grid', gap: '0.9rem', marginTop: '1rem' }}>
+              {notifications.map((note) => (
+                <div key={note.title} className="notice-card" style={{ borderLeft: '4px solid #2563eb', padding: '1rem', background: '#f8fafc' }}>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{note.title}</p>
+                  <p style={{ margin: '0.5rem 0 0', color: '#475569' }}>{note.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
