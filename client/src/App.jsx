@@ -28,8 +28,7 @@ import Messages from './pages/Messages';
 import AuditLogs from './pages/AuditLogs';
 import ManageUsers from './pages/ManageUsers';
 import ClerkDashboard from './pages/ClerkDashboard';
-import InternDashboard from './pages/InternDashboard';
-import AttacheeDashboard from './pages/AttacheeDashboard';
+import Attachees from './pages/Attachees';
 
 function App() {
   return (
@@ -65,8 +64,7 @@ function App() {
           <Route path="/media" element={<MediaCenter />} />
           <Route path="/media/:slug" element={<MediaPost />} />
           <Route path="/clerk-dashboard" element={<ClerkDashboard />} />
-          <Route path="/intern-dashboard" element={<InternDashboard />} />
-          <Route path="/attachee-dashboard" element={<AttacheeDashboard />} />
+          <Route path="/attachees" element={<Attachees />} />
         </Routes>
       </main>
       <Footer />

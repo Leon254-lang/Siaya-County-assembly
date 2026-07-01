@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../services/api';
 
-export default function InternDashboard() {
+export default function AttacheeDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [internData, setInternData] = useState(null);
+  const [attacheeData, setAttacheeData] = useState(null);
   const [attendance, setAttendance] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  const [duties, setDuties] = useState([]);
   const [logbook, setLogbook] = useState([]);
-  const [documents, setDocuments] = useState([]);
+  const [reports, setReports] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [feedback, setFeedback] = useState(null);
+  const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [checkedInToday, setCheckedInToday] = useState(false);
@@ -19,34 +18,35 @@ export default function InternDashboard() {
 
   // Form states
   const [newLogEntry, setNewLogEntry] = useState({ date: '', activities: '', hours: '' });
-  const [leaveForm, setLeaveForm] = useState({ startDate: '', endDate: '', reason: '' });
+  const [newReport, setNewReport] = useState({ type: '', content: '', weekEnding: '' });
+  const [leaveForm, setLeaveForm] = useState({ startDate: '', endDate: '', reason: '', type: 'Leave' });
 
-  const loadInternData = async () => {
+  const loadAttacheeData = async () => {
     try {
       setLoading(true);
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
 
-      // Load intern profile
-      const internRes = await api.get(`/interns/${userId}`);
-      setInternData(internRes.data);
+      // Load attachee profile
+      const attacheeRes = await api.get(`/interns/${userId}`);
+      setAttacheeData(attacheeRes.data);
 
       // Load attendance
       const attendanceRes = await api.get(`/attendance?userId=${userId}`);
       setAttendance(attendanceRes.data);
 
-      // Load tasks
-      const tasksRes = await api.get(`/interns/${userId}/tasks`);
-      setTasks(tasksRes.data || []);
+      // Load duties
+      const dutiesRes = await api.get(`/interns/${userId}/duties`);
+      setDuties(dutiesRes.data || []);
 
       // Load logbook
       const logbookRes = await api.get(`/interns/${userId}/logbook`);
       setLogbook(logbookRes.data || []);
 
-      // Load documents
-      const docsRes = await api.get(`/interns/${userId}/documents`);
-      setDocuments(docsRes.data || []);
+      // Load reports
+      const reportsRes = await api.get(`/interns/${userId}/reports`);
+      setReports(reportsRes.data || []);
 
-      // Load leaves
+      // Load leaves/permissions
       const leavesRes = await api.get(`/interns/${userId}/leaves`);
       setLeaves(leavesRes.data || []);
 
@@ -54,9 +54,9 @@ export default function InternDashboard() {
       const notifRes = await api.get(`/announcements`);
       setNotifications(notifRes.data.slice(0, 5) || []);
 
-      // Load feedback
-      const feedbackRes = await api.get(`/interns/${userId}/feedback`);
-      setFeedback(feedbackRes.data || null);
+      // Load evaluation
+      const evaluationRes = await api.get(`/interns/${userId}/evaluation`);
+      setEvaluation(evaluationRes.data || null);
 
       // Check if checked in today
       const today = new Date().toDateString();
@@ -66,14 +66,14 @@ export default function InternDashboard() {
 
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load intern data:', err);
+      console.error('Failed to load attachee data:', err);
       setMessage('Failed to load dashboard data.');
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadInternData();
+    loadAttacheeData();
   }, []);
 
   const handleCheckIn = async () => {
@@ -82,7 +82,7 @@ export default function InternDashboard() {
       await api.post('/attendance/check-in', { userId });
       setMessage('Checked in successfully');
       setCheckedInToday(true);
-      loadInternData();
+      loadAttacheeData();
     } catch (err) {
       setMessage('Failed to check in');
     }
@@ -94,19 +94,19 @@ export default function InternDashboard() {
       await api.post('/attendance/check-out', { userId });
       setMessage('Checked out successfully');
       setCheckOutTime(new Date().toLocaleTimeString());
-      loadInternData();
+      loadAttacheeData();
     } catch (err) {
       setMessage('Failed to check out');
     }
   };
 
-  const completeTask = async (taskId) => {
+  const submitDutyCompletion = async (dutyId) => {
     try {
-      await api.put(`/interns/tasks/${taskId}`, { status: 'Completed' });
-      setMessage('Task marked as completed');
-      loadInternData();
+      await api.put(`/interns/duties/${dutyId}`, { status: 'Completed' });
+      setMessage('Duty marked as completed');
+      loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to update task');
+      setMessage('Failed to update duty');
     }
   };
 
@@ -114,37 +114,44 @@ export default function InternDashboard() {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
       await api.post(`/interns/${userId}/logbook`, newLogEntry);
-      setMessage('Logbook entry submitted');
+      setMessage('Daily logbook entry submitted');
       setNewLogEntry({ date: '', activities: '', hours: '' });
-      loadInternData();
+      loadAttacheeData();
     } catch (err) {
       setMessage('Failed to submit logbook entry');
     }
   };
 
-  const submitLeaveRequest = async () => {
+  const submitReport = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post(`/interns/${userId}/leaves`, { ...leaveForm, userId });
-      setMessage('Leave request submitted');
-      setLeaveForm({ startDate: '', endDate: '', reason: '' });
-      loadInternData();
+      await api.post(`/interns/${userId}/reports`, { ...newReport, userId });
+      setMessage('Report submitted successfully');
+      setNewReport({ type: '', content: '', weekEnding: '' });
+      loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to submit leave request');
+      setMessage('Failed to submit report');
     }
   };
 
-  const downloadCertificate = async () => {
+  const requestPermission = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      const res = await api.get(`/interns/${userId}/certificate`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'internship-certificate.pdf';
-      a.click();
+      await api.post(`/interns/${userId}/leaves`, { ...leaveForm, userId });
+      setMessage('Permission/Leave request submitted');
+      setLeaveForm({ startDate: '', endDate: '', reason: '', type: 'Leave' });
+      loadAttacheeData();
     } catch (err) {
-      setMessage('Certificate not available or not approved yet');
+      setMessage('Failed to submit request');
+    }
+  };
+
+  const downloadDocument = (docType) => {
+    try {
+      setMessage(`Downloading ${docType}...`);
+      // Implementation would depend on your backend
+    } catch (err) {
+      setMessage(`Failed to download ${docType}`);
     }
   };
 
@@ -152,7 +159,7 @@ export default function InternDashboard() {
     return (
       <div className="page">
         <div className="page-header">
-          <h1>🎓 Intern Dashboard</h1>
+          <h1>🏢 Attachee Dashboard</h1>
         </div>
         <div className="loading">Loading your dashboard...</div>
       </div>
@@ -160,10 +167,10 @@ export default function InternDashboard() {
   }
 
   return (
-    <div className="page intern-dashboard">
+    <div className="page attachee-dashboard">
       <div className="page-header">
-        <h1>🎓 Intern Dashboard</h1>
-        <p>Monitor your internship progress and complete assigned tasks</p>
+        <h1>🏢 Attachee Dashboard</h1>
+        <p>Monitor your industrial attachment progress and complete assigned duties</p>
       </div>
 
       {message && (
@@ -193,10 +200,10 @@ export default function InternDashboard() {
           📅 Attendance
         </button>
         <button
-          className={`tab-btn ${activeTab === 'tasks' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tasks')}
+          className={`tab-btn ${activeTab === 'duties' ? 'active' : ''}`}
+          onClick={() => setActiveTab('duties')}
         >
-          ✅ Tasks
+          ⚙️ Duties
         </button>
         <button
           className={`tab-btn ${activeTab === 'logbook' ? 'active' : ''}`}
@@ -205,22 +212,22 @@ export default function InternDashboard() {
           📔 Logbook
         </button>
         <button
-          className={`tab-btn ${activeTab === 'documents' ? 'active' : ''}`}
-          onClick={() => setActiveTab('documents')}
+          className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reports')}
         >
-          📄 Documents
+          📊 Reports
         </button>
         <button
-          className={`tab-btn ${activeTab === 'leave' ? 'active' : ''}`}
-          onClick={() => setActiveTab('leave')}
+          className={`tab-btn ${activeTab === 'permission' ? 'active' : ''}`}
+          onClick={() => setActiveTab('permission')}
         >
-          🏖️ Leave
+          🏖️ Permission/Leave
         </button>
         <button
-          className={`tab-btn ${activeTab === 'feedback' ? 'active' : ''}`}
-          onClick={() => setActiveTab('feedback')}
+          className={`tab-btn ${activeTab === 'evaluation' ? 'active' : ''}`}
+          onClick={() => setActiveTab('evaluation')}
         >
-          💬 Feedback
+          ⭐ Evaluation
         </button>
       </div>
 
@@ -229,91 +236,77 @@ export default function InternDashboard() {
         <div className="tab-content">
           {/* Welcome Section */}
           <section className="dashboard-section">
-            <h2>Welcome, {internData?.firstName || 'Intern'}! 👋</h2>
+            <h2>Welcome, {attacheeData?.firstName || 'Attachee'}! 👋</h2>
             <div className="welcome-grid">
               <div className="info-card">
-                <div className="info-label">📅 Internship Duration</div>
+                <div className="info-label">📅 Attachment Period</div>
                 <div className="info-value">
-                  {internData?.startDate ? new Date(internData.startDate).toLocaleDateString() : 'N/A'} to {internData?.endDate ? new Date(internData.endDate).toLocaleDateString() : 'N/A'}
+                  {attacheeData?.startDate ? new Date(attacheeData.startDate).toLocaleDateString() : 'N/A'} to {attacheeData?.endDate ? new Date(attacheeData.endDate).toLocaleDateString() : 'N/A'}
                 </div>
               </div>
               <div className="info-card">
                 <div className="info-label">🏢 Department</div>
-                <div className="info-value">{internData?.department || 'Not assigned'}</div>
+                <div className="info-value">{attacheeData?.department || 'Not assigned'}</div>
               </div>
               <div className="info-card">
                 <div className="info-label">👨‍💼 Supervisor</div>
-                <div className="info-value">{internData?.supervisor?.name || 'Not assigned'}</div>
+                <div className="info-value">{attacheeData?.supervisor?.name || 'Not assigned'}</div>
               </div>
               <div className="info-card">
                 <div className="info-label">📞 Supervisor Contact</div>
-                <div className="info-value">{internData?.supervisor?.phone || 'N/A'}</div>
+                <div className="info-value">{attacheeData?.supervisor?.phone || 'N/A'}</div>
               </div>
             </div>
           </section>
 
-          {/* Attendance Summary */}
+          {/* Status Summary */}
           <section className="dashboard-section">
-            <h2>📊 Attendance Summary</h2>
+            <h2>📊 Attachment Status</h2>
             <div className="summary-grid">
               <div className="summary-card">
                 <div className="summary-number">{attendance.length}</div>
                 <div className="summary-label">Days Present</div>
               </div>
               <div className="summary-card">
-                <div className="summary-number">{attendance.filter(a => !a.checkOut).length}</div>
-                <div className="summary-label">Days Absent</div>
+                <div className="summary-number">{duties.length}</div>
+                <div className="summary-label">Total Duties</div>
               </div>
               <div className="summary-card">
-                <div className="summary-number">{attendance.reduce((sum, a) => sum + (a.hoursWorked || 0), 0).toFixed(1)}</div>
-                <div className="summary-label">Total Hours</div>
+                <div className="summary-number">{duties.filter(d => d.status === 'Completed').length}</div>
+                <div className="summary-label">Completed Duties</div>
               </div>
               <div className="summary-card">
-                <div className="summary-number">{tasks.filter(t => t.status === 'Completed').length}/{tasks.length}</div>
-                <div className="summary-label">Tasks Completed</div>
+                <div className="summary-number">{reports.length}</div>
+                <div className="summary-label">Reports Submitted</div>
               </div>
             </div>
           </section>
 
-          {/* Pending & Completed Tasks */}
+          {/* Pending Duties & Announcements */}
           <div className="grid-2">
             <section className="dashboard-section">
-              <h2>⏳ Pending Tasks</h2>
-              {tasks.filter(t => t.status !== 'Completed').slice(0, 3).map(task => (
-                <div key={task._id} className="list-item">
+              <h2>⚙️ Pending Duties</h2>
+              {duties.filter(d => d.status !== 'Completed').slice(0, 3).map(duty => (
+                <div key={duty._id} className="list-item">
                   <div>
-                    <h4>{task.title}</h4>
-                    <p>{task.description}</p>
-                    <small>Due: {new Date(task.dueDate).toLocaleDateString()}</small>
+                    <h4>{duty.title}</h4>
+                    <p>{duty.description}</p>
                   </div>
-                  <button onClick={() => completeTask(task._id)} className="btn-small btn-success">Mark Done</button>
+                  <button onClick={() => submitDutyCompletion(duty._id)} className="btn-small btn-success">Done</button>
                 </div>
               ))}
             </section>
 
             <section className="dashboard-section">
-              <h2>✅ Completed Tasks</h2>
-              {tasks.filter(t => t.status === 'Completed').slice(0, 3).map(task => (
-                <div key={task._id} className="list-item completed">
-                  <div>
-                    <h4>✓ {task.title}</h4>
-                    <small>Completed: {new Date(task.completedDate).toLocaleDateString()}</small>
-                  </div>
+              <h2>🔔 Announcements</h2>
+              {notifications.map(notif => (
+                <div key={notif._id} className="notification-item">
+                  <h4>{notif.title}</h4>
+                  <p>{notif.content}</p>
                 </div>
               ))}
             </section>
           </div>
-
-          {/* Notifications */}
-          <section className="dashboard-section">
-            <h2>🔔 Recent Announcements</h2>
-            {notifications.map(notif => (
-              <div key={notif._id} className="notification-item">
-                <h4>{notif.title}</h4>
-                <p>{notif.content}</p>
-              </div>
-            ))}
-          </section>
         </div>
       )}
 
@@ -321,35 +314,34 @@ export default function InternDashboard() {
       {activeTab === 'profile' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>👤 Personal Information</h2>
+            <h2>👤 Personal Details</h2>
             <div className="profile-grid">
               <div className="profile-field">
                 <label>First Name</label>
-                <input type="text" value={internData?.firstName || ''} readOnly />
+                <input type="text" value={attacheeData?.firstName || ''} readOnly />
               </div>
               <div className="profile-field">
                 <label>Last Name</label>
-                <input type="text" value={internData?.lastName || ''} readOnly />
+                <input type="text" value={attacheeData?.lastName || ''} readOnly />
               </div>
               <div className="profile-field">
                 <label>Email</label>
-                <input type="email" value={internData?.email || ''} readOnly />
+                <input type="email" value={attacheeData?.email || ''} readOnly />
               </div>
               <div className="profile-field">
                 <label>Phone Number</label>
-                <input type="tel" value={internData?.phone || ''} />
+                <input type="tel" value={attacheeData?.phone || ''} />
               </div>
               <div className="profile-field">
                 <label>Institution</label>
-                <input type="text" value={internData?.institution || ''} readOnly />
+                <input type="text" value={attacheeData?.institution || ''} readOnly />
               </div>
               <div className="profile-field">
-                <label>Course</label>
-                <input type="text" value={internData?.course || ''} readOnly />
+                <label>Course/Field of Study</label>
+                <input type="text" value={attacheeData?.course || ''} readOnly />
               </div>
             </div>
-            <button className="btn-primary">Update Profile Photo</button>
-            <button className="btn-secondary" style={{ marginLeft: '0.5rem' }}>Save Changes</button>
+            <button className="btn-primary">Save Changes</button>
           </section>
         </div>
       )}
@@ -358,7 +350,7 @@ export default function InternDashboard() {
       {activeTab === 'attendance' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>📅 Attendance</h2>
+            <h2>📅 Attendance Management</h2>
             <div className="attendance-actions">
               <button
                 onClick={handleCheckIn}
@@ -376,23 +368,23 @@ export default function InternDashboard() {
               </button>
             </div>
 
-            <h3 style={{ marginTop: '2rem' }}>📋 Attendance History</h3>
+            <h3 style={{ marginTop: '2rem' }}>📋 Attendance Report</h3>
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Check In</th>
                   <th>Check Out</th>
-                  <th>Hours Worked</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {attendance.slice(0, 10).map(record => (
                   <tr key={record._id}>
                     <td>{new Date(record.date).toLocaleDateString()}</td>
-                    <td>{record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : 'N/A'}</td>
+                    <td>{record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : '-'}</td>
                     <td>{record.checkOut ? new Date(record.checkOut).toLocaleTimeString() : 'Ongoing'}</td>
-                    <td>{record.hoursWorked || '-'}</td>
+                    <td>{record.checkOut ? 'Present' : 'Absent'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -401,25 +393,22 @@ export default function InternDashboard() {
         </div>
       )}
 
-      {/* TASKS TAB */}
-      {activeTab === 'tasks' && (
+      {/* DUTIES TAB */}
+      {activeTab === 'duties' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>✅ Task Management</h2>
-            
-            <h3>Pending Tasks</h3>
-            {tasks.filter(t => t.status !== 'Completed').map(task => (
-              <div key={task._id} className="task-card">
-                <div className="task-header">
-                  <h4>{task.title}</h4>
-                  <span className="task-status">{task.priority || 'Normal'}</span>
+            <h2>⚙️ Assigned Duties</h2>
+
+            <h3>Pending Duties</h3>
+            {duties.filter(d => d.status !== 'Completed').map(duty => (
+              <div key={duty._id} className="duty-card">
+                <div className="duty-header">
+                  <h4>{duty.title}</h4>
+                  <span className="duty-status">{duty.priority || 'Normal'}</span>
                 </div>
-                <p>{task.description}</p>
-                <div className="task-meta">
-                  <small>📅 Due: {new Date(task.dueDate).toLocaleDateString()}</small>
-                </div>
-                <div className="task-actions">
-                  <button onClick={() => completeTask(task._id)} className="btn-small btn-success">
+                <p>{duty.description}</p>
+                <div className="duty-actions">
+                  <button onClick={() => submitDutyCompletion(duty._id)} className="btn-small btn-success">
                     Mark as Completed
                   </button>
                   <button className="btn-small btn-secondary">Upload Work</button>
@@ -427,11 +416,11 @@ export default function InternDashboard() {
               </div>
             ))}
 
-            <h3 style={{ marginTop: '2rem' }}>Completed Tasks</h3>
-            {tasks.filter(t => t.status === 'Completed').map(task => (
-              <div key={task._id} className="task-card completed">
-                <h4>✓ {task.title}</h4>
-                <small>Completed: {new Date(task.completedDate).toLocaleDateString()}</small>
+            <h3 style={{ marginTop: '2rem' }}>Completed Duties</h3>
+            {duties.filter(d => d.status === 'Completed').map(duty => (
+              <div key={duty._id} className="duty-card completed">
+                <h4>✓ {duty.title}</h4>
+                <small>Completed: {new Date(duty.completedDate).toLocaleDateString()}</small>
               </div>
             ))}
           </section>
@@ -442,10 +431,10 @@ export default function InternDashboard() {
       {activeTab === 'logbook' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>📔 Daily/Weekly Logbook</h2>
+            <h2>📔 Daily Logbook</h2>
 
             <div className="form-section">
-              <h3>Fill Daily Activities</h3>
+              <h3>Add Daily Entry</h3>
               <div className="form-group">
                 <label>Date</label>
                 <input
@@ -455,10 +444,10 @@ export default function InternDashboard() {
                 />
               </div>
               <div className="form-group">
-                <label>Activities Completed</label>
+                <label>Daily Activities</label>
                 <textarea
                   rows="4"
-                  placeholder="Describe the activities you completed today..."
+                  placeholder="Describe your daily activities..."
                   value={newLogEntry.activities}
                   onChange={(e) => setNewLogEntry({ ...newLogEntry, activities: e.target.value })}
                 />
@@ -472,70 +461,85 @@ export default function InternDashboard() {
                   onChange={(e) => setNewLogEntry({ ...newLogEntry, hours: e.target.value })}
                 />
               </div>
-              <button onClick={submitLogEntry} className="btn-primary">Submit Logbook Entry</button>
+              <button onClick={submitLogEntry} className="btn-primary">Submit Daily Entry</button>
             </div>
 
-            <h3 style={{ marginTop: '2rem' }}>📝 Previous Entries</h3>
+            <h3 style={{ marginTop: '2rem' }}>📝 Weekly Summaries</h3>
             {logbook.slice(0, 10).map(entry => (
               <div key={entry._id} className="logbook-entry">
                 <h4>{new Date(entry.date).toLocaleDateString()}</h4>
                 <p>{entry.activities}</p>
-                <small>Hours: {entry.hours} | Status: {entry.submitted ? 'Submitted' : 'Draft'}</small>
+                <small>Hours: {entry.hours} | Status: {entry.submitted ? 'Approved' : 'Pending'}</small>
               </div>
             ))}
           </section>
         </div>
       )}
 
-      {/* DOCUMENTS TAB */}
-      {activeTab === 'documents' && (
+      {/* REPORTS TAB */}
+      {activeTab === 'reports' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>📄 Documents</h2>
-
-            <div className="documents-grid">
-              <div className="document-card">
-                <h4>📋 Appointment Letter</h4>
-                <p>Your internship appointment letter</p>
-                <button className="btn-small btn-primary">Download</button>
-              </div>
-              <div className="document-card">
-                <h4>📝 Internship Forms</h4>
-                <p>Required forms for internship</p>
-                <button className="btn-small btn-primary">Download</button>
-              </div>
-              <div className="document-card">
-                <h4>📊 Evaluation Forms</h4>
-                <p>Supervisor evaluation forms</p>
-                <button className="btn-small btn-primary">Download</button>
-              </div>
-            </div>
-
-            <h3 style={{ marginTop: '2rem' }}>📤 Upload Documents</h3>
-            <div className="upload-section">
-              <input type="file" id="doc-upload" style={{ marginRight: '1rem' }} />
-              <button className="btn-primary">Upload Document</button>
-            </div>
-
-            <h3 style={{ marginTop: '2rem' }}>✅ Uploaded Documents</h3>
-            {documents.map(doc => (
-              <div key={doc._id} className="document-item">
-                <h4>{doc.name}</h4>
-                <small>Uploaded: {new Date(doc.uploadedDate).toLocaleDateString()}</small>
-              </div>
-            ))}
-          </section>
-        </div>
-      )}
-
-      {/* LEAVE TAB */}
-      {activeTab === 'leave' && (
-        <div className="tab-content">
-          <section className="dashboard-section">
-            <h2>🏖️ Leave Requests</h2>
+            <h2>📊 Reports</h2>
 
             <div className="form-section">
-              <h3>Apply for Leave</h3>
+              <h3>Submit Report</h3>
+              <div className="form-group">
+                <label>Report Type</label>
+                <select value={newReport.type} onChange={(e) => setNewReport({ ...newReport, type: e.target.value })}>
+                  <option value="">Select report type</option>
+                  <option value="weekly">Weekly Report</option>
+                  <option value="monthly">Monthly Report</option>
+                  <option value="final">Final Attachment Report</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Week/Month Ending</label>
+                <input
+                  type="date"
+                  value={newReport.weekEnding}
+                  onChange={(e) => setNewReport({ ...newReport, weekEnding: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Report Content</label>
+                <textarea
+                  rows="5"
+                  placeholder="Write your report here..."
+                  value={newReport.content}
+                  onChange={(e) => setNewReport({ ...newReport, content: e.target.value })}
+                />
+              </div>
+              <button onClick={submitReport} className="btn-primary">Submit Report</button>
+            </div>
+
+            <h3 style={{ marginTop: '2rem' }}>📋 Submitted Reports</h3>
+            {reports.map(report => (
+              <div key={report._id} className="report-item">
+                <h4>{report.type?.toUpperCase()} - {new Date(report.weekEnding).toLocaleDateString()}</h4>
+                <p>{report.content}</p>
+                <small>Status: {report.status || 'Submitted'}</small>
+              </div>
+            ))}
+          </section>
+        </div>
+      )}
+
+      {/* PERMISSION/LEAVE TAB */}
+      {activeTab === 'permission' && (
+        <div className="tab-content">
+          <section className="dashboard-section">
+            <h2>🏖️ Permission/Leave Requests</h2>
+
+            <div className="form-section">
+              <h3>Request Permission or Leave</h3>
+              <div className="form-group">
+                <label>Type</label>
+                <select value={leaveForm.type} onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })}>
+                  <option value="Leave">Leave</option>
+                  <option value="Permission">Permission</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label>Start Date</label>
                 <input
@@ -556,59 +560,69 @@ export default function InternDashboard() {
                 <label>Reason</label>
                 <textarea
                   rows="3"
-                  placeholder="Enter reason for leave..."
+                  placeholder="Enter reason..."
                   value={leaveForm.reason}
                   onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
                 />
               </div>
-              <button onClick={submitLeaveRequest} className="btn-primary">Submit Leave Request</button>
+              <button onClick={requestPermission} className="btn-primary">Submit Request</button>
             </div>
 
-            <h3 style={{ marginTop: '2rem' }}>📋 Leave History</h3>
+            <h3 style={{ marginTop: '2rem' }}>📋 Request History</h3>
             {leaves.map(leave => (
               <div key={leave._id} className="leave-item">
                 <h4>{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</h4>
                 <p>{leave.reason}</p>
-                <small>Status: <strong>{leave.status || 'Pending'}</strong></small>
+                <small>Type: {leave.type} | Status: <strong>{leave.status || 'Pending'}</strong></small>
               </div>
             ))}
           </section>
         </div>
       )}
 
-      {/* FEEDBACK TAB */}
-      {activeTab === 'feedback' && (
+      {/* EVALUATION TAB */}
+      {activeTab === 'evaluation' && (
         <div className="tab-content">
           <section className="dashboard-section">
-            <h2>💬 Supervisor Feedback & Evaluation</h2>
+            <h2>⭐ Supervisor Evaluation & Assessment</h2>
 
-            {feedback ? (
-              <div className="feedback-card">
-                <h3>{feedback.title}</h3>
-                <p>{feedback.comments}</p>
-                <div className="feedback-details">
-                  <div><strong>Performance Rating:</strong> {feedback.rating}/5</div>
-                  <div><strong>Date:</strong> {new Date(feedback.date).toLocaleDateString()}</div>
+            {evaluation ? (
+              <div className="evaluation-card">
+                <h3>{evaluation.title || 'Performance Evaluation'}</h3>
+                <p>{evaluation.comments}</p>
+                <div className="evaluation-details">
+                  <div><strong>Performance Rating:</strong> {evaluation.rating}/5 ⭐</div>
+                  <div><strong>Evaluation Date:</strong> {new Date(evaluation.date).toLocaleDateString()}</div>
                 </div>
               </div>
             ) : (
-              <p className="empty-state">No feedback available yet</p>
+              <p className="empty-state">No evaluation available yet</p>
             )}
 
-            <h3 style={{ marginTop: '2rem' }}>📜 Certificate</h3>
-            {feedback?.approved ? (
-              <button onClick={downloadCertificate} className="btn-primary">
-                📥 Download Completion Certificate
-              </button>
-            ) : (
-              <p className="empty-state">Certificate will be available after supervisor approval</p>
-            )}
+            <h3 style={{ marginTop: '2rem' }}>📜 Completion Documents</h3>
+            <div className="documents-grid">
+              <div className="document-card">
+                <h4>📋 Attachment Letter</h4>
+                <p>Official attachment letter</p>
+                <button onClick={() => downloadDocument('attachment-letter')} className="btn-small btn-primary">Download</button>
+              </div>
+              <div className="document-card">
+                <h4>📝 Evaluation Form</h4>
+                <p>Supervisor evaluation form</p>
+                <button onClick={() => downloadDocument('evaluation-form')} className="btn-small btn-primary">Download</button>
+              </div>
+              <div className="document-card">
+                <h4>✅ Completion Letter</h4>
+                <p>Attachment completion letter</p>
+                <button onClick={() => downloadDocument('completion-letter')} className="btn-small btn-primary">Download</button>
+              </div>
+            </div>
           </section>
         </div>
       )}
 
       <style>{`
-        .intern-dashboard {
+        .attachee-dashboard {
           max-width: 1200px;
           margin: 0 auto;
         }
@@ -713,10 +727,6 @@ export default function InternDashboard() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-        }
-
-        .list-item.completed {
-          opacity: 0.7;
         }
 
         .list-item h4 {
@@ -829,7 +839,7 @@ export default function InternDashboard() {
           border-bottom: 1px solid #e5e7eb;
         }
 
-        .task-card {
+        .duty-card {
           background: white;
           padding: 1rem;
           border-radius: 6px;
@@ -837,22 +847,22 @@ export default function InternDashboard() {
           border: 1px solid #e5e7eb;
         }
 
-        .task-card.completed {
+        .duty-card.completed {
           opacity: 0.6;
         }
 
-        .task-header {
+        .duty-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 0.5rem;
         }
 
-        .task-header h4 {
+        .duty-header h4 {
           margin: 0;
         }
 
-        .task-status {
+        .duty-status {
           background: #fef3c7;
           padding: 0.25rem 0.75rem;
           border-radius: 20px;
@@ -860,13 +870,7 @@ export default function InternDashboard() {
           font-weight: 500;
         }
 
-        .task-meta {
-          color: #6b7280;
-          font-size: 0.9rem;
-          margin: 0.75rem 0;
-        }
-
-        .task-actions {
+        .duty-actions {
           display: flex;
           gap: 0.5rem;
           margin-top: 1rem;
@@ -929,7 +933,8 @@ export default function InternDashboard() {
         }
 
         .form-group input,
-        .form-group textarea {
+        .form-group textarea,
+        .form-group select {
           width: 100%;
           padding: 0.75rem;
           border: 1px solid #e5e7eb;
@@ -942,7 +947,7 @@ export default function InternDashboard() {
           resize: vertical;
         }
 
-        .logbook-entry, .leave-item {
+        .logbook-entry, .leave-item, .report-item {
           background: white;
           padding: 1rem;
           border-radius: 6px;
@@ -950,11 +955,11 @@ export default function InternDashboard() {
           border-left: 4px solid #4f46e5;
         }
 
-        .logbook-entry h4, .leave-item h4 {
+        .logbook-entry h4, .leave-item h4, .report-item h4 {
           margin: 0 0 0.5rem 0;
         }
 
-        .logbook-entry p, .leave-item p {
+        .logbook-entry p, .leave-item p, .report-item p {
           margin: 0.25rem 0;
           color: #6b7280;
         }
@@ -984,33 +989,14 @@ export default function InternDashboard() {
           font-size: 0.9rem;
         }
 
-        .upload-section {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 6px;
-          border: 2px dashed #d1d5db;
-          text-align: center;
-        }
-
-        .document-item {
-          background: white;
-          padding: 1rem;
-          border-radius: 6px;
-          margin-bottom: 0.75rem;
-        }
-
-        .document-item h4 {
-          margin: 0 0 0.5rem 0;
-        }
-
-        .feedback-card {
+        .evaluation-card {
           background: white;
           padding: 1.5rem;
           border-radius: 6px;
           border-left: 4px solid #10b981;
         }
 
-        .feedback-details {
+        .evaluation-details {
           background: #f0fdf4;
           padding: 1rem;
           border-radius: 6px;
