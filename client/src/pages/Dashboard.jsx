@@ -379,37 +379,69 @@ export default function Dashboard() {
             <section className="modules-section">
               <div className="section-header theme-black">
                 <h2>📘 Clerk’s Office Workspace</h2>
-                <p>Use this workspace to oversee Assembly administration, legislative records, committee coordination, public participation and official communications.</p>
+                <p>Core functions available in the Clerk’s office dashboard.</p>
               </div>
               <div className="modules-grid">
                 <div className="module-card">
-                  <h3>📄 Legislative Records</h3>
-                  <p>Manage documents, minutes, proceedings and official records for sittings, committees and Assembly operations.</p>
-                  <Link to="/documents" className="module-link">Open Documents</Link>
+                  <h3>📊 Dashboard</h3>
+                  <p>View pending approvals, upcoming sittings, notifications, and statistics.</p>
                 </div>
                 <div className="module-card">
-                  <h3>🗓️ Assembly Calendar</h3>
-                  <p>Coordinate schedules, order papers, meetings, functions and committee calendars in one place.</p>
-                  <Link to="/meetings" className="module-link">Open Meetings</Link>
+                  <h3>👥 Member Management</h3>
+                  <p>Register, update, suspend, and manage MCAs and staff records.</p>
                 </div>
                 <div className="module-card">
-                  <h3>🧾 Committee & Sessions</h3>
-                  <p>Support committee operations, legislative processes, sessions and reports for the Clerk’s office.</p>
-                  <Link to="/committees" className="module-link">Open Committees</Link>
+                  <h3>🗓️ Assembly Sessions</h3>
+                  <p>Schedule sittings, publish agendas, record attendance, and manage calendars.</p>
                 </div>
                 <div className="module-card">
-                  <h3>📣 Public Engagement</h3>
-                  <p>Coordinate messages, announcements and engagement activities with the public and external stakeholders.</p>
-                  <Link to="/messages" className="module-link">Open Messages</Link>
+                  <h3>🧾 Bills Management</h3>
+                  <p>Create, review, approve, track, and archive bills through different legislative stages.</p>
                 </div>
-              </div>
-              <div className="card" style={{ marginTop: '1rem' }}>
-                <h3>Core Clerk responsibilities</h3>
-                <ul>
-                  {clerkResponsibilities.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+                <div className="module-card">
+                  <h3>📝 Motions & Petitions</h3>
+                  <p>Receive, assign, approve, and track motions and public petitions.</p>
+                </div>
+                <div className="module-card">
+                  <h3>🏛️ Committee Management</h3>
+                  <p>Create committees, assign members, schedule meetings, and upload reports.</p>
+                </div>
+                <div className="module-card">
+                  <h3>📄 Minutes & Hansard</h3>
+                  <p>Record proceedings, upload minutes, and maintain official Assembly records.</p>
+                </div>
+                <div className="module-card">
+                  <h3>📁 Document Management</h3>
+                  <p>Upload, organize, search, approve, and archive official documents.</p>
+                </div>
+                <div className="module-card">
+                  <h3>✉️ Correspondence</h3>
+                  <p>Receive and send official letters, memos, notices, and circulars.</p>
+                </div>
+                <div className="module-card">
+                  <h3>🌍 Public Participation</h3>
+                  <p>Publish notices, receive public submissions, and manage feedback.</p>
+                </div>
+                <div className="module-card">
+                  <h3>🔐 User Management</h3>
+                  <p>Create accounts, assign roles, reset passwords, and manage permissions.</p>
+                </div>
+                <div className="module-card">
+                  <h3>📈 Reports</h3>
+                  <p>Generate attendance, committee, legislative, financial, and activity reports.</p>
+                </div>
+                <div className="module-card">
+                  <h3>🔔 Notifications</h3>
+                  <p>Send meeting reminders, announcements, and approval requests.</p>
+                </div>
+                <div className="module-card">
+                  <h3>💰 Budget & Finance (Optional)</h3>
+                  <p>View budgets, approve expenditures, and monitor Assembly finances.</p>
+                </div>
+                <div className="module-card">
+                  <h3>🛡️ Audit Logs</h3>
+                  <p>Track all user activities for accountability and security.</p>
+                </div>
               </div>
             </section>
           )}
