@@ -661,10 +661,225 @@ h1, h3, p {
   }
 }
 
-@media (max-width: 700px) {
-  .dashboard-stats {
+.dashboard-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--border-radius);
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(178, 34, 52, 0.12), rgba(0, 106, 78, 0.12));
+  border-color: rgba(178, 34, 52, 0.2);
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--border-radius);
+  background: rgba(178, 34, 52, 0.1);
+  border: 1px solid rgba(178, 34, 52, 0.2);
+  color: var(--primary-color);
+}
+
+.close-button {
+  border: none;
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 0.1rem 0.35rem;
+}
+
+.dashboard-section {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow);
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.data-table th {
+  background: rgba(248, 250, 252, 0.95);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(178, 34, 52, 0.05);
+}
+
+.list-panel {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.list-item strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1f2937;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.status-pill.pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.status-pill.published {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.petition-card,
+.info-card,
+.module-card {
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.primary-button,
+.secondary-button {
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.9rem 1.6rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-weight: 700;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+}
+
+.secondary-button {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text-primary);
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .form-row,
+  .details-grid,
+  .report-grid,
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 700px) {
+  html { font-size: 87%; }
+  .app-main { padding: 0.75rem; }
+  .card, .feature-block, .table-card { padding: 0.7rem; }
+  .dashboard-grid, .modules-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .nav-links { gap: 0.5rem; }
+  .nav-links a { padding: 0.35rem 0.5rem; font-size: 0.95rem; }
+  button { padding: 0.6rem 1rem; font-size: 0.92rem; }
 }
 
 /* Footer styles */

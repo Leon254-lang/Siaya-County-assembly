@@ -50,7 +50,7 @@ export default function NavBar() {
       { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
       { to: '/meetings', label: 'Meetings', roles: ['Super Admin', 'Committee Officer', 'HR Officer'] },
       { to: '/sessions', label: 'Sessions', roles: ['Super Admin', 'Committee Officer', 'Clerk'] },
-      { to: '/mcas', label: 'MCAs', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk'] },
+      { to: '/mcas', label: 'MCA Dashboard', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk', 'MCA'] },
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'ICT Admin', 'Procurement Officer'] },

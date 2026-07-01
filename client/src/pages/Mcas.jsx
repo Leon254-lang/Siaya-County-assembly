@@ -1,300 +1,1145 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 
-const emptyForm = {
-  name: '',
-  email: '',
-  password: '',
-  ward: '',
-  party: '',
-  phone: '',
-  address: '',
-  committeeMemberships: [],
-};
-
 const formatDate = (value) => {
   if (!value) return '-';
   const date = new Date(value);
   return date.toLocaleDateString();
 };
 
-export default function Mcas() {
-  const [mcas, setMcas] = useState([]);
-  const [committees, setCommittees] = useState([]);
-  const [selectedMca, setSelectedMca] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [performance, setPerformance] = useState(null);
-  const [attendanceReport, setAttendanceReport] = useState(null);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [userRole, setUserRole] = useState('');
+const formatTime = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
-  const canRegisterMca = userRole === 'Super Admin' || userRole?.includes('Admin');
+const buildStatusLabel = (status) => {
+  if (!status) return 'Unknown';
+  return status.replace(/([A-Z])/g, ' $1').trim();
+};
 
-  const resetForm = () => {
-    setSelectedMca(null);
-    setForm(emptyForm);
-    setPerformance(null);
-    setAttendanceReport(null);
-    setMessage('');
+const computeAttendanceSummary = (records) => {
+  const totalDays = records.length;
+  const presentDays = records.filter((record) => record.status === 'present').length;
+  const absentDays = records.filter((record) => record.status === 'absent').length;
+  const attendancePercentage = totalDays > 0
+    ? Math.round((presentDays / totalDays) * 100)
+    : 0;
+
+  return {
+    totalDays,
+    presentDays,
+    absentDays,
+    attendancePercentage,
   };
+};
 
-  const loadData = async () => {
+export default function Mcas() {
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = currentUser._id || '';
+
+  const [activeTab, setActiveTab] = useState('overview');
+  const [userProfile, setUserProfile] = useState(currentUser);
+  const [bills, setBills] = useState([]);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [billForm, setBillForm] = useState({ title: '', summary: '', committee: '' });
+  const [selectedAmendmentBillId, setSelectedAmendmentBillId] = useState('');
+  const [amendmentText, setAmendmentText] = useState('');
+  const [selectedMotionBillId, setSelectedMotionBillId] = useState('');
+  const [motionText, setMotionText] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [petitionItems, setPetitionItems] = useState([]);
+  const [committees, setCommittees] = useState([]);
+  const [meetings, setMeetings] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [attendanceSummary, setAttendanceSummary] = useState({ totalDays: 0, presentDays: 0, absentDays: 0, attendancePercentage: 0 });
+  const [documents, setDocuments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [messageForm, setMessageForm] = useState({ subject: '', body: '', to: '' });
+  const [questionsForm, setQuestionsForm] = useState({ title: '', description: '' });
+  const [selectedPetitionId, setSelectedPetitionId] = useState('');
+  const [petitionComment, setPetitionComment] = useState('');
+  const [settings, setSettings] = useState({ notifications: true, twoFactor: false });
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const [votingSummary, setVotingSummary] = useState(null);
+
+  const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [mcasRes, committeesRes] = await Promise.all([
-        api.get('/mcas'),
+      const [billsRes, committeesRes, meetingsRes, attendanceRes, announcementsRes, messagesRes, feedbackRes, documentsRes] = await Promise.all([
+        api.get('/bills'),
         api.get('/committees'),
+        api.get('/meetings?upcoming=true'),
+        api.get(`/attendance?user=${userId}&limit=100`),
+        api.get('/communications/announcements?limit=8'),
+        api.get('/communications/messages?folder=inbox'),
+        api.get('/feedback'),
+        api.get('/documents?limit=50'),
       ]);
-      setMcas(mcasRes.data);
-      setCommittees(committeesRes.data);
+
+      setBills(billsRes.data || []);
+      setCommittees(committeesRes.data || []);
+      setMeetings(meetingsRes.data || []);
+      const attendanceList = attendanceRes.data?.records || [];
+      setAttendanceRecords(attendanceList);
+      setAttendanceSummary(computeAttendanceSummary(attendanceList));
+      const feedbackItems = feedbackRes.data || [];
+      setQuestions(feedbackItems.filter((item) => item.category === 'feedback_report' || item.category === 'public_comment'));
+      setPetitionItems(feedbackItems.filter((item) => item.category === 'public_comment'));
+      setNotifications(announcementsRes.data || []);
+      setMessages(messagesRes.data || []);
+      setDocuments(documentsRes.data || []);
+      setVotingSummary(null);
+
+      setMessage('');
     } catch (error) {
-      setMessage('Unable to load MCA data.');
-      console.error(error);
+      console.error('Failed to load MCA dashboard:', error);
+      setMessage('Unable to load MCA dashboard data at this time.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    setUserRole(role || '');
-    loadData();
+    loadDashboard();
   }, []);
 
-  const handleFormChange = (event) => {
-    const { name, value, type, options } = event.target;
-    if (type === 'select-multiple') {
-      const selected = Array.from(options).filter((item) => item.selected).map((item) => item.value);
-      setForm((prev) => ({ ...prev, [name]: selected }));
-      return;
-    }
-
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setUserProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectMca = async (mca) => {
-    setSelectedMca(mca);
-    setForm({
-      name: mca.name || '',
-      email: mca.email || '',
-      password: '',
-      ward: mca.ward || '',
-      party: mca.party || '',
-      phone: mca.phone || '',
-      address: mca.contactDetails?.address || '',
-      committeeMemberships: mca.committeeMemberships?.map((committee) => committee._id) || [],
-    });
-
-    try {
-      const [perfRes, attendanceRes] = await Promise.all([
-        api.get(`/mcas/${mca._id}/performance`),
-        api.get(`/mcas/${mca._id}/attendance-report`),
-      ]);
-      setPerformance(perfRes.data);
-      setAttendanceReport(attendanceRes.data);
-    } catch (error) {
-      console.error('Failed to load MCA details:', error);
-      setMessage('Unable to load MCA details.');
-    }
-  };
-
-  const handleSubmit = async (event) => {
+  const saveProfile = async (event) => {
     event.preventDefault();
     setMessage('');
-    if (!form.name || !form.email || (!selectedMca && !form.password)) {
-      setMessage('Name, email, and password are required when creating an MCA.');
+
+    if (!userProfile.name || !userProfile.email) {
+      setMessage('Name and email are required.');
       return;
     }
 
     try {
-      if (selectedMca) {
-        await api.put(`/mcas/${selectedMca._id}`, {
-          name: form.name,
-          ward: form.ward,
-          party: form.party,
-          phone: form.phone,
-          address: form.address,
-          committeeMemberships: form.committeeMemberships,
-          password: form.password || undefined,
-        });
-        setMessage('MCA profile updated successfully.');
-      } else {
-        await api.post('/mcas', {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          ward: form.ward,
-          party: form.party,
-          phone: form.phone,
-          address: form.address,
-          committeeMemberships: form.committeeMemberships,
-        });
-        setMessage('MCA registered successfully.');
-      }
-      loadData();
-      resetForm();
+      await api.put(`/users/${userId}`, {
+        name: userProfile.name,
+        email: userProfile.email,
+        phone: userProfile.phone,
+        ward: userProfile.ward,
+        party: userProfile.party,
+        committeeMemberships: userProfile.committeeMemberships,
+      });
+      setMessage('Profile update requested. If the backend allows it, your profile will be updated shortly.');
+      loadDashboard();
     } catch (error) {
-      console.error('MCA save failed:', error);
-      setMessage(error.response?.data?.message || 'Failed to save MCA profile.');
+      console.error('Profile save failed:', error);
+      setMessage('Profile update failed. Please ask your administrator to update your MCA profile.');
     }
   };
 
+  const handleBillChange = (event) => {
+    const { name, value } = event.target;
+    setBillForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const submitBill = async (event) => {
+    event.preventDefault();
+    if (!billForm.title || !billForm.summary) {
+      setMessage('Please enter both a bill title and summary.');
+      return;
+    }
+
+    try {
+      await api.post('/bills', {
+        title: billForm.title,
+        summary: billForm.summary,
+        committee: billForm.committee || undefined,
+        status: 'Draft',
+      });
+      setBillForm({ title: '', summary: '', committee: '' });
+      setMessage('Bill draft created successfully.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Submit bill failed:', error);
+      setMessage('Failed to submit the bill.');
+    }
+  };
+
+  const submitAmendment = async (event) => {
+    event.preventDefault();
+    if (!selectedAmendmentBillId || !amendmentText) {
+      setMessage('Select a bill and enter your amendment text.');
+      return;
+    }
+
+    try {
+      await api.post(`/bills/${selectedAmendmentBillId}/motions`, {
+        text: amendmentText,
+      });
+      setAmendmentText('');
+      setMessage('Amendment submitted as a motion.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Submit amendment failed:', error);
+      setMessage('Failed to submit the amendment.');
+    }
+  };
+
+  const submitMotion = async (event) => {
+    event.preventDefault();
+    if (!selectedMotionBillId || !motionText) {
+      setMessage('Select a bill and enter the motion text.');
+      return;
+    }
+
+    try {
+      await api.post(`/bills/${selectedMotionBillId}/motions`, {
+        text: motionText,
+      });
+      setMotionText('');
+      setMessage('Motion submitted successfully.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Submit motion failed:', error);
+      setMessage('Failed to create the motion.');
+    }
+  };
+
+  const submitQuestion = async (event) => {
+    event.preventDefault();
+    if (!questionsForm.title || !questionsForm.description) {
+      setMessage('Please enter a question title and description.');
+      return;
+    }
+
+    try {
+      await api.post('/feedback', {
+        title: questionsForm.title,
+        description: questionsForm.description,
+        submittedBy: userProfile.name || currentUser.name,
+        status: 'draft',
+        category: 'feedback_report',
+      });
+      setQuestionsForm({ title: '', description: '' });
+      setMessage('Question submitted to the County Executive team.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Submit question failed:', error);
+      setMessage('Failed to submit the question.');
+    }
+  };
+
+  const sponsorPetition = async (event) => {
+    event.preventDefault();
+    if (!selectedPetitionId || !petitionComment) {
+      setMessage('Select a petition and add a comment before sponsoring.');
+      return;
+    }
+
+    try {
+      await api.post(`/feedback/${selectedPetitionId}/comment`, {
+        name: userProfile.name || currentUser.name,
+        email: userProfile.email || currentUser.email,
+        message: petitionComment,
+      });
+      setPetitionComment('');
+      setMessage('Your petition sponsorship comment was posted.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Sponsor petition failed:', error);
+      setMessage('Failed to add comment to the petition.');
+    }
+  };
+
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    if (!messageForm.subject || !messageForm.body) {
+      setMessage('Please enter both a subject and message body.');
+      return;
+    }
+
+    try {
+      await api.post('/communications/messages', {
+        subject: messageForm.subject,
+        body: messageForm.body,
+        to: messageForm.to ? [messageForm.to] : [],
+      });
+      setMessageForm({ subject: '', body: '', to: '' });
+      setMessage('Message sent successfully.');
+      loadDashboard();
+    } catch (error) {
+      console.error('Send message failed:', error);
+      setMessage('Unable to send the message.');
+    }
+  };
+
+  const castVote = async (bill, item, option) => {
+    try {
+      await api.post(`/bills/${bill._id}/vote`, {
+        itemId: item._id,
+        option,
+      });
+      setMessage('Vote cast successfully.');
+      loadDashboard();
+      setVotingSummary(null);
+    } catch (error) {
+      console.error('Cast vote failed:', error);
+      setMessage('Unable to cast the vote.');
+    }
+  };
+
+  const loadVotingSummary = async (billId) => {
+    try {
+      const res = await api.get(`/bills/${billId}/voting-summary`);
+      setVotingSummary(res.data);
+    } catch (error) {
+      console.error('Load voting summary failed:', error);
+      setMessage('Unable to load voting summary.');
+    }
+  };
+
+  const downloadDocument = (doc) => {
+    if (!doc || (!doc.url && !doc.path && !doc.fileName)) {
+      setMessage('Document link is not available.');
+      return;
+    }
+    const url = doc.url || doc.path || `/uploads/${doc.fileName}`;
+    window.open(url, '_blank');
+  };
+
+  const downloadAttendanceReport = () => {
+    if (attendanceRecords.length === 0) {
+      setMessage('No attendance records to download.');
+      return;
+    }
+
+    const csvRows = [
+      ['Date', 'Status', 'Check In', 'Check Out'].join(','),
+      ...attendanceRecords.map((record) => [
+        formatDate(record.date),
+        record.status,
+        record.checkIn?.time ? formatTime(record.checkIn.time) : '-',
+        record.checkOut?.time ? formatTime(record.checkOut.time) : '-',
+      ].join(',')),
+    ];
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'attendance-report.csv';
+    link.click();
+  };
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1>MCA Dashboard</h1>
+        </div>
+        <div className="loading">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  const totalBillsAssigned = bills.filter((bill) => bill.proposer?._id === userId || bill.proposer === userId).length;
+  const pendingMotions = bills.reduce((count, bill) => count + (bill.motions?.filter((motion) => motion.status === 'Pending').length || 0), 0);
+  const committeeMeetingsThisWeek = meetings.filter((meeting) => {
+    const meetingDate = new Date(meeting.startTime || meeting.date);
+    const now = new Date();
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return meetingDate >= now && meetingDate <= oneWeekFromNow && meeting.meetingType === 'committee';
+  }).length;
+  const pendingPetitions = petitionItems.filter((item) => item.status !== 'published').length;
+  const questionsAwaitingResponse = questions.filter((item) => item.status !== 'published').length;
+  const upcomingSitting = meetings.find((meeting) => meeting.meetingType === 'session');
+
   return (
-    <div className="page">
+    <div className="page mca-dashboard">
       <div className="page-header">
-        <h1>MCA Management</h1>
-        <p>Register MCAs, maintain profiles, review committee memberships, attendance summaries, and performance metrics.</p>
+        <h1>MCA Dashboard</h1>
+        <p>Manage bills, motions, questions, petitions, attendance, voting, and constituency work from one place.</p>
       </div>
 
-      {message && <div className="notification">{message}</div>}
+      {message && (
+        <div className="notification">
+          {message}
+          <button className="close-button" onClick={() => setMessage('')}>
+            ×
+          </button>
+        </div>
+      )}
 
-      <div className="grid-two-column">
-        <section className="card">
-          <h2>{selectedMca ? 'Update MCA Profile' : 'Register a New MCA'}</h2>
-          {!canRegisterMca && !selectedMca && (
-            <div className="notification warning">
-              Only Admin users can register new MCAs. Your current role does not have MCA registration permission.
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="form-grid">
-            <label>
-              Full name
-              <input name="name" value={form.name} onChange={handleFormChange} required />
-            </label>
-            <label>
-              Email address
-              <input type="email" name="email" value={form.email} onChange={handleFormChange} required={!selectedMca} disabled={!!selectedMca} />
-            </label>
-            <label>
-              Password
-              <input type="password" name="password" value={form.password} onChange={handleFormChange} placeholder={selectedMca ? 'Leave blank to keep current password' : ''} />
-            </label>
-            <label>
-              Ward represented
-              <input name="ward" value={form.ward} onChange={handleFormChange} />
-            </label>
-            <label>
-              Political party
-              <input name="party" value={form.party} onChange={handleFormChange} />
-            </label>
-            <label>
-              Phone number
-              <input name="phone" value={form.phone} onChange={handleFormChange} />
-            </label>
-            <label>
-              Office address
-              <input name="address" value={form.address} onChange={handleFormChange} />
-            </label>
-            <label>
-              Committee memberships
-              <select name="committeeMemberships" value={form.committeeMemberships} onChange={handleFormChange} multiple>
-                {committees.map((committee) => (
-                  <option key={committee._id} value={committee._id}>
-                    {committee.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="primary-button" disabled={!canRegisterMca && !selectedMca}>
-              {selectedMca ? 'Save Changes' : 'Register MCA'}
-            </button>
-            {selectedMca && (
-              <button type="button" className="secondary-button" onClick={resetForm}>
-                Clear Selection
-              </button>
-            )}
-          </form>
-        </section>
-
-        <section className="card">
-          <h2>Registered MCAs</h2>
-          {loading ? (
-            <p>Loading MCAs...</p>
-          ) : mcas.length === 0 ? (
-            <p>No MCA profiles available.</p>
-          ) : (
-            <div className="list-panel">
-              {mcas.map((mca) => (
-                <button type="button" key={mca._id} className="list-item" onClick={() => handleSelectMca(mca)}>
-                  <div>
-                    <strong>{mca.name}</strong>
-                    <div>{mca.ward || 'Ward not set'}</div>
-                  </div>
-                  <div>{mca.party || 'No party'}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+      <div className="dashboard-tabs">
+        {[
+          { id: 'overview', label: 'Overview', icon: '📊' },
+          { id: 'profile', label: 'Profile', icon: '👤' },
+          { id: 'bills', label: 'Bills', icon: '📄' },
+          { id: 'motions', label: 'Motions', icon: '✍️' },
+          { id: 'questions', label: 'Questions', icon: '❓' },
+          { id: 'petitions', label: 'Petitions', icon: '📝' },
+          { id: 'committees', label: 'Committees', icon: '🏛️' },
+          { id: 'calendar', label: 'Calendar', icon: '🗓️' },
+          { id: 'attendance', label: 'Attendance', icon: '📅' },
+          { id: 'voting', label: 'Voting', icon: '✅' },
+          { id: 'issues', label: 'Issues', icon: '📌' },
+          { id: 'public', label: 'Participation', icon: '👥' },
+          { id: 'documents', label: 'Documents', icon: '📁' },
+          { id: 'notifications', label: 'Notifications', icon: '🔔' },
+          { id: 'messages', label: 'Messaging', icon: '✉️' },
+          { id: 'reports', label: 'Reports', icon: '📑' },
+          { id: 'settings', label: 'Settings', icon: '⚙️' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
       </div>
 
-      {selectedMca && (
-        <section className="card">
-          <h2>{selectedMca.name} — Profile & Performance</h2>
-          <div className="details-grid">
-            <div>
-              <p><strong>Ward:</strong> {selectedMca.ward || 'Not specified'}</p>
-              <p><strong>Party:</strong> {selectedMca.party || 'Not specified'}</p>
-              <p><strong>Phone:</strong> {selectedMca.phone || 'Not specified'}</p>
-              <p><strong>Office:</strong> {selectedMca.contactDetails?.address || 'Not specified'}</p>
+      <div className="tab-content">
+        {activeTab === 'overview' && (
+          <section className="dashboard-section">
+            <div className="dashboard-stats">
+              <div className="stat-card blue">
+                <span>Total Bills Assigned</span>
+                <h3>{totalBillsAssigned}</h3>
+                <p>Bills you have sponsored or are tracking.</p>
+              </div>
+              <div className="stat-card orange">
+                <span>Pending Motions</span>
+                <h3>{pendingMotions}</h3>
+                <p>Actions waiting approval from committee or plenary.</p>
+              </div>
+              <div className="stat-card green">
+                <span>Committee Meetings This Week</span>
+                <h3>{committeeMeetingsThisWeek}</h3>
+                <p>Upcoming committee sessions scheduled in the next seven days.</p>
+              </div>
+              <div className="stat-card black">
+                <span>Attendance Percentage</span>
+                <h3>{attendanceSummary.attendancePercentage}%</h3>
+                <p>Your attendance performance from recent records.</p>
+              </div>
+              <div className="stat-card red">
+                <span>Pending Petitions</span>
+                <h3>{pendingPetitions}</h3>
+                <p>Public petitions awaiting your sponsorship or review.</p>
+              </div>
+              <div className="stat-card purple">
+                <span>Questions Awaiting Response</span>
+                <h3>{questionsAwaitingResponse}</h3>
+                <p>Questions sent to the executive that still need response.</p>
+              </div>
+              <div className="stat-card teal">
+                <span>Notifications</span>
+                <h3>{notifications.length}</h3>
+                <p>Recent alerts for bills, motions, sittings, and petitions.</p>
+              </div>
+              <div className="stat-card navy">
+                <span>Upcoming Assembly Sitting</span>
+                <h3>{upcomingSitting ? formatDate(upcomingSitting.startTime || upcomingSitting.date) : 'None'}</h3>
+                <p>{upcomingSitting ? upcomingSitting.title || upcomingSitting.agenda : 'No sittings scheduled.'}</p>
+              </div>
             </div>
-            <div>
-              <p><strong>Committee memberships:</strong></p>
-              <ul>
-                {selectedMca.committeeMemberships?.length > 0 ? (
-                  selectedMca.committeeMemberships.map((committee) => (
-                    <li key={committee._id}>{committee.name}</li>
-                  ))
+
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Latest Notifications</h2>
+                {notifications.length === 0 ? (
+                  <p>No recent notifications available.</p>
                 ) : (
-                  <li>None assigned</li>
+                  <div className="list-panel">
+                    {notifications.slice(0, 5).map((item) => (
+                      <div key={item._id} className="list-item">
+                        <div>
+                          <strong>{item.title}</strong>
+                          <p>{item.body?.slice(0, 110) || 'No details available.'}</p>
+                        </div>
+                        <span>{formatDate(item.createdAt)}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </ul>
-            </div>
-          </div>
+              </div>
 
-          <div className="details-grid">
-            <div className="performance-card">
-              <h3>Attendance performance</h3>
-              {performance ? (
-                <div>
-                  <p><strong>Attendance rate:</strong> {performance.attendanceRate}%</p>
-                  <p><strong>Present days:</strong> {performance.presentDays}</p>
-                  <p><strong>Absent days:</strong> {performance.absentDays}</p>
-                  <p><strong>Committee meetings attended:</strong> {performance.committeeMeetingsAttended} / {performance.committeeMeetingsScheduled}</p>
-                  <p><strong>Plenary sessions attended:</strong> {performance.sessionMeetingsAttended} / {performance.sessionMeetingsScheduled}</p>
+              <div className="card">
+                <h2>Upcoming Sessions & Meetings</h2>
+                {meetings.length === 0 ? (
+                  <p>No upcoming meetings found.</p>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {meetings.slice(0, 8).map((meeting) => (
+                        <tr key={meeting._id}>
+                          <td>{meeting.title || meeting.agenda || 'Meeting'}</td>
+                          <td>{formatDate(meeting.startTime || meeting.date)}</td>
+                          <td>{meeting.meetingType || 'General'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'profile' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>My Profile</h2>
+              <form onSubmit={saveProfile} className="form-row">
+                <label>
+                  Full Name
+                  <input name="name" value={userProfile.name || ''} onChange={handleProfileChange} />
+                </label>
+                <label>
+                  Email
+                  <input type="email" name="email" value={userProfile.email || ''} onChange={handleProfileChange} />
+                </label>
+                <label>
+                  Phone
+                  <input name="phone" value={userProfile.phone || ''} onChange={handleProfileChange} />
+                </label>
+                <label>
+                  Ward
+                  <input name="ward" value={userProfile.ward || ''} onChange={handleProfileChange} />
+                </label>
+                <label>
+                  Political Party
+                  <input name="party" value={userProfile.party || ''} onChange={handleProfileChange} />
+                </label>
+                <label>
+                  Committee Memberships
+                  <input name="committeeMemberships" value={(userProfile.committeeMemberships || []).map((c) => c.name || c).join(', ')} disabled />
+                </label>
+                <label>
+                  Profile Picture
+                  <input type="file" disabled />
+                  <small>Upload support is currently placeholder only.</small>
+                </label>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <button type="submit" className="primary-button">Save Profile</button>
+                  <button type="button" className="secondary-button" onClick={() => setMessage('Profile edits require administrator approval in the current backend.')}>Need Help?</button>
                 </div>
+              </form>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'bills' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>All Bills</h2>
+                {bills.length === 0 ? (
+                  <p>No bills available.</p>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Committee</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bills.map((bill) => (
+                        <tr key={bill._id}>
+                          <td>{bill.title}</td>
+                          <td>{bill.status}</td>
+                          <td>{bill.committee?.name || 'N/A'}</td>
+                          <td>
+                            <button className="secondary-button" type="button" onClick={() => setSelectedBill(bill)}>
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="card">
+                <h2>Sponsor a New Bill</h2>
+                <form onSubmit={submitBill} className="form-row">
+                  <label>
+                    Bill Title
+                    <input name="title" value={billForm.title} onChange={handleBillChange} />
+                  </label>
+                  <label>
+                    Committee
+                    <select name="committee" value={billForm.committee} onChange={handleBillChange}>
+                      <option value="">Select committee</option>
+                      {committees.map((committee) => (
+                        <option key={committee._id} value={committee._id}>{committee.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ gridColumn: '1 / -1' }}>
+                    Summary
+                    <textarea name="summary" value={billForm.summary} onChange={handleBillChange} rows="6" />
+                  </label>
+                  <button type="submit" className="primary-button" style={{ gridColumn: '1 / -1' }}>Create Bill Draft</button>
+                </form>
+              </div>
+            </div>
+
+            {selectedBill && (
+              <div className="card" style={{ marginTop: '1.5rem' }}>
+                <h2>{selectedBill.title}</h2>
+                <p>{selectedBill.summary}</p>
+                <div className="details-grid">
+                  <div>
+                    <strong>Status:</strong> {selectedBill.status}
+                  </div>
+                  <div>
+                    <strong>Committee:</strong> {selectedBill.committee?.name || 'N/A'}
+                  </div>
+                </div>
+                <div className="details-grid" style={{ marginTop: '1rem' }}>
+                  <div>
+                    <strong>Sponsor:</strong> {selectedBill.proposer?.name || 'Unknown'}
+                  </div>
+                  <div>
+                    <strong>Created:</strong> {formatDate(selectedBill.createdAt)}
+                  </div>
+                </div>
+                <div className="section-header">
+                  <h3>Voting History</h3>
+                </div>
+                <button type="button" className="secondary-button" onClick={() => loadVotingSummary(selectedBill._id)}>
+                  Load voting summary
+                </button>
+                {votingSummary && votingSummary.billId === selectedBill._id && (
+                  <div className="list-panel" style={{ marginTop: '1rem' }}>
+                    {votingSummary.summary.map((item) => (
+                      <div key={item._id} className="card">
+                        <strong>{item.question}</strong>
+                        <p>Total votes: {item.totalVotes}</p>
+                        <p>Result: {item.finalDecision || 'Pending'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === 'motions' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Create a Motion</h2>
+                <form onSubmit={submitMotion} className="form-row">
+                  <label>
+                    Select Bill
+                    <select value={selectedMotionBillId} onChange={(e) => setSelectedMotionBillId(e.target.value)}>
+                      <option value="">Select bill</option>
+                      {bills.map((bill) => (
+                        <option key={bill._id} value={bill._id}>{bill.title}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ gridColumn: '1 / -1' }}>
+                    Motion Text
+                    <textarea value={motionText} onChange={(e) => setMotionText(e.target.value)} rows="6" />
+                  </label>
+                  <button type="submit" className="primary-button" style={{ gridColumn: '1 / -1' }}>Submit Motion</button>
+                </form>
+              </div>
+
+              <div className="card">
+                <h2>Draft Motions & Status</h2>
+                {bills.filter((bill) => bill.motions?.length > 0).length === 0 ? (
+                  <p>No motions found.</p>
+                ) : (
+                  <div className="list-panel">
+                    {bills.flatMap((bill) => bill.motions?.map((motion) => ({ bill, motion })) || []).map(({ bill, motion }) => (
+                      <div key={motion._id} className="list-item">
+                        <div>
+                          <strong>{bill.title}</strong>
+                          <p>{motion.text}</p>
+                        </div>
+                        <span className={`status-pill ${motion.status?.toLowerCase()}`}>{motion.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+              <h2>Submit a Proposed Amendment</h2>
+              <form onSubmit={submitAmendment} className="form-row">
+                <label>
+                  Select Bill
+                  <select value={selectedAmendmentBillId} onChange={(e) => setSelectedAmendmentBillId(e.target.value)}>
+                    <option value="">Select bill</option>
+                    {bills.map((bill) => (
+                      <option key={bill._id} value={bill._id}>{bill.title}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ gridColumn: '1 / -1' }}>
+                  Amendment Text
+                  <textarea value={amendmentText} onChange={(e) => setAmendmentText(e.target.value)} rows="5" />
+                </label>
+                <button type="submit" className="primary-button" style={{ gridColumn: '1 / -1' }}>Submit Amendment</button>
+              </form>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'questions' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Submit a Question</h2>
+                <form onSubmit={submitQuestion} className="form-row">
+                  <label>
+                    Question Title
+                    <input value={questionsForm.title} onChange={(e) => setQuestionsForm((prev) => ({ ...prev, title: e.target.value }))} />
+                  </label>
+                  <label style={{ gridColumn: '1 / -1' }}>
+                    Question Details
+                    <textarea value={questionsForm.description} onChange={(e) => setQuestionsForm((prev) => ({ ...prev, description: e.target.value }))} rows="6" />
+                  </label>
+                  <button type="submit" className="primary-button" style={{ gridColumn: '1 / -1' }}>Submit Question</button>
+                </form>
+              </div>
+
+              <div className="card">
+                <h2>Questions to Executive</h2>
+                {questions.length === 0 ? (
+                  <p>No questions found.</p>
+                ) : (
+                  <div className="list-panel">
+                    {questions.map((item) => (
+                      <div key={item._id} className="list-item">
+                        <div>
+                          <strong>{item.title}</strong>
+                          <p>{item.description?.slice(0, 100) || ''}</p>
+                        </div>
+                        <span className={`status-pill ${item.status}`}>{item.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'petitions' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Public Petitions</h2>
+                {petitionItems.length === 0 ? (
+                  <p>No petitions found.</p>
+                ) : (
+                  <div className="list-panel">
+                    {petitionItems.map((petition) => (
+                      <button
+                        key={petition._id}
+                        type="button"
+                        className={`list-item ${selectedPetitionId === petition._id ? 'active' : ''}`}
+                        onClick={() => setSelectedPetitionId(petition._id)}
+                      >
+                        <div>
+                          <strong>{petition.title}</strong>
+                          <p>{petition.description?.slice(0, 110) || 'No description provided.'}</p>
+                        </div>
+                        <span>{buildStatusLabel(petition.status)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card">
+                <h2>Sponsor Petition</h2>
+                <label>
+                  Selected Petition
+                  <input value={petitionItems.find((item) => item._id === selectedPetitionId)?.title || ''} disabled />
+                </label>
+                <label>
+                  Add Comment
+                  <textarea value={petitionComment} onChange={(e) => setPetitionComment(e.target.value)} rows="5" />
+                </label>
+                <button type="button" className="primary-button" onClick={sponsorPetition}>Sponsor Petition</button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'committees' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Committee Memberships</h2>
+                {committees.length === 0 ? (
+                  <p>No committees available.</p>
+                ) : (
+                  <div className="list-panel">
+                    {committees.map((committee) => (
+                      <div key={committee._id} className="list-item">
+                        <div>
+                          <strong>{committee.name}</strong>
+                          <p>{committee.description || 'No description provided.'}</p>
+                        </div>
+                        <span>{committee.meetingSchedule || 'Schedule not set'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card">
+                <h2>Committee Reports & Attendance</h2>
+                <p>Use the committee page to review minutes, meeting schedules, and upload recommendations if authorized.</p>
+                <p>Current backend support is limited, so this view shows committee listings and agenda details.</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'calendar' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Assembly Calendar</h2>
+              {meetings.length === 0 ? (
+                <p>No upcoming public meetings or sessions scheduled.</p>
               ) : (
-                <p>Performance metrics are not available.</p>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Event</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {meetings.map((meeting) => (
+                      <tr key={meeting._id}>
+                        <td>{formatDate(meeting.startTime || meeting.date)}</td>
+                        <td>{meeting.title || meeting.agenda}</td>
+                        <td>{meeting.meetingType || 'General'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
+          </section>
+        )}
 
-            <div className="performance-card">
-              <h3>Recent attendance</h3>
-              {attendanceReport?.records?.length > 0 ? (
+        {activeTab === 'attendance' && (
+          <section className="dashboard-section">
+            <div className="dashboard-stats">
+              <div className="stat-card blue">
+                <span>Total Records</span>
+                <h3>{attendanceSummary.totalDays}</h3>
+                <p>Days recorded in your attendance log.</p>
+              </div>
+              <div className="stat-card green">
+                <span>Present</span>
+                <h3>{attendanceSummary.presentDays}</h3>
+                <p>Days marked as present.</p>
+              </div>
+              <div className="stat-card red">
+                <span>Absent</span>
+                <h3>{attendanceSummary.absentDays}</h3>
+                <p>Days marked as absent.</p>
+              </div>
+              <div className="stat-card black">
+                <span>Attendance %</span>
+                <h3>{attendanceSummary.attendancePercentage}%</h3>
+                <p>Your attendance percentage from recorded data.</p>
+              </div>
+            </div>
+
+            <div className="card">
+              <h2>Attendance Records</h2>
+              {attendanceRecords.length === 0 ? (
+                <p>No attendance records found.</p>
+              ) : (
                 <table className="data-table">
                   <thead>
                     <tr>
                       <th>Date</th>
                       <th>Status</th>
+                      <th>Check In</th>
+                      <th>Check Out</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {attendanceReport.records.slice(-8).map((record) => (
+                    {attendanceRecords.map((record) => (
                       <tr key={record._id}>
                         <td>{formatDate(record.date)}</td>
                         <td>{record.status}</td>
+                        <td>{formatTime(record.checkIn?.time)}</td>
+                        <td>{formatTime(record.checkOut?.time)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              )}
+              <button type="button" className="secondary-button" onClick={downloadAttendanceReport}>
+                Download Attendance Report
+              </button>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'voting' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Vote on Bills</h2>
+              {bills.filter((bill) => bill.voting?.items?.length > 0).length === 0 ? (
+                <p>No voting items currently available.</p>
               ) : (
-                <p>No attendance records available.</p>
+                <div className="list-panel">
+                  {bills.filter((bill) => bill.voting?.items?.length > 0).map((bill) => (
+                    <div key={bill._id} className="card">
+                      <strong>{bill.title}</strong>
+                      <p>{bill.summary?.slice(0, 150) || 'No summary available.'}</p>
+                      {bill.voting.items.map((item) => (
+                        <div key={item._id} className="petition-card">
+                          <h4>{item.question}</h4>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {(item.options || []).map((option) => (
+                              <button
+                                key={option}
+                                className="secondary-button"
+                                type="button"
+                                onClick={() => castVote(bill, item, option)}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+
+        {activeTab === 'issues' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Ward Issues</h2>
+              <p>Use this area to track citizen complaints, development requests, and visit notes for your ward.</p>
+              <p>The current backend does not have a dedicated constituency issues endpoint, so public feedback and documents are used as a proxy for issue tracking.</p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'public' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Public Participation</h2>
+              <p>Upcoming citizen forums and public participation events are shown here.</p>
+              {documents.filter((doc) => doc.category === 'event_notice' || doc.type === 'public_event').length === 0 ? (
+                <p>No public participation events found.</p>
+              ) : (
+                <div className="list-panel">
+                  {documents.filter((doc) => doc.category === 'event_notice' || doc.type === 'public_event').map((doc) => (
+                    <div key={doc._id || doc.fileName} className="list-item">
+                      <div>
+                        <strong>{doc.title || doc.fileName}</strong>
+                        <p>{doc.description?.slice(0, 100) || 'Public participation event details.'}</p>
+                      </div>
+                      <span>{formatDate(doc.eventDate)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'documents' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Documents</h2>
+              {documents.length === 0 ? (
+                <p>No documents found.</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {documents.map((doc) => (
+                      <tr key={doc._id || doc.fileName || doc.title}>
+                        <td>{doc.title || doc.fileName || 'Untitled'}</td>
+                        <td>{doc.type || 'Document'}</td>
+                        <td>
+                          <button type="button" className="secondary-button" onClick={() => downloadDocument(doc)}>
+                            Download
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'notifications' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Notifications</h2>
+              {notifications.length === 0 ? (
+                <p>No notifications available.</p>
+              ) : (
+                <div className="list-panel">
+                  {notifications.map((item) => (
+                    <div key={item._id} className="list-item">
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p>{item.body?.slice(0, 120) || 'No description provided.'}</p>
+                      </div>
+                      <span>{formatDate(item.createdAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'messages' && (
+          <section className="dashboard-section">
+            <div className="dashboard-grid">
+              <div className="card">
+                <h2>Inbox</h2>
+                {messages.length === 0 ? (
+                  <p>No messages in your inbox.</p>
+                ) : (
+                  <div className="list-panel">
+                    {messages.map((msg) => (
+                      <div key={msg._id} className="list-item">
+                        <div>
+                          <strong>{msg.subject}</strong>
+                          <p>{msg.body?.slice(0, 100) || 'No message content.'}</p>
+                        </div>
+                        <span>{formatDate(msg.createdAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="card">
+                <h2>Send Message</h2>
+                <form onSubmit={sendMessage} className="form-row">
+                  <label>
+                    To (email or user id)
+                    <input name="to" value={messageForm.to} onChange={(e) => setMessageForm((prev) => ({ ...prev, to: e.target.value }))} />
+                  </label>
+                  <label>
+                    Subject
+                    <input name="subject" value={messageForm.subject} onChange={(e) => setMessageForm((prev) => ({ ...prev, subject: e.target.value }))} />
+                  </label>
+                  <label style={{ gridColumn: '1 / -1' }}>
+                    Message
+                    <textarea name="body" value={messageForm.body} onChange={(e) => setMessageForm((prev) => ({ ...prev, body: e.target.value }))} rows="6" />
+                  </label>
+                  <button type="submit" className="primary-button" style={{ gridColumn: '1 / -1' }}>Send Message</button>
+                </form>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'reports' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Report Generator</h2>
+              <div className="report-grid">
+                <div className="info-card">
+                  <h3>Attendance Report</h3>
+                  <p>Download a full attendance summary for your record.</p>
+                  <button type="button" className="secondary-button" onClick={downloadAttendanceReport}>Download</button>
+                </div>
+                <div className="info-card">
+                  <h3>Sponsored Bills</h3>
+                  <p>Review and export the list of bills you have sponsored.</p>
+                </div>
+                <div className="info-card">
+                  <h3>Voting Activity</h3>
+                  <p>View your recent voting history and decisions.</p>
+                </div>
+                <div className="info-card">
+                  <h3>Petition Activity</h3>
+                  <p>See sponsorship and petition tracking summaries.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'settings' && (
+          <section className="dashboard-section">
+            <div className="card">
+              <h2>Account Settings</h2>
+              <form className="form-row" onSubmit={(event) => event.preventDefault()}>
+                <label>
+                  Notification preferences
+                  <select
+                    value={settings.notifications ? 'enabled' : 'disabled'}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, notifications: event.target.value === 'enabled' }))}
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+                <label>
+                  Two-factor authentication
+                  <select
+                    value={settings.twoFactor ? 'enabled' : 'disabled'}
+                    onChange={(event) => setSettings((prev) => ({ ...prev, twoFactor: event.target.value === 'enabled' }))}
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+                <label style={{ gridColumn: '1 / -1' }}>
+                  Change Password
+                  <input type="password" placeholder="New password" disabled />
+                  <small>Password changes are managed by the authentication service.</small>
+                </label>
+              </form>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
