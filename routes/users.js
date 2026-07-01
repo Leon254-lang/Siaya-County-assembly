@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Department = require('../models/Department');
+const Committee = require('../models/Committee');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,13 +19,20 @@ router.get('/:id', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR O
   res.json(user);
 });
 
-router.put('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const { name, email, phone, roleName, departmentId, isActive, password } = req.body;
+    const { name, email, phone, roleName, departmentId, isActive, password, committeeMemberships, ward, party, contactDetails } = req.body;
     const user = await User.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isSelf = req.user._id.toString() === req.params.id;
+    const isAdmin = req.user.role?.name === 'Super Admin';
+
+    if (!isSelf && !isAdmin) {
+      return res.status(403).json({ message: 'You do not have permission to update this user.' });
     }
 
     if (email && email !== user.email) {
@@ -35,6 +43,9 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, res) 
     }
 
     if (roleName) {
+      if (!isAdmin) {
+        return res.status(403).json({ message: 'Only administrators can change user roles.' });
+      }
       const role = await Role.findOne({ name: roleName });
       if (!role) {
         return res.status(400).json({ message: 'Invalid role selected' });
@@ -43,6 +54,9 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, res) 
     }
 
     if (departmentId !== undefined) {
+      if (!isAdmin) {
+        return res.status(403).json({ message: 'Only administrators can change departments.' });
+      }
       if (departmentId) {
         const department = await Department.findById(departmentId);
         if (!department) {
@@ -57,14 +71,42 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, res) 
     if (typeof name === 'string' && name.trim()) user.name = name.trim();
     if (typeof email === 'string' && email.trim()) user.email = email.trim().toLowerCase();
     if (typeof phone === 'string') user.phone = phone.trim();
-    if (typeof isActive === 'boolean') user.isActive = isActive;
+    if (typeof ward === 'string') user.ward = ward.trim();
+    if (typeof party === 'string') user.party = party.trim();
+    if (typeof contactDetails === 'object' && contactDetails !== null) {
+      user.contactDetails = {
+        ...user.contactDetails,
+        address: typeof contactDetails.address === 'string' ? contactDetails.address.trim() : user.contactDetails?.address,
+      };
+    }
+
+    if (Array.isArray(committeeMemberships)) {
+      const uniqueIds = Array.from(new Set(committeeMemberships.filter((id) => id)));
+      const validCommittees = await Committee.find({ _id: { $in: uniqueIds } });
+      if (validCommittees.length !== uniqueIds.length) {
+        return res.status(400).json({ message: 'One or more selected committees are invalid.' });
+      }
+      user.committeeMemberships = validCommittees.map((committee) => committee._id);
+    }
+
+    if (typeof isActive === 'boolean') {
+      if (!isAdmin) {
+        return res.status(403).json({ message: 'Only administrators can change active status.' });
+      }
+      user.isActive = isActive;
+    }
+
     if (typeof password === 'string' && password.trim()) {
+      if (!isAdmin && !isSelf) {
+        return res.status(403).json({ message: 'Only administrators can update passwords for other users.' });
+      }
       user.password = await bcrypt.hash(password.trim(), 10);
     }
 
     await user.save();
 
-    const updatedUser = await User.findById(user._id).populate('role department');
+    const updatedUser = await User.findById(user._id)
+      .populate('role department committeeMemberships');
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Failed to update user', error: error.message });

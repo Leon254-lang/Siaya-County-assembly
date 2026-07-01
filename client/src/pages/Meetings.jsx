@@ -31,6 +31,9 @@ export default function Meetings() {
   const [availableRooms, setAvailableRooms] = useState([]);
   const [busyRooms, setBusyRooms] = useState([]);
   const [busyMeetings, setBusyMeetings] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editMeetingData, setEditMeetingData] = useState(null);
+  const [newActionItem, setNewActionItem] = useState({ title: '', assignedTo: '', deadline: '', notes: '' });
   const [form, setForm] = useState({
     title: '',
     committee: '',
@@ -205,6 +208,7 @@ export default function Meetings() {
         agenda: form.agenda,
         notes: form.notes,
         attendees: form.attendees,
+        status: 'Scheduled',
       };
 
       const createRes = await api.post('/meetings', payload);
@@ -221,7 +225,7 @@ export default function Meetings() {
       if (form.minutesFile) {
         const minutesData = new FormData();
         minutesData.append('file', form.minutesFile);
-        await api.post(`/meetings/${newMeeting._id}/upload-minutes`, minutesData, {
+        await api.post(`/meetings/${newMeeting._1}/upload-minutes`, minutesData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }

@@ -100,6 +100,14 @@ router.get('/', verifyToken, async (req, res) => {
     query.meetingType = req.query.type;
   }
 
+  if (req.query.committee) {
+    query.committee = req.query.committee;
+  }
+
+  if (req.query.status) {
+    query.status = req.query.status;
+  }
+
   const meetings = await Meeting.find(query)
     .sort({ startTime: 1 })
     .populate('committee attendees attendance.user');
@@ -500,6 +508,52 @@ router.post('/:id/upload-minutes', verifyToken, authorizeRoles('Clerk', 'Committ
   } catch (notifyErr) {
     console.error('Failed to notify attendees about minutes upload:', notifyErr.message);
   }
+
+  res.json(meeting);
+});
+
+router.post('/:id/action-items', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const { title, assignedTo, deadline, notes } = req.body;
+  if (!title) return res.status(400).json({ message: 'Action item title is required.' });
+
+  meeting.actionItems = meeting.actionItems || [];
+  meeting.actionItems.push({ title, assignedTo, deadline, notes, status: 'Pending' });
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+
+  res.status(201).json(meeting);
+});
+
+router.put('/:id/action-items/:itemId', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const actionItem = meeting.actionItems.id(req.params.itemId);
+  if (!actionItem) return res.status(404).json({ message: 'Action item not found' });
+
+  const { title, assignedTo, deadline, notes, status } = req.body;
+  if (title !== undefined) actionItem.title = title;
+  if (assignedTo !== undefined) actionItem.assignedTo = assignedTo;
+  if (deadline !== undefined) actionItem.deadline = deadline;
+  if (notes !== undefined) actionItem.notes = notes;
+  if (status !== undefined) actionItem.status = status;
+
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
+
+  res.json(meeting);
+});
+
+router.delete('/:id/action-items/:itemId', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  meeting.actionItems = meeting.actionItems.filter((item) => item._id.toString() !== req.params.itemId);
+  await meeting.save();
+  await meeting.populate('committee attendees attendance.user');
 
   res.json(meeting);
 });

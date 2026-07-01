@@ -572,7 +572,14 @@ export default function Mcas() {
                 </label>
                 <label>
                   Committee Memberships
-                  <input name="committeeMemberships" value={(userProfile.committeeMemberships || []).map((c) => c.name || c).join(', ')} disabled />
+                  <select name="committeeMemberships" multiple value={(userProfile.committeeMemberships || []).map((c) => c._id || c)} onChange={(event) => {
+                    const selected = Array.from(event.target.selectedOptions).map((option) => option.value);
+                    setUserProfile((prev) => ({ ...prev, committeeMemberships: selected }));
+                  }}>
+                    {committees.map((committee) => (
+                      <option key={committee._id} value={committee._id}>{committee.name}</option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   Profile Picture
@@ -581,7 +588,7 @@ export default function Mcas() {
                 </label>
                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   <button type="submit" className="primary-button">Save Profile</button>
-                  <button type="button" className="secondary-button" onClick={() => setMessage('Profile edits require administrator approval in the current backend.')}>Need Help?</button>
+                  <button type="button" className="secondary-button" onClick={() => setMessage('Profile edits will save through the backend if allowed.')}>Need Help?</button>
                 </div>
               </form>
             </div>

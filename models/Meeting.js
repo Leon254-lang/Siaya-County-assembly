@@ -109,6 +109,24 @@ const MeetingSchema = new mongoose.Schema({
     }),
   ],
   attendance: [AttendanceEntrySchema],
+  actionItems: [
+    new mongoose.Schema({
+      title: { type: String, required: true, trim: true },
+      assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      deadline: Date,
+      status: { type: String, enum: ['Pending', 'Ongoing', 'Completed', 'Overdue', 'Cancelled'], default: 'Pending' },
+      notes: { type: String, trim: true },
+    }, { _id: true })
+  ],
+  outcome: {
+    type: String,
+    trim: true,
+  },
+  status: {
+    type: String,
+    enum: ['Scheduled', 'Cancelled', 'Completed', 'Draft'],
+    default: 'Scheduled',
+  },
   notes: {
     type: String,
     trim: true,
