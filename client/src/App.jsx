@@ -10,6 +10,7 @@ import Attendance from './pages/Attendance';
 import Visitors from './pages/Visitors';
 import Meetings from './pages/Meetings';
 import LeaveSummaryPage from './pages/LeaveSummaryPage';
+import ManageInterns from './pages/ManageInterns';
 import Sessions from './pages/Sessions';
 import Mcas from './pages/Mcas';
 import Bills from './pages/Bills';
@@ -88,6 +89,7 @@ function App() {
           <Route path="/media/:slug" element={<ProtectedRoute><MediaPost /></ProtectedRoute>} />
           <Route path="/clerk-dashboard" element={<ProtectedRoute><ClerkDashboard /></ProtectedRoute>} />
           <Route path="/leave-summary" element={<ProtectedRoute allowedRoles={["Super Admin","HR Officer"]}><LeaveSummaryPage /></ProtectedRoute>} />
+          <Route path="/manage-interns" element={<ProtectedRoute allowedRoles={["Super Admin","HR Officer"]}><ManageInterns /></ProtectedRoute>} />
           <Route path="/attachees" element={<ProtectedRoute><Attachees /></ProtectedRoute>} />
           <Route path="/network-devices" element={<ProtectedRoute><NetworkDevices /></ProtectedRoute>} />
           <Route path="/hr-appraisals" element={<ProtectedRoute><HrAppraisals /></ProtectedRoute>} />

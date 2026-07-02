@@ -1,6 +1,6 @@
 const express = require('express');
 const Intern = require('../models/Intern');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   res.json(intern);
 });
 
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
   const intern = new Intern(req.body);
   await intern.save();
 
@@ -34,7 +34,7 @@ router.post('/', verifyToken, async (req, res) => {
   res.status(201).json(populated);
 });
 
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
   const updates = {
     name: req.body.name,
     email: req.body.email,
