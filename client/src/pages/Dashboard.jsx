@@ -145,6 +145,38 @@ export default function Dashboard() {
   const [loadingMeetings, setLoadingMeetings] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [ictOverview, setIctOverview] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    departments: 0,
+    assets: 0,
+    openTickets: 0,
+    resolvedTickets: 0,
+    announcements: 0,
+    auditLogs: 0,
+  });
+  const [ictUsers, setIctUsers] = useState([]);
+  const [departmentForm, setDepartmentForm] = useState({ name: '', description: '', modules: [] });
+  const [editingDepartmentId, setEditingDepartmentId] = useState('');
+  const [departmentMessage, setDepartmentMessage] = useState('');
+  const [adminSettings, setAdminSettings] = useState({
+    systemSettings: true,
+    modulesEnabled: true,
+    emailNotifications: true,
+    smsNotifications: true,
+    passwordPolicy: 'Strong',
+    sessionTimeout: '30',
+  });
+  const [documentTemplateForm, setDocumentTemplateForm] = useState({
+    title: '',
+    description: '',
+    category: 'administrative',
+    priority: 'medium',
+    department: '',
+    type: 'memo',
+  });
+  const [documentMessage, setDocumentMessage] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('icamsToken');
@@ -204,6 +236,45 @@ export default function Dashboard() {
     loadDashboardData();
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !['ICT Admin', 'Super Admin'].includes(userRole)) return;
+
+    const loadIctOverview = async () => {
+      try {
+        const [usersRes, departmentsRes, assetsRes, ticketsRes, auditRes, announcementsRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/departments'),
+          api.get('/assets'),
+          api.get('/tickets'),
+          api.get('/audit-logs?limit=100'),
+          api.get('/communications/announcements?limit=20'),
+        ]);
+
+        const users = usersRes.data || [];
+        const tickets = ticketsRes.data || [];
+        const auditLogs = auditRes.data?.logs || [];
+        const announcements = announcementsRes.data || [];
+
+        setIctUsers(users);
+        setIctOverview({
+          totalUsers: users.length,
+          activeUsers: users.filter((user) => user.isActive !== false).length,
+          inactiveUsers: users.filter((user) => user.isActive === false).length,
+          departments: (departmentsRes.data || []).length,
+          assets: (assetsRes.data || []).length,
+          openTickets: (tickets || []).filter((ticket) => ticket.status !== 'resolved').length,
+          resolvedTickets: (tickets || []).filter((ticket) => ticket.status === 'resolved').length,
+          announcements: announcements.length,
+          auditLogs: auditLogs.length,
+        });
+      } catch (error) {
+        console.error('Failed to load ICT overview data', error);
+      }
+    };
+
+    loadIctOverview();
+  }, [isLoggedIn, userRole]);
+
   const handleRequisitionInputChange = (event) => {
     const { name, value } = event.target;
     setRequisitionForm((prev) => ({ ...prev, [name]: value }));
@@ -237,6 +308,173 @@ export default function Dashboard() {
       console.error('Failed to submit requisition', error);
     }
   };
+
+  const ictQuickActions = [
+    { title: 'Add User', icon: '➕', description: 'Create a new staff account and assign a role.', path: '/manage-users?mode=create' },
+    { title: 'Reset Password', icon: '🔑', description: 'Update a staff password from the user management screen.', path: '/manage-users?mode=reset' },
+    { title: 'Register ICT Asset', icon: '🖥️', description: 'Register new computers, printers, scanners and related equipment.', path: '/network-devices' },
+    { title: 'Backup Database', icon: '💾', description: 'Review the backup and continuity status from the administration workspace.', path: '/audit-logs' },
+    { title: 'Restore Backup', icon: '↩️', description: 'Open the security and audit workspace to verify and restore backup history.', path: '/audit-logs' },
+    { title: 'View Audit Logs', icon: '🧾', description: 'Review user actions, access changes and key system events.', path: '/audit-logs' },
+    { title: 'Resolve Support Ticket', icon: '🛠️', description: 'Work through helpdesk issues and update ticket status.', path: '/tickets' },
+    { title: 'Send Announcement', icon: '📢', description: 'Publish notices and internal communications to staff.', path: '/announcements' },
+    { title: 'Generate Reports', icon: '📊', description: 'Open the reporting and document workspace for operational reports.', path: '/documents' },
+  ];
+
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('ictAdminSettings');
+      if (savedSettings) {
+        setAdminSettings(JSON.parse(savedSettings));
+      }
+    } catch (error) {
+      console.error('Unable to restore ICT settings', error);
+    }
+  }, []);
+
+  const handleDepartmentInputChange = (event) => {
+    const { name, value } = event.target;
+    setDepartmentForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDepartmentModuleToggle = (moduleName) => {
+    setDepartmentForm((prev) => ({
+      ...prev,
+      modules: prev.modules.includes(moduleName)
+        ? prev.modules.filter((item) => item !== moduleName)
+        : [...prev.modules, moduleName],
+    }));
+  };
+
+  const resetDepartmentForm = () => {
+    setDepartmentForm({ name: '', description: '', modules: [] });
+    setEditingDepartmentId('');
+    setDepartmentMessage('');
+  };
+
+  const handleDepartmentSubmit = async (event) => {
+    event.preventDefault();
+    setDepartmentMessage('');
+
+    try {
+      if (editingDepartmentId) {
+        await api.put(`/departments/${editingDepartmentId}`, {
+          name: departmentForm.name,
+          description: departmentForm.description,
+          modules: departmentForm.modules,
+        });
+        setDepartmentMessage('Department updated successfully.');
+      } else {
+        await api.post('/departments', {
+          name: departmentForm.name,
+          description: departmentForm.description,
+          modules: departmentForm.modules,
+        });
+        setDepartmentMessage('Department created successfully.');
+      }
+
+      const departmentsRes = await api.get('/departments');
+      setDepartments(departmentsRes.data || []);
+      resetDepartmentForm();
+    } catch (error) {
+      setDepartmentMessage(error.response?.data?.message || 'Unable to save department.');
+    }
+  };
+
+  const startDepartmentEdit = (department) => {
+    setEditingDepartmentId(department._id);
+    setDepartmentForm({
+      name: department.name || '',
+      description: department.description || '',
+      modules: department.modules || [],
+    });
+    setDepartmentMessage('');
+  };
+
+  const handleAdministrationSave = (event) => {
+    event.preventDefault();
+    localStorage.setItem('ictAdminSettings', JSON.stringify(adminSettings));
+    setDepartmentMessage('Administration settings saved.');
+  };
+
+  const handleDocumentTemplateSubmit = async (event) => {
+    event.preventDefault();
+    setDocumentMessage('');
+
+    try {
+      await api.post('/documents', {
+        title: documentTemplateForm.title,
+        description: documentTemplateForm.description,
+        type: documentTemplateForm.type,
+        category: documentTemplateForm.category,
+        priority: documentTemplateForm.priority,
+        currentDepartment: documentTemplateForm.department || 'ICT',
+        department: documentTemplateForm.department || '',
+        responseStatus: 'not_requested',
+      });
+      setDocumentMessage('Document template created successfully.');
+      setDocumentTemplateForm({
+        title: '',
+        description: '',
+        category: 'administrative',
+        priority: 'medium',
+        department: '',
+        type: 'memo',
+      });
+    } catch (error) {
+      setDocumentMessage(error.response?.data?.message || 'Unable to create document.');
+    }
+  };
+
+  const departmentStaffGroups = departments.map((department) => ({
+    ...department,
+    users: ictUsers.filter((user) => user.department?._id === department._id || user.department === department._id),
+  }));
+
+  const ictOperationCards = [
+    {
+      title: 'User Accounts',
+      icon: '👤',
+      description: 'Create, edit, activate or deactivate staff accounts, reset passwords and manage roles.',
+      operations: ['Create accounts', 'Edit staff profiles', 'Reset passwords', 'Assign roles', 'Activate or disable access'],
+      path: '/manage-users',
+    },
+    {
+      title: 'Departments & Teams',
+      icon: '🏛️',
+      description: 'Add departments, assign users, transfer staff and maintain team structure.',
+      operations: ['Add departments', 'Assign staff', 'Transfer staff', 'View departmental lists', 'Manage module access'],
+      path: '/assets',
+    },
+    {
+      title: 'Devices, Assets & Software',
+      icon: '🖥️',
+      description: 'Register computers, printers, scanners, software and track maintenance history.',
+      operations: ['Register devices', 'Assign equipment', 'Track maintenance', 'Record disposal', 'Monitor inventory'],
+      path: '/assets',
+    },
+    {
+      title: 'Helpdesk & Support',
+      icon: '🛠️',
+      description: 'Receive ICT support requests, assign tickets, update status and close resolved issues.',
+      operations: ['Create support tickets', 'Assign technicians', 'Track pending issues', 'Close resolved requests', 'Record maintenance reports'],
+      path: '/tickets',
+    },
+    {
+      title: 'Security, Audit & Backup',
+      icon: '🔐',
+      description: 'Review login history, audit entries, failed attempts and backup readiness from one place.',
+      operations: ['Review audit logs', 'Monitor failed logins', 'View access activity', 'Track backup status', 'Manage security alerts'],
+      path: '/audit-logs',
+    },
+    {
+      title: 'Documents, Announcements & Reports',
+      icon: '📁',
+      description: 'Publish notices, manage official documents and generate operational reports.',
+      operations: ['Upload templates', 'Publish announcements', 'Share notices', 'View document repository', 'Generate activity reports'],
+      path: '/documents',
+    },
+  ];
 
   return (
     <div className="dashboard">
@@ -532,34 +770,209 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {userRole === 'ICT Admin' && (
+          {(userRole === 'ICT Admin' || userRole === 'Super Admin') && (
             <section className="modules-section">
               <div className="section-header theme-red">
-                <h2>💻 ICT Head of Department Workspace</h2>
-                <p>Use this workspace to oversee ICT infrastructure, support, cybersecurity, systems, and digital operations for the Assembly.</p>
+                <h2>💻 ICT Officer Dashboard</h2>
+                <p>Use this workspace as your central operations center for user administration, ICT assets, support requests, security, backups and communications.</p>
               </div>
+
+              <div className="dashboard-grid">
+                <div className="dashboard-card">
+                  <h3>Total users</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)' }}>{ictOverview.totalUsers}</p>
+                  <p>{ictOverview.activeUsers} active • {ictOverview.inactiveUsers} inactive</p>
+                </div>
+                <div className="dashboard-card">
+                  <h3>Departments</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-color)' }}>{ictOverview.departments}</p>
+                  <p>Configured units for administration, finance, procurement, ICT and more.</p>
+                </div>
+                <div className="dashboard-card">
+                  <h3>ICT assets</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{ictOverview.assets}</p>
+                  <p>Registered computers, printers, scanners and related equipment.</p>
+                </div>
+                <div className="dashboard-card">
+                  <h3>Support queue</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)' }}>{ictOverview.openTickets}</p>
+                  <p>{ictOverview.resolvedTickets} resolved • {ictOverview.auditLogs} audit records</p>
+                </div>
+              </div>
+
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <h3>⚡ Quick Actions</h3>
+                <p>These shortcuts give the ICT officer instant access to the most common administrative tasks.</p>
+                <div className="modules-grid">
+                  {ictQuickActions.map((action) => (
+                    <Link to={action.path} className="module-card" key={action.title}>
+                      <h3>{action.icon} {action.title}</h3>
+                      <p>{action.description}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <h3>🏛️ Department Management</h3>
+                <p>Create or update departments, review staff by department, and keep team assignments aligned.</p>
+                {departmentMessage && <div className="message">{departmentMessage}</div>}
+                <form onSubmit={handleDepartmentSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                  <label>
+                    Department name
+                    <input name="name" value={departmentForm.name} onChange={handleDepartmentInputChange} required />
+                  </label>
+                  <label>
+                    Description
+                    <input name="description" value={departmentForm.description} onChange={handleDepartmentInputChange} />
+                  </label>
+                  <div>
+                    <strong>Enabled modules</strong>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      {['Documents', 'Assets', 'Helpdesk', 'Announcements', 'Audit'].map((moduleName) => (
+                        <label key={moduleName} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <input type="checkbox" checked={departmentForm.modules.includes(moduleName)} onChange={() => handleDepartmentModuleToggle(moduleName)} />
+                          {moduleName}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button type="submit">{editingDepartmentId ? 'Update Department' : 'Add Department'}</button>
+                    <button type="button" onClick={resetDepartmentForm} className="secondary">Clear</button>
+                  </div>
+                </form>
+                <div style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem' }}>
+                  {departmentStaffGroups.length === 0 ? (
+                    <p>No departments available yet.</p>
+                  ) : departmentStaffGroups.map((department) => (
+                    <div key={department._id} className="card" style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        <strong>{department.name}</strong>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button type="button" onClick={() => startDepartmentEdit(department)} style={{ padding: '0.6rem 0.9rem' }}>Edit</button>
+                          <Link to="/manage-users?mode=reset" className="module-link" style={{ marginTop: 0, padding: '0.6rem 0.9rem' }}>Assign Users</Link>
+                        </div>
+                      </div>
+                      <p style={{ margin: '0.3rem 0 0.7rem' }}>{department.description || 'Department records are active.'}</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {department.users.length === 0 ? (
+                          <span style={{ color: 'var(--text-secondary)' }}>No assigned staff yet.</span>
+                        ) : department.users.map((user) => (
+                          <span key={user._id} style={{ padding: '0.35rem 0.6rem', background: '#f8fafc', borderRadius: '999px' }}>{user.name}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <h3>⚙️ System Administration</h3>
+                <p>Enable modules, configure email and SMS notifications, set password policy, and adjust session timeout settings.</p>
+                <form onSubmit={handleAdministrationSave} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <input type="checkbox" checked={adminSettings.systemSettings} onChange={(event) => setAdminSettings((prev) => ({ ...prev, systemSettings: event.target.checked }))} />
+                    Enable core system settings
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <input type="checkbox" checked={adminSettings.modulesEnabled} onChange={(event) => setAdminSettings((prev) => ({ ...prev, modulesEnabled: event.target.checked }))} />
+                    Enable application modules
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <input type="checkbox" checked={adminSettings.emailNotifications} onChange={(event) => setAdminSettings((prev) => ({ ...prev, emailNotifications: event.target.checked }))} />
+                    Email notifications
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <input type="checkbox" checked={adminSettings.smsNotifications} onChange={(event) => setAdminSettings((prev) => ({ ...prev, smsNotifications: event.target.checked }))} />
+                    SMS notifications
+                  </label>
+                  <label>
+                    Password policy
+                    <select value={adminSettings.passwordPolicy} onChange={(event) => setAdminSettings((prev) => ({ ...prev, passwordPolicy: event.target.value }))}>
+                      <option value="Standard">Standard</option>
+                      <option value="Strong">Strong</option>
+                      <option value="Very Strong">Very Strong</option>
+                    </select>
+                  </label>
+                  <label>
+                    Session timeout (minutes)
+                    <select value={adminSettings.sessionTimeout} onChange={(event) => setAdminSettings((prev) => ({ ...prev, sessionTimeout: event.target.value }))}>
+                      <option value="15">15</option>
+                      <option value="30">30</option>
+                      <option value="60">60</option>
+                      <option value="120">120</option>
+                    </select>
+                  </label>
+                  <button type="submit">Save administration settings</button>
+                </form>
+              </div>
+
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <h3>📄 Document & File Operations</h3>
+                <p>Create official templates, notices, or templates for storage and share them with departments.</p>
+                {documentMessage && <div className="message">{documentMessage}</div>}
+                <form onSubmit={handleDocumentTemplateSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                  <label>
+                    Title
+                    <input value={documentTemplateForm.title} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, title: event.target.value }))} required />
+                  </label>
+                  <label>
+                    Description
+                    <textarea value={documentTemplateForm.description} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, description: event.target.value }))} rows="3" />
+                  </label>
+                  <label>
+                    Type
+                    <select value={documentTemplateForm.type} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, type: event.target.value }))}>
+                      <option value="memo">Memo</option>
+                      <option value="template">Template</option>
+                      <option value="notice">Notice</option>
+                    </select>
+                  </label>
+                  <label>
+                    Category
+                    <select value={documentTemplateForm.category} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, category: event.target.value }))}>
+                      <option value="administrative">Administrative</option>
+                      <option value="technical">Technical</option>
+                      <option value="financial">Financial</option>
+                      <option value="legal">Legal</option>
+                    </select>
+                  </label>
+                  <label>
+                    Priority
+                    <select value={documentTemplateForm.priority} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, priority: event.target.value }))}>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </label>
+                  <label>
+                    Department
+                    <input value={documentTemplateForm.department} onChange={(event) => setDocumentTemplateForm((prev) => ({ ...prev, department: event.target.value }))} placeholder="ICT, Clerk, Finance..." />
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button type="submit">Create document</button>
+                    <Link to="/documents" className="module-link" style={{ marginTop: 0 }}>Open document workspace</Link>
+                  </div>
+                </form>
+              </div>
+
               <div className="modules-grid">
-                <div className="module-card">
-                  <h3>🛠️ ICT Operations</h3>
-                  <p>Monitor systems, support requests, maintenance planning, devices and infrastructure health across the Assembly.</p>
-                  <Link to="/tickets" className="module-link">Open Helpdesk</Link>
-                </div>
-                <div className="module-card">
-                  <h3>📊 Systems & Reports</h3>
-                  <p>Review reports, procurement links, digital platforms and workflow automation for day-to-day ICT administration.</p>
-                  <Link to="/documents" className="module-link">Open Documents</Link>
-                </div>
-                <div className="module-card">
-                  <h3>🔐 Security & Access</h3>
-                  <p>Coordinate cybersecurity, access rights, audit visibility, backups and continuity planning for critical Assembly systems.</p>
-                  <Link to="/audit-logs" className="module-link">Open Audit Logs</Link>
-                </div>
-                <div className="module-card">
-                  <h3>📡 Digital Communication</h3>
-                  <p>Support digital communication, website operations, announcements and coordinated public-facing ICT services.</p>
-                  <Link to="/messages" className="module-link">Open Messages</Link>
-                </div>
+                {ictOperationCards.map((card) => (
+                  <div className="module-card" key={card.title}>
+                    <h3>{card.icon} {card.title}</h3>
+                    <p>{card.description}</p>
+                    <ul style={{ margin: '0 0 1rem 1.1rem', padding: 0, color: 'var(--text-secondary)' }}>
+                      {card.operations.map((item) => (
+                        <li key={item} style={{ marginBottom: '0.35rem' }}>{item}</li>
+                      ))}
+                    </ul>
+                    <Link to={card.path} className="module-link">Open {card.title}</Link>
+                  </div>
+                ))}
               </div>
+
               <div className="card" style={{ marginTop: '1rem' }}>
                 <h3>Core ICT responsibilities</h3>
                 <ul>
