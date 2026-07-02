@@ -1,3 +1,8 @@
+const csvEscape = (value) => {
+  const safeValue = value == null ? '' : String(value);
+  return `"${safeValue.replace(/"/g, '""')}"`;
+};
+
 export function calculatePerformanceSummary(appraisals) {
   const total = appraisals.length;
   const reviewed = appraisals.filter((item) => item.status === 'Reviewed').length;
@@ -35,4 +40,22 @@ export function calculatePerformanceSummary(appraisals) {
     needsAttention,
     departmentAverages,
   };
+}
+
+export function generateAppraisalCsv(appraisals) {
+  const headers = ['Employee', 'Department', 'Period', 'Score', 'Rating', 'Status', 'Due Date', 'Achievements', 'Manager Comments'];
+  const rows = appraisals.map((item) => [
+    item.employeeName,
+    item.department,
+    item.period,
+    item.score,
+    item.rating,
+    item.status,
+    item.dueDate || '',
+    item.achievements || '',
+    item.managerComments || '',
+  ]);
+
+  const lines = [headers.join(','), ...rows.map((row) => row.map(csvEscape).join(','))];
+  return lines.join('\n');
 }

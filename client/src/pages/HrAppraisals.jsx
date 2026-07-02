@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
-import { calculatePerformanceSummary } from './hrAppraisalUtils.mjs';
+import { calculatePerformanceSummary, generateAppraisalCsv } from './hrAppraisalUtils.mjs';
 
 const fallbackEmployees = [
   { _id: 'emp-1', name: 'Jane Otieno', department: 'Clerk Office' },
@@ -238,6 +238,20 @@ export default function HrAppraisals() {
     reportWindow.print();
   };
 
+  const handleExportCsv = () => {
+    const csvContent = generateAppraisalCsv(appraisals);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'hr-appraisals.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setMessage('HR appraisal data exported as CSV.');
+  };
+
   return (
     <div className="dashboard">
       <section className="card">
@@ -290,6 +304,7 @@ export default function HrAppraisals() {
         )}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}>
           <button type="button" onClick={handleExportReport}>Export appraisal report</button>
+          <button type="button" className="secondary" onClick={handleExportCsv}>Download CSV</button>
         </div>
       </section>
 
