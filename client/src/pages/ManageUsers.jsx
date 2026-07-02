@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
 const roleOptions = [
@@ -15,11 +16,13 @@ const roleOptions = [
 ];
 
 export default function ManageUsers() {
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [editingUserId, setEditingUserId] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -27,6 +30,14 @@ export default function ManageUsers() {
     roleName: 'Clerk',
     departmentId: '',
     isActive: true,
+    password: '',
+  });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    roleName: 'ICT Admin',
+    departmentId: '',
     password: '',
   });
 
@@ -49,6 +60,18 @@ export default function ManageUsers() {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'create') {
+      setShowCreateForm(true);
+      setMessage('Create a new user account from the form below.');
+    }
+    if (mode === 'reset') {
+      setShowCreateForm(false);
+      setMessage('Select a user and use Edit to reset their password.');
+    }
+  }, [searchParams]);
+
   const startEdit = (user) => {
     setEditingUserId(user._id);
     setForm({
@@ -60,6 +83,35 @@ export default function ManageUsers() {
       isActive: user.isActive !== false,
       password: '',
     });
+  };
+
+  const handleCreate = async (event) => {
+    event.preventDefault();
+    setMessage('');
+
+    try {
+      await api.post('/auth/register', {
+        name: createForm.name,
+        email: createForm.email,
+        phone: createForm.phone,
+        roleName: createForm.roleName,
+        department: createForm.departmentId || undefined,
+        password: createForm.password,
+      });
+      setMessage('User created successfully.');
+      setShowCreateForm(false);
+      setCreateForm({
+        name: '',
+        email: '',
+        phone: '',
+        roleName: 'ICT Admin',
+        departmentId: '',
+        password: '',
+      });
+      await fetchUsers();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to create user.');
+    }
   };
 
   const handleSave = async (event) => {
@@ -108,9 +160,52 @@ export default function ManageUsers() {
   return (
     <div className="card">
       <h1>Manage Users</h1>
-      <p>Use this page to update account details and remove staff accounts from the system.</p>
+      <p>Use this page to create new accounts, update staff details, reset passwords, and activate or deactivate access for assembly users.</p>
 
       {message && <div className="message">{message}</div>}
+
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <button type="button" onClick={() => setShowCreateForm((prev) => !prev)}>
+          {showCreateForm ? 'Cancel' : 'Add New User'}
+        </button>
+      </div>
+
+      {showCreateForm && (
+        <form onSubmit={handleCreate} style={{ marginBottom: '1.5rem' }}>
+          <label>
+            Full Name
+            <input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} required />
+          </label>
+          <label>
+            Email
+            <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} required />
+          </label>
+          <label>
+            Phone
+            <input value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
+          </label>
+          <label>
+            Role
+            <select value={createForm.roleName} onChange={(e) => setCreateForm({ ...createForm, roleName: e.target.value })}>
+              {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+            </select>
+          </label>
+          <label>
+            Department
+            <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })}>
+              <option value="">No department</option>
+              {departments.map((department) => (
+                <option key={department._id} value={department._id}>{department.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Temporary Password
+            <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
+          </label>
+          <button type="submit">Create User</button>
+        </form>
+      )}
 
       {editingUserId ? (
         <form onSubmit={handleSave} style={{ marginBottom: '1.5rem' }}>

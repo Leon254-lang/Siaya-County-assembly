@@ -7,7 +7,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/register', verifyToken, authorizeRoles('Super Admin'), async (req, res) => {
+router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin'), async (req, res) => {
   try {
     const { name, email, password, roleName, department } = req.body;
     const userRole = req.user.role?.name;

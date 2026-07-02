@@ -20,4 +20,24 @@ router.post('/', verifyToken, async (req, res) => {
   res.status(201).json(department);
 });
 
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    const { name, description, modules } = req.body;
+    const department = await Department.findById(req.params.id);
+
+    if (!department) {
+      return res.status(404).json({ message: 'Department not found' });
+    }
+
+    if (typeof name === 'string' && name.trim()) department.name = name.trim();
+    if (typeof description === 'string') department.description = description.trim();
+    if (Array.isArray(modules)) department.modules = modules;
+
+    await department.save();
+    res.json(department);
+  } catch (error) {
+    res.status(500).json({ message: 'Unable to update department', error: error.message });
+  }
+});
+
 module.exports = router;
