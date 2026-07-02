@@ -1,5 +1,6 @@
 const express = require('express');
 const Intern = require('../models/Intern');
+const mongoose = require('mongoose');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 
@@ -10,8 +11,25 @@ router.get('/', verifyToken, async (req, res) => {
   res.json(interns);
 });
 
+const resolveIntern = async (id, user) => {
+  let intern = null;
+  // Try by intern _id
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    intern = await Intern.findById(id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
+    if (intern) return intern;
+  }
+
+  // If not found by id, try to find by user email when available
+  if (user && user.email) {
+    intern = await Intern.findOne({ email: user.email }).populate('department supervisor completionReports.supervisor evaluations.reviewer');
+    if (intern) return intern;
+  }
+
+  return null;
+};
+
 router.get('/:id', verifyToken, async (req, res) => {
-  const intern = await Intern.findById(req.params.id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
+  const intern = await resolveIntern(req.params.id, req.user);
   if (!intern) {
     return res.status(404).json({ message: 'Intern not found' });
   }
@@ -63,7 +81,7 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), asy
 });
 
 router.post('/:id/log', verifyToken, async (req, res) => {
-  const intern = await Intern.findById(req.params.id);
+  const intern = await resolveIntern(req.params.id, req.user);
   if (!intern) {
     return res.status(404).json({ message: 'Intern not found' });
   }
@@ -90,7 +108,7 @@ router.post('/:id/log', verifyToken, async (req, res) => {
 });
 
 router.post('/:id/evaluate', verifyToken, async (req, res) => {
-  const intern = await Intern.findById(req.params.id);
+  const intern = await resolveIntern(req.params.id, req.user);
   if (!intern) {
     return res.status(404).json({ message: 'Intern not found' });
   }
@@ -118,7 +136,7 @@ router.post('/:id/evaluate', verifyToken, async (req, res) => {
 });
 
 router.post('/:id/complete', verifyToken, async (req, res) => {
-  const intern = await Intern.findById(req.params.id);
+  const intern = await resolveIntern(req.params.id, req.user);
   if (!intern) {
     return res.status(404).json({ message: 'Intern not found' });
   }
