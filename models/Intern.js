@@ -15,6 +15,22 @@ const InternSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  firstName: {
+    type: String,
+    trim: true,
+  },
+  lastName: {
+    type: String,
+    trim: true,
+  },
+  institution: {
+    type: String,
+    trim: true,
+  },
+  course: {
+    type: String,
+    trim: true,
+  },
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department',

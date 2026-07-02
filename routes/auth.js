@@ -9,10 +9,14 @@ const router = express.Router();
 
 router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer'), async (req, res) => {
   try {
-    const { name, email, password, roleName, department } = req.body;
+    const { name, email, password, roleName, phone, department } = req.body;
     const userRole = req.user.role?.name;
     if (roleName === 'MCA' && !userRole?.includes('Admin')) {
       return res.status(403).json({ message: 'Only Admin users can register MCA accounts' });
+    }
+
+    if (!password || typeof password !== 'string' || !password.trim()) {
+      return res.status(400).json({ message: 'Password is required' });
     }
 
     const existing = await User.findOne({ email });
@@ -26,7 +30,14 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin',
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashed, role: role._id, department });
+    const user = new User({
+      name,
+      email,
+      password: hashed,
+      role: role._id,
+      phone,
+      department,
+    });
     await user.save();
 
     const created = await User.findById(user._id).populate('role department');

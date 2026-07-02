@@ -29,8 +29,17 @@ export default function ManageInterns() {
       const name = `${form.firstName || ''} ${form.lastName || ''}`.trim();
       let createdUserId = null;
       if (form.createAccount && !editing) {
+        if (!form.password) {
+          throw new Error('Please provide a password to create the intern user account.');
+        }
         // create user account via auth.register
-        const regPayload = { name, email: form.email, password: form.password, roleName: form.roleName };
+        const regPayload = {
+          name,
+          email: form.email,
+          password: form.password,
+          roleName: form.roleName,
+          phone: form.phone,
+        };
         const regRes = await api.post('/auth/register', regPayload);
         createdUserId = regRes.data.user?._id || regRes.data.user?.id;
       }
