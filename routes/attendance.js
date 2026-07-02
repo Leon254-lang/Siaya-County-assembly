@@ -5,8 +5,8 @@ const User = require('../models/User');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const ASSEMBLY_PREMISES = {
-  latitude: 0.0626,
-  longitude: 34.2878,
+  latitude: 0.051274198250157124,
+  longitude: 34.29512813904587,
   radiusMeters: 3000
 };
 
