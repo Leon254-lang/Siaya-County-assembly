@@ -974,7 +974,8 @@ export default function Dashboard() {
               </div>
 
               <div className="card" style={{ marginTop: '1rem' }}>
-                <h3>Core ICT responsibilities</h3>
+                <h3>📌 ICT Officer Mandate & Responsibilities</h3>
+                <p>This workspace supports the ICT Officer’s core mandate for planning infrastructure, managing networks, securing systems and supporting Assembly operations.</p>
                 <ul>
                   {ictResponsibilities.map((item) => (
                     <li key={item}>{item}</li>
