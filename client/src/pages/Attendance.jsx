@@ -58,8 +58,8 @@ export default function Attendance() {
   });
 
   const ASSEMBLY_PREMISES = {
-    latitude: 0.0619,
-    longitude: 34.2886,
+    latitude: 0.062629,
+    longitude: 34.287807,
     radiusMeters: 1200
   };
 
