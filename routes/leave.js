@@ -67,12 +67,29 @@ router.get('/', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { type, startDate, endDate, reason } = req.body;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({ message: 'Valid start and end dates are required.' });
+    }
+
+    if (start < tomorrow) {
+      return res.status(400).json({ message: 'Leave must be requested at least one day before the start date.' });
+    }
+
+    if (end < start) {
+      return res.status(400).json({ message: 'Leave end date must be the same as or after the start date.' });
+    }
 
     const leaveRequest = new Leave({
       user: req.user._id,
       type,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       reason,
     });
 
@@ -84,6 +101,41 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(populatedRequest);
   } catch (error) {
     res.status(500).json({ message: 'Error submitting leave request', error: error.message });
+  }
+});
+
+// Report return from approved leave
+router.post('/:id/return', verifyToken, async (req, res) => {
+  try {
+    const leaveRequest = await Leave.findById(req.params.id);
+    if (!leaveRequest) return res.status(404).json({ message: 'Leave request not found' });
+
+    const currentUserId = req.user._id.toString();
+    const requesterId = leaveRequest.user.toString();
+    const userRole = req.user.role?.name;
+
+    if (currentUserId !== requesterId && !['Super Admin', 'HR Officer', 'Clerk'].includes(userRole)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    if (leaveRequest.status !== 'approved') {
+      return res.status(400).json({ message: 'Only approved leave can be marked as returned.' });
+    }
+
+    leaveRequest.returned = true;
+    leaveRequest.returnDate = new Date();
+    leaveRequest.workflowStage = 'Returned';
+    leaveRequest.updatedAt = new Date();
+
+    await leaveRequest.save();
+
+    const populatedRequest = await Leave.findById(leaveRequest._id)
+      .populate('user', 'name email department role')
+      .populate('approvedBy', 'name');
+
+    res.json(populatedRequest);
+  } catch (error) {
+    res.status(500).json({ message: 'Error reporting return from leave', error: error.message });
   }
 });
 

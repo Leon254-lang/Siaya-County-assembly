@@ -41,7 +41,7 @@ const LeaveSchema = new mongoose.Schema({
   comments: String,
   workflowStage: {
     type: String,
-    enum: ['Submitted to HR', 'Submitted to Clerk', 'Approved by Clerk', 'Rejected by HR', 'Rejected by Clerk'],
+    enum: ['Submitted to HR', 'Submitted to Clerk', 'Approved by Clerk', 'Returned', 'Rejected by HR', 'Rejected by Clerk'],
     default: 'Submitted to HR',
   },
   reliefStaffName: {
@@ -52,6 +52,11 @@ const LeaveSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  returned: {
+    type: Boolean,
+    default: false,
+  },
+  returnDate: Date,
   attachments: [{
     filename: String,
     path: String,
