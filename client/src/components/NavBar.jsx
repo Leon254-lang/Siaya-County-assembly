@@ -55,6 +55,8 @@ export default function NavBar() {
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'ICT Admin', 'Finance Officer'] },
       { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'ICT Admin', 'Procurement Officer'] },
+      { to: '/procurement/registry', label: 'Registry', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
+      { to: '/procurement/stores', label: 'Stores', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },

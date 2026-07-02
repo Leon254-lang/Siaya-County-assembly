@@ -14,7 +14,7 @@ const formatDate = (value) => {
 
 const statusBadge = (status) => {
   const normalized = String(status || '').toLowerCase();
-  if (normalized.includes('pending') || normalized.includes('open')) return 'badge badge-warning';
+  if (normalized.includes('pending') || normalized.includes('open') || normalized.includes('submitted') || normalized.includes('clarification')) return 'badge badge-warning';
   if (normalized.includes('approved') || normalized.includes('issued') || normalized.includes('on track')) return 'badge badge-success';
   if (normalized.includes('rejected') || normalized.includes('needs review') || normalized.includes('poor') || normalized.includes('expiring')) return 'badge badge-danger';
   return 'badge badge-secondary';
@@ -35,6 +35,11 @@ export default function Procurement() {
   const [inventoryForm, setInventoryForm] = useState({ title: '', category: '', stock: '', reorderLevel: '', status: 'Available' });
   const [reportForm, setReportForm] = useState({ title: '', summary: '', status: 'Ready' });
   const [documentForm, setDocumentForm] = useState({ title: '', category: 'Quotation', reference: '', status: 'Stored', date: '' });
+  const [selectedRequisition, setSelectedRequisition] = useState(null);
+  const [requisitionItems, setRequisitionItems] = useState([]);
+  const [newItem, setNewItem] = useState({ itemName: '', quantity: '', unit: '', justification: '' });
+  const [requisitionNotes, setRequisitionNotes] = useState('');
+  const [showRequisitionDetails, setShowRequisitionDetails] = useState(false);
 
   const procurementRecords = records || [];
   const requisitions = procurementRecords.filter((item) => item.type === 'requisition');
@@ -119,11 +124,73 @@ export default function Procurement() {
     try {
       await api.put(`/procurement-records/${id}`, payload);
       setMessage(successMessage);
+      setSelectedRequisition(null);
+      setShowRequisitionDetails(false);
+      setRequisitionItems([]);
+      setRequisitionNotes('');
       await loadProcurementData();
     } catch (err) {
       console.error(err);
       setError('Unable to update record.');
     }
+  };
+
+  const handleAddRequisitionItem = () => {
+    if (!newItem.itemName || !newItem.quantity) return;
+    setRequisitionItems((prev) => [
+      ...prev,
+      { itemName: newItem.itemName, quantity: Number(newItem.quantity), unit: newItem.unit, justification: newItem.justification }
+    ]);
+    setNewItem({ itemName: '', quantity: '', unit: '', justification: '' });
+  };
+
+  const handleRemoveRequisitionItem = (index) => {
+    setRequisitionItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const openRequisitionDetails = (item) => {
+    setSelectedRequisition(item);
+    setRequisitionItems(item.items || []);
+    setRequisitionNotes(item.registryNotes || '');
+    setShowRequisitionDetails(true);
+  };
+
+  const handleSubmitRequisitionDetails = async () => {
+    if (!selectedRequisition) return;
+    await updateRecord(selectedRequisition._id || selectedRequisition.id, {
+      items: requisitionItems,
+      registryNotes: requisitionNotes,
+      status: 'Submitted to Registry',
+      workflowStage: 'Submitted to Registry',
+    }, 'Requisition filled and submitted to registry.');
+  };
+
+  const handleForwardToClerk = async (item) => {
+    await updateRecord(item._id || item.id, {
+      status: 'Submitted to Clerk',
+      workflowStage: 'Submitted to Clerk',
+    }, 'Requisition forwarded to clerk.');
+  };
+
+  const handleForwardToStores = async (item) => {
+    await updateRecord(item._id || item.id, {
+      status: 'Submitted to Stores',
+      workflowStage: 'Submitted to Stores',
+    }, 'Requisition forwarded to stores for final approval.');
+  };
+
+  const handleFinalStoreApproval = async (item) => {
+    await updateRecord(item._id || item.id, {
+      status: 'Stores Approved',
+      workflowStage: 'Stores Approved',
+    }, 'Requisition approved by stores.');
+  };
+
+  const handleRejectRequisition = async (item) => {
+    await updateRecord(item._id || item.id, {
+      status: 'Rejected',
+      workflowStage: 'Rejected',
+    }, 'Requisition rejected.');
   };
 
   const createRecord = async (type, payload, resetForm, successMessage) => {
@@ -659,6 +726,7 @@ export default function Procurement() {
                       <th>Status</th>
                       <th>Priority</th>
                       <th>Requested By</th>
+                      <th>Last Stage</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -671,10 +739,36 @@ export default function Procurement() {
                         <td><span className={statusBadge(item.status)}>{item.status || 'Pending'}</span></td>
                         <td>{item.priority || 'Medium'}</td>
                         <td>{item.requestedBy || 'Department'}</td>
+                        <td>{item.workflowStage || item.status || 'Pending'}</td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Approved' }, 'Requisition approved.')}>Approve</button>
-                            <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Clarification Requested' }, 'Clarification requested for requisition.')}>Request Clarification</button>
+                            {item.status === 'Pending Approval' && (
+                              <>
+                                <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Procurement Approved', workflowStage: 'Procurement Approved' }, 'Requisition approved by procurement.')}>Approve</button>
+                                <button type="button" onClick={() => updateRecord(item._id || item.id, { status: 'Clarification Requested', workflowStage: 'Clarification Requested' }, 'Clarification requested for requisition.')}>Request Clarification</button>
+                              </>
+                            )}
+                            {item.status === 'Procurement Approved' && (
+                              <button type="button" onClick={() => openRequisitionDetails(item)}>Fill Details for Registry</button>
+                            )}
+                            {item.status === 'Submitted to Registry' && (
+                              <>
+                                <button type="button" onClick={() => handleForwardToClerk(item)}>Forward to Clerk</button>
+                                <button type="button" onClick={() => handleRejectRequisition(item)}>Reject</button>
+                              </>
+                            )}
+                            {item.status === 'Submitted to Clerk' && (
+                              <>
+                                <button type="button" onClick={() => handleForwardToStores(item)}>Forward to Stores</button>
+                                <button type="button" onClick={() => handleRejectRequisition(item)}>Reject</button>
+                              </>
+                            )}
+                            {item.status === 'Submitted to Stores' && (
+                              <>
+                                <button type="button" onClick={() => handleFinalStoreApproval(item)}>Final Approve</button>
+                                <button type="button" onClick={() => handleRejectRequisition(item)}>Reject</button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -685,6 +779,77 @@ export default function Procurement() {
             )}
           </section>
 
+          {showRequisitionDetails && selectedRequisition && (
+            <section className="card" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <h2>Fill Requisition Details</h2>
+                  <p style={{ margin: 0, color: '#475569' }}>Complete the approved requisition and submit it to registry for next-stage review.</p>
+                </div>
+                <button type="button" onClick={() => { setShowRequisitionDetails(false); setSelectedRequisition(null); setRequisitionItems([]); setRequisitionNotes(''); }}>Close</button>
+              </div>
+              <p><strong>{selectedRequisition.title}</strong> — {selectedRequisition.department}</p>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+                  Registry notes / instructions
+                  <textarea value={requisitionNotes} onChange={(e) => setRequisitionNotes(e.target.value)} rows="3" style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #d1d5db' }} />
+                </label>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Item name"
+                    value={newItem.itemName}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, itemName: e.target.value }))}
+                    style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Quantity"
+                    min="1"
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, quantity: e.target.value }))}
+                    style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Unit"
+                    value={newItem.unit}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, unit: e.target.value }))}
+                    style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Justification"
+                    value={newItem.justification}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, justification: e.target.value }))}
+                    style={{ padding: '0.85rem', borderRadius: '10px', border: '1px solid #d1d5db' }}
+                  />
+                </div>
+                <button type="button" onClick={handleAddRequisitionItem}>Add item</button>
+                {requisitionItems.length > 0 && (
+                  <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '1rem' }}>
+                    <h4>Items added</h4>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                      {requisitionItems.map((item, index) => (
+                        <li key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid #e5e7eb' }}>
+                          <span>{item.itemName} — {item.quantity} {item.unit}</span>
+                          <button type="button" onClick={() => handleRemoveRequisitionItem(index)}>Remove</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button type="button" onClick={() => { setShowRequisitionDetails(false); setSelectedRequisition(null); setRequisitionItems([]); setRequisitionNotes(''); }}>Cancel</button>
+                  <button type="button" onClick={handleSubmitRequisitionDetails} disabled={requisitionItems.length === 0}>Submit to Registry</button>
+                </div>
+              </div>
+            </section>
+          )}
           <section id="suppliers" className="card" style={{ padding: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
               <div>

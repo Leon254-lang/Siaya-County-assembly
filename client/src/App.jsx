@@ -31,6 +31,10 @@ import ClerkDashboard from './pages/ClerkDashboard';
 import Attachees from './pages/Attachees';
 import NetworkDevices from './pages/NetworkDevices';
 import HrAppraisals from './pages/HrAppraisals';
+import Registry from './pages/Registry';
+import Stores from './pages/Stores';
+import Forbidden from './pages/Forbidden';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -39,36 +43,53 @@ function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/visitors" element={<Visitors />} />
-          <Route path="/meetings" element={<Meetings />} />
-          <Route path="/sessions" element={<Sessions />} />
-          <Route path="/committees" element={<Committees />} />
-          <Route path="/mcas" element={<Mcas />} />
-          <Route path="/assets" element={<Assets />} />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/interns" element={<Interns />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/leaders" element={<Leaders />} />
-          <Route path="/procurement" element={<Procurement />} />
-          <Route path="/finance" element={<Finance />} />
-          <Route path="/bills" element={<Bills />} />
-          <Route path="/voting" element={<Voting />} />
-          <Route path="/announcements" element={<Announcements />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/audit-logs" element={<AuditLogs />} />
-          <Route path="/manage-users" element={<ManageUsers />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/media" element={<MediaCenter />} />
-          <Route path="/media/:slug" element={<MediaPost />} />
-          <Route path="/clerk-dashboard" element={<ClerkDashboard />} />
-          <Route path="/attachees" element={<Attachees />} />
-          <Route path="/network-devices" element={<NetworkDevices />} />
-          <Route path="/hr-appraisals" element={<HrAppraisals />} />
+          <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+          <Route path="/visitors" element={<ProtectedRoute><Visitors /></ProtectedRoute>} />
+          <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
+          <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+          <Route path="/committees" element={<ProtectedRoute><Committees /></ProtectedRoute>} />
+          <Route path="/mcas" element={<ProtectedRoute><Mcas /></ProtectedRoute>} />
+          <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+          <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
+          <Route path="/interns" element={<ProtectedRoute><Interns /></ProtectedRoute>} />
+          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+          <Route path="/leaders" element={<ProtectedRoute><Leaders /></ProtectedRoute>} />
+          <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
+          <Route
+            path="/procurement/registry"
+            element={
+              <ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}>
+                <Registry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/procurement/stores"
+            element={
+              <ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}>
+                <Stores />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+          <Route path="/bills" element={<ProtectedRoute><Bills /></ProtectedRoute>} />
+          <Route path="/voting" element={<ProtectedRoute><Voting /></ProtectedRoute>} />
+          <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
+          <Route path="/manage-users" element={<ProtectedRoute><ManageUsers /></ProtectedRoute>} />
+          <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
+          <Route path="/media" element={<ProtectedRoute><MediaCenter /></ProtectedRoute>} />
+          <Route path="/media/:slug" element={<ProtectedRoute><MediaPost /></ProtectedRoute>} />
+          <Route path="/clerk-dashboard" element={<ProtectedRoute><ClerkDashboard /></ProtectedRoute>} />
+          <Route path="/attachees" element={<ProtectedRoute><Attachees /></ProtectedRoute>} />
+          <Route path="/network-devices" element={<ProtectedRoute><NetworkDevices /></ProtectedRoute>} />
+          <Route path="/hr-appraisals" element={<ProtectedRoute><HrAppraisals /></ProtectedRoute>} />
+          <Route path="/forbidden" element={<ProtectedRoute><Forbidden /></ProtectedRoute>} />
         </Routes>
       </main>
       <Footer />

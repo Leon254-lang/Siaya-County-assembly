@@ -113,29 +113,63 @@ router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) 
   }
 });
 
-// Approve/Reject leave request
-router.post('/:id/:action', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
+// Approve/Reject leave request and route through HR -> Clerk workflow
+router.post('/:id/:action', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Clerk'), async (req, res) => {
   try {
     const { action } = req.params;
-    const { comments } = req.body;
+    const { comments, reliefStaffName, reliefDuties } = req.body;
+    const userRole = req.user.role?.name;
 
-    if (!['approve', 'reject'].includes(action)) {
+    const validActions = [
+      'approve',
+      'reject',
+      'submit-to-clerk',
+      'reject-by-hr',
+      'approve-by-clerk',
+      'reject-by-clerk'
+    ];
+
+    if (!validActions.includes(action)) {
       return res.status(400).json({ message: 'Invalid action' });
     }
 
-    const leaveRequest = await Leave.findById(req.params.id);
+    const leaveRequest = await Leave.findById(req.params.id).populate('user', 'name email department role');
     if (!leaveRequest) return res.status(404).json({ message: 'Leave request not found' });
 
-    leaveRequest.status = action === 'approve' ? 'approved' : 'rejected';
-    leaveRequest.approvedBy = req.user._id;
-    leaveRequest.approvedAt = new Date();
-    leaveRequest.comments = comments;
-    leaveRequest.updatedAt = new Date();
+    if (['approve', 'submit-to-clerk'].includes(action)) {
+      if (!['Super Admin', 'HR Officer'].includes(userRole)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
 
-    await leaveRequest.save();
+      leaveRequest.status = 'pending';
+      leaveRequest.workflowStage = 'Submitted to Clerk';
+      leaveRequest.comments = comments;
+      leaveRequest.updatedAt = new Date();
+    } else if (action === 'reject' || action === 'reject-by-hr') {
+      if (!['Super Admin', 'HR Officer'].includes(userRole)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
 
-    // If approved, create attendance records for leave days
-    if (action === 'approve') {
+      leaveRequest.status = 'rejected';
+      leaveRequest.workflowStage = 'Rejected by HR';
+      leaveRequest.comments = comments;
+      leaveRequest.approvedBy = req.user._id;
+      leaveRequest.approvedAt = new Date();
+      leaveRequest.updatedAt = new Date();
+    } else if (action === 'approve-by-clerk') {
+      if (!['Super Admin', 'Clerk'].includes(userRole)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      leaveRequest.status = 'approved';
+      leaveRequest.workflowStage = 'Approved by Clerk';
+      leaveRequest.reliefStaffName = reliefStaffName;
+      leaveRequest.reliefDuties = reliefDuties;
+      leaveRequest.comments = comments;
+      leaveRequest.approvedBy = req.user._id;
+      leaveRequest.approvedAt = new Date();
+      leaveRequest.updatedAt = new Date();
+
       const leaveDays = [];
       const currentDate = new Date(leaveRequest.startDate);
 
@@ -163,7 +197,20 @@ router.post('/:id/:action', verifyToken, authorizeRoles('Super Admin', 'HR Offic
           await attendanceRecord.save();
         }
       }
+    } else if (action === 'reject-by-clerk') {
+      if (!['Super Admin', 'Clerk'].includes(userRole)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      leaveRequest.status = 'rejected';
+      leaveRequest.workflowStage = 'Rejected by Clerk';
+      leaveRequest.comments = comments;
+      leaveRequest.approvedBy = req.user._id;
+      leaveRequest.approvedAt = new Date();
+      leaveRequest.updatedAt = new Date();
     }
+
+    await leaveRequest.save();
 
     const populatedRequest = await Leave.findById(leaveRequest._id)
       .populate('user', 'name email department role')

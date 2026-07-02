@@ -4,6 +4,7 @@ import api from '../services/api';
 export default function ClerkDashboard() {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [upcomingSittings, setUpcomingSittings] = useState([]);
+  const [procurementRequisitions, setProcurementRequisitions] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [statistics, setStatistics] = useState({
     totalBills: 0,
@@ -22,6 +23,12 @@ export default function ClerkDashboard() {
       const billsRes = await api.get('/bills');
       const pendingBills = billsRes.data.filter(b => b.status !== 'Archived');
       setPendingApprovals(pendingBills.slice(0, 5));
+
+      // Load procurement requisitions that are submitted to clerk
+      const requisitionsRes = await api.get('/procurement-records');
+      const requisitionsForClerk = requisitionsRes.data.records
+        .filter((item) => item.type === 'requisition' && item.status === 'Submitted to Clerk');
+      setProcurementRequisitions(requisitionsForClerk);
 
       // Load upcoming sittings/meetings
       const meetingsRes = await api.get('/meetings');
@@ -71,6 +78,8 @@ export default function ClerkDashboard() {
     try {
       if (itemType === 'bill') {
         await api.put(`/bills/${itemId}`, { status: 'Approved' });
+      } else if (itemType === 'procurement') {
+        await api.put(`/procurement-records/${itemId}`, { status: 'Submitted to Stores', workflowStage: 'Submitted to Stores' });
       }
       setMessage(`${itemType} approved successfully.`);
       loadDashboardData();
@@ -159,6 +168,35 @@ export default function ClerkDashboard() {
           </div>
         ) : (
           <p className="empty-state">No pending approvals at this time.</p>
+        )}
+      </section>
+
+      <section className="dashboard-section">
+        <h2>🧾 Procurement Requisitions for Clerk Review</h2>
+        {procurementRequisitions.length > 0 ? (
+          <div className="approval-list">
+            {procurementRequisitions.map((item) => (
+              <div key={item._id} className="approval-item">
+                <div className="approval-info">
+                  <h4>{item.title}</h4>
+                  <p>{item.description || item.summary || 'No requisition details provided.'}</p>
+                  <small>Department: <strong>{item.department || 'N/A'}</strong></small>
+                  <br />
+                  <small>Current stage: <strong>{item.workflowStage || item.status}</strong></small>
+                </div>
+                <div className="approval-actions">
+                  <button
+                    className="btn-small btn-success"
+                    onClick={() => approveItem(item._id, 'procurement')}
+                  >
+                    Forward to Stores
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">No requisitions currently assigned to clerk review.</p>
         )}
       </section>
 

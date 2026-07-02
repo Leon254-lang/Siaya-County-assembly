@@ -86,6 +86,10 @@ export default function Attendance() {
     ) <= ASSEMBLY_PREMISES.radiusMeters;
   };
 
+  const currentUserRole = normalizeRole(localStorage.getItem('userRole') || JSON.parse(localStorage.getItem('user') || 'null')?.role || '');
+  const isHRRole = ['Super Admin', 'HR Officer'].includes(currentUserRole);
+  const isClerkRole = ['Super Admin', 'Clerk'].includes(currentUserRole);
+
   const detectLocation = () => {
     if (!navigator.geolocation) {
       setGeoLocation({
@@ -271,12 +275,23 @@ export default function Attendance() {
     const comments = prompt(`Comments for ${action}:`);
     if (comments === null) return;
 
+    const payload = { comments };
+
+    if (action === 'approve-by-clerk') {
+      const reliefStaffName = prompt('Enter relief staff name:');
+      if (reliefStaffName === null) return;
+      const reliefDuties = prompt('Enter duties to assign while the staff member is away:');
+      if (reliefDuties === null) return;
+      payload.reliefStaffName = reliefStaffName.trim();
+      payload.reliefDuties = reliefDuties.trim();
+    }
+
     try {
-      await api.post(`/leave/${leaveId}/${action}`, { comments });
+      await api.post(`/leave/${leaveId}/${action}`, payload);
       fetchLeaveRequests();
-      alert(`Leave request ${action}d successfully!`);
+      alert(`Leave request ${action.replace(/-/g, ' ')} successfully!`);
     } catch (error) {
-      alert(error.response?.data?.message || `Leave ${action} failed`);
+      alert(error.response?.data?.message || `Leave ${action.replace(/-/g, ' ')} failed`);
     }
   };
 
@@ -548,6 +563,8 @@ export default function Attendance() {
                     <th>End Date</th>
                     <th>Days</th>
                     <th>Status</th>
+                    <th>Stage</th>
+                    <th>Relief Duty</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -570,22 +587,52 @@ export default function Attendance() {
                           {request.status}
                         </span>
                       </td>
+                      <td>{request.workflowStage || 'Submitted to HR'}</td>
                       <td>
-                        {request.status === 'pending' && (
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {request.reliefStaffName ? (
+                          <div>
+                            <strong>{request.reliefStaffName}</strong>
+                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{request.reliefDuties}</div>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#6b7280' }}>Not assigned</span>
+                        )}
+                      </td>
+                      <td>
+                        {request.workflowStage === 'Submitted to HR' && isHRRole && (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <button
-                              onClick={() => handleLeaveAction(request._id, 'approve')}
+                              onClick={() => handleLeaveAction(request._id, 'submit-to-clerk')}
                               style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                             >
-                              ✅ Approve
+                              📤 Submit to Clerk
                             </button>
                             <button
-                              onClick={() => handleLeaveAction(request._id, 'reject')}
+                              onClick={() => handleLeaveAction(request._id, 'reject-by-hr')}
                               style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                             >
                               ❌ Reject
                             </button>
                           </div>
+                        )}
+                        {request.workflowStage === 'Submitted to Clerk' && isClerkRole && (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => handleLeaveAction(request._id, 'approve-by-clerk')}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                            >
+                              ✅ Approve & Assign
+                            </button>
+                            <button
+                              onClick={() => handleLeaveAction(request._id, 'reject-by-clerk')}
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        )}
+                        {request.workflowStage !== 'Submitted to HR' && request.workflowStage !== 'Submitted to Clerk' && (
+                          <span style={{ color: '#6b7280' }}>No action required</span>
                         )}
                       </td>
                     </tr>

@@ -18,6 +18,18 @@ const ProcurementRecordSchema = new mongoose.Schema({
   contact: { type: String, trim: true },
   summary: { type: String, trim: true },
   priority: { type: String, trim: true },
+  workflowStage: { type: String, trim: true, default: 'Pending Procurement Approval' },
+  items: [
+    {
+      itemName: { type: String, trim: true },
+      quantity: { type: Number, default: 0 },
+      unit: { type: String, trim: true },
+      justification: { type: String, trim: true },
+    }
+  ],
+  registryNotes: { type: String, trim: true },
+  clerkNotes: { type: String, trim: true },
+  storeNotes: { type: String, trim: true },
   requestedBy: { type: String, trim: true },
   description: { type: String, trim: true },
   deadline: { type: String, trim: true },

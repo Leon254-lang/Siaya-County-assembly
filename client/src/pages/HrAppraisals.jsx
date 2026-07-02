@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { calculatePerformanceSummary, generateAppraisalCsv } from './hrAppraisalUtils.mjs';
+
+const hrResponsibilities = [
+  'Maintain staff personal files, employment records and HR documents.',
+  'Track leave applications, attendance registers and related reports.',
+  'Support recruitment, onboarding, training, promotion and welfare activities.',
+  'Prepare correspondence, meeting notices, monthly returns and archival records.',
+  'Coordinate employee relations, policy implementation and confidential HR workflows.',
+];
 
 const fallbackEmployees = [
   { _id: 'emp-1', name: 'Jane Otieno', department: 'Clerk Office' },
@@ -261,6 +270,19 @@ export default function HrAppraisals() {
         </div>
 
         {message && <div className="message">{message}</div>}
+        <div className="info-panel" style={{ padding: '1rem 0', marginTop: '1rem' }}>
+          <h3>HR responsibilities</h3>
+          <ul style={{ margin: '0.75rem 0 0', paddingLeft: '1.25rem' }}>
+            {hrResponsibilities.map((item) => (
+              <li key={item} style={{ marginBottom: '0.5rem' }}>{item}</li>
+            ))}
+          </ul>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link to="/attendance"><button type="button">Open Attendance & Leave</button></Link>
+            <Link to="/documents"><button type="button" className="secondary">HR Documents</button></Link>
+            <Link to="/meetings"><button type="button" className="secondary">Schedule Meetings</button></Link>
+          </div>
+        </div>
 
         <div className="dashboard-grid" style={{ marginTop: '1rem' }}>
           <div className="dashboard-card">
