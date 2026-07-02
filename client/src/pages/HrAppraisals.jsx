@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import { calculatePerformanceSummary } from './hrAppraisalUtils.mjs';
 
 const fallbackEmployees = [
   { _id: 'emp-1', name: 'Jane Otieno', department: 'Clerk Office' },
@@ -88,16 +89,7 @@ export default function HrAppraisals() {
     loadData();
   }, []);
 
-  const summary = useMemo(() => {
-    const total = appraisals.length;
-    const pending = appraisals.filter((item) => item.status !== 'Reviewed').length;
-    const reviewed = total - pending;
-    const averageScore = total
-      ? (appraisals.reduce((sum, item) => sum + Number(item.score || 0), 0) / total).toFixed(1)
-      : '0.0';
-
-    return { total, pending, reviewed, averageScore };
-  }, [appraisals]);
+  const summary = useMemo(() => calculatePerformanceSummary(appraisals), [appraisals]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -298,6 +290,49 @@ export default function HrAppraisals() {
         )}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}>
           <button type="button" onClick={handleExportReport}>Export appraisal report</button>
+        </div>
+      </section>
+
+      <section className="card">
+        <h3>📈 Performance snapshot</h3>
+        <p>Quick insights for HR review and planning.</p>
+        <div className="modules-grid" style={{ marginTop: '1rem' }}>
+          <div className="module-card">
+            <h3>Top performers</h3>
+            {summary.topPerformers.length === 0 ? (
+              <p>No appraisal data yet.</p>
+            ) : (
+              <ul>
+                {summary.topPerformers.map((item) => (
+                  <li key={item.id || item.employeeName}>{item.employeeName} — {item.score}/5</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="module-card">
+            <h3>Needs attention</h3>
+            {summary.needsAttention.length === 0 ? (
+              <p>No follow-ups needed.</p>
+            ) : (
+              <ul>
+                {summary.needsAttention.map((item) => (
+                  <li key={item.id || item.employeeName}>{item.employeeName} — {item.score}/5</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="module-card">
+            <h3>Department averages</h3>
+            {Object.entries(summary.departmentAverages).length === 0 ? (
+              <p>No department averages yet.</p>
+            ) : (
+              <ul>
+                {Object.entries(summary.departmentAverages).map(([department, average]) => (
+                  <li key={department}>{department}: {average}/5</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </section>
 
