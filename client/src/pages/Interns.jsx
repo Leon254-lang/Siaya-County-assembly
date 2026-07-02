@@ -24,7 +24,20 @@ export default function InternDashboard() {
   const loadInternData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('icamsToken');
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
+
+      if (!token) {
+        setMessage('Not authenticated — please log in');
+        setLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        setMessage('User data missing — please log in again');
+        setLoading(false);
+        return;
+      }
 
       // Load intern profile
       const internRes = await api.get(`/interns/${userId}`);
@@ -66,8 +79,9 @@ export default function InternDashboard() {
 
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load intern data:', err);
-      setMessage('Failed to load dashboard data.');
+      console.error('Failed to load intern data:', err, err.response?.data);
+      const serverMessage = err.response?.data?.message || err.message || 'Unknown error';
+      setMessage(`Failed to load dashboard data: ${serverMessage}`);
       setLoading(false);
     }
   };
