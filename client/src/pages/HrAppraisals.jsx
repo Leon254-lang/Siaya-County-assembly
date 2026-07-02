@@ -49,60 +49,43 @@ export default function HrAppraisals() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('hrAppraisals');
-    if (saved) {
+    const loadData = async () => {
       try {
-        setAppraisals(JSON.parse(saved));
-      } catch (error) {
-        console.error('Unable to restore HR appraisals', error);
-      }
-    } else {
-      setAppraisals([
-        {
-          id: 'demo-1',
-          employeeId: 'emp-1',
-          employeeName: 'Jane Otieno',
-          department: 'Clerk Office',
-          period: 'Annual',
-          performance: 4,
-          communication: 4,
-          reliability: 5,
-          teamwork: 4,
-          achievements: 'Streamlined committee documentation and improved turnaround time.',
-          managerComments: 'High performer with strong ownership of tasks.',
-          score: 4.3,
-          rating: 'Strong',
-          status: 'Reviewed',
-          dueDate: '2026-08-31',
-          createdAt: '2026-06-01',
-        },
-      ]);
-    }
+        const [appraisalsResponse, selfAssessmentsResponse, usersResponse] = await Promise.all([
+          api.get('/hr/appraisals'),
+          api.get('/hr/self-assessments'),
+          api.get('/users'),
+        ]);
 
-    const savedSelfAssessments = localStorage.getItem('hrSelfAssessments');
-    if (savedSelfAssessments) {
-      try {
-        setSelfAssessments(JSON.parse(savedSelfAssessments));
-      } catch (error) {
-        console.error('Unable to restore self assessments', error);
-      }
-    }
+        const appraisalData = appraisalsResponse.data || [];
+        const selfAssessmentData = selfAssessmentsResponse.data || [];
+        const users = usersResponse.data || [];
 
-    const loadEmployees = async () => {
-      try {
-        const response = await api.get('/users');
-        const users = response.data || [];
+        if (appraisalData.length > 0) {
+          setAppraisals(appraisalData.map((item) => ({ ...item, id: item._id })));
+        } else {
+          setAppraisals([]);
+        }
+
+        if (selfAssessmentData.length > 0) {
+          setSelfAssessments(selfAssessmentData.map((item) => ({ ...item, id: item._id })));
+        } else {
+          setSelfAssessments([]);
+        }
+
         if (users.length > 0) {
           setEmployees(users);
         }
       } catch (error) {
-        console.error('Unable to load employees for appraisal form', error);
+        console.error('Unable to load HR data', error);
+        setAppraisals([]);
+        setSelfAssessments([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadEmployees();
+    loadData();
   }, []);
 
   const summary = useMemo(() => {
@@ -121,7 +104,7 @@ export default function HrAppraisals() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const selectedEmployee = employees.find((person) => person._id === form.employeeId);
     const computed = calculateScore({
@@ -132,7 +115,6 @@ export default function HrAppraisals() {
     });
 
     const record = {
-      id: `app-${Date.now()}`,
       employeeId: form.employeeId,
       employeeName: selectedEmployee?.name || 'Unassigned',
       department: selectedEmployee?.department?.name || selectedEmployee?.department || 'General',
@@ -147,20 +129,31 @@ export default function HrAppraisals() {
       score: computed.score,
       rating: computed.rating,
       status: 'Pending Review',
-      createdAt: new Date().toISOString(),
     };
 
-    const next = [record, ...appraisals];
-    setAppraisals(next);
-    localStorage.setItem('hrAppraisals', JSON.stringify(next));
-    setForm(initialForm);
-    setMessage(`Automatic appraisal generated for ${record.employeeName} with score ${record.score}/5.`);
+    try {
+      const response = await api.post('/hr/appraisals', record);
+      const savedRecord = { ...response.data, id: response.data._id };
+      const next = [savedRecord, ...appraisals];
+      setAppraisals(next);
+      setForm(initialForm);
+      setMessage(`Automatic appraisal generated for ${savedRecord.employeeName} with score ${savedRecord.score}/5.`);
+    } catch (error) {
+      console.error('Failed to save appraisal', error);
+      setMessage('Unable to save the appraisal right now.');
+    }
   };
 
-  const handleStatusUpdate = (id) => {
-    const next = appraisals.map((item) => (item.id === id ? { ...item, status: 'Reviewed' } : item));
-    setAppraisals(next);
-    localStorage.setItem('hrAppraisals', JSON.stringify(next));
+  const handleStatusUpdate = async (id) => {
+    try {
+      const response = await api.put(`/hr/appraisals/${id}`, { status: 'Reviewed' });
+      const updated = { ...response.data, id: response.data._id };
+      const next = appraisals.map((item) => (item.id === id ? updated : item));
+      setAppraisals(next);
+    } catch (error) {
+      console.error('Failed to update appraisal status', error);
+      setMessage('Unable to update the appraisal status right now.');
+    }
   };
 
   const upcomingDeadlines = useMemo(() => {
@@ -175,11 +168,10 @@ export default function HrAppraisals() {
     setSelfAssessmentForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelfAssessmentSubmit = (event) => {
+  const handleSelfAssessmentSubmit = async (event) => {
     event.preventDefault();
     const selectedEmployee = employees.find((person) => person._id === selfAssessmentForm.employeeId);
     const entry = {
-      id: `self-${Date.now()}`,
       employeeId: selfAssessmentForm.employeeId,
       employeeName: selectedEmployee?.name || 'Unassigned',
       department: selectedEmployee?.department?.name || selectedEmployee?.department || 'General',
@@ -187,14 +179,19 @@ export default function HrAppraisals() {
       strengths: selfAssessmentForm.strengths.trim(),
       growthAreas: selfAssessmentForm.growthAreas.trim(),
       goals: selfAssessmentForm.goals.trim(),
-      createdAt: new Date().toISOString(),
     };
 
-    const next = [entry, ...selfAssessments];
-    setSelfAssessments(next);
-    localStorage.setItem('hrSelfAssessments', JSON.stringify(next));
-    setSelfAssessmentForm({ employeeId: '', selfSummary: '', strengths: '', growthAreas: '', goals: '' });
-    setMessage(`Self-assessment received for ${entry.employeeName}.`);
+    try {
+      const response = await api.post('/hr/self-assessments', entry);
+      const savedEntry = { ...response.data, id: response.data._id };
+      const next = [savedEntry, ...selfAssessments];
+      setSelfAssessments(next);
+      setSelfAssessmentForm({ employeeId: '', selfSummary: '', strengths: '', growthAreas: '', goals: '' });
+      setMessage(`Self-assessment received for ${savedEntry.employeeName}.`);
+    } catch (error) {
+      console.error('Failed to save self assessment', error);
+      setMessage('Unable to submit the self-assessment right now.');
+    }
   };
 
   const handleExportReport = () => {
