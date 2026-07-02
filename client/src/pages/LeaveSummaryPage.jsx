@@ -49,7 +49,8 @@ export default function LeaveSummaryPage() {
           </div>
 
           <h3>Recently Returned</h3>
-          <table>
+          <div className="table-responsive">
+            <table>
             <thead>
               <tr>
                 <th>User</th>
@@ -70,7 +71,8 @@ export default function LeaveSummaryPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
     </div>
