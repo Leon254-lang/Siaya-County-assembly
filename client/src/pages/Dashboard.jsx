@@ -309,6 +309,12 @@ export default function Dashboard() {
     }
   };
 
+  const hrQuickActions = [
+    { title: 'Start appraisal', icon: '📝', description: 'Generate a new appraisal for a staff member.', path: '/hr-appraisals' },
+    { title: 'Review performance', icon: '✅', description: 'Mark appraisals as reviewed after manager approval.', path: '/hr-appraisals' },
+    { title: 'View HR records', icon: '📁', description: 'Open the HR workspace for attendance and staff documents.', path: '/attendance' },
+  ];
+
   const ictQuickActions = [
     { title: 'Add User', icon: '➕', description: 'Create a new staff account and assign a role.', path: '/manage-users?mode=create' },
     { title: 'Reset Password', icon: '🔑', description: 'Update a staff password from the user management screen.', path: '/manage-users?mode=reset' },
@@ -481,6 +487,11 @@ export default function Dashboard() {
       <section className="hero">
         <div className="hero-copy">
           <span>County Assembly of Siaya</span>
+          <div className="hero-badges">
+            <span className="hero-badge">Secure</span>
+            <span className="hero-badge">Accessible</span>
+            <span className="hero-badge">Real-time</span>
+          </div>
           <h1>Secure digital access to assembly services, meetings, documents and citizen engagement</h1>
           <p>Manage county assembly operations, stay informed on sittings and announcements, and participate in public feedback from one central portal.</p>
 
@@ -978,6 +989,33 @@ export default function Dashboard() {
                 <p>This workspace supports the ICT Officer’s core mandate for planning infrastructure, managing networks, securing systems and supporting Assembly operations.</p>
                 <ul>
                   {ictResponsibilities.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {['HR Officer', 'Super Admin'].includes(userRole) && (
+            <section className="modules-section">
+              <div className="section-header theme-red">
+                <h2>👩‍💼 HR Performance & Appraisal Center</h2>
+                <p>Run appraisals automatically, track completion, and maintain a clear review workflow for staff performance.</p>
+              </div>
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <div className="modules-grid">
+                  {hrQuickActions.map((action) => (
+                    <Link to={action.path} className="module-card" key={action.title}>
+                      <h3>{action.icon} {action.title}</h3>
+                      <p>{action.description}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="card">
+                <h3>HR responsibilities</h3>
+                <ul>
+                  {hrResponsibilities.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>

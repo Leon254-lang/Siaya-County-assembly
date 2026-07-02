@@ -41,6 +41,7 @@ export default function NavBar() {
     const normalizedRole = normalizeRole(role);
     const allLinks = [
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
+      { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/messages', label: 'Messages', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/audit-logs', label: 'Audit Logs', roles: ['Super Admin', 'ICT Admin'] },
@@ -89,9 +90,13 @@ export default function NavBar() {
     <>
       <nav className="nav-bar">
         <div className="brand">
-          <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }} onClick={handleLinkClick}>
-            <img src={logoSrc} alt="Siaya County Assembly Logo" style={{ height: '60px', width: 'auto', marginRight: '12px', objectFit: 'contain' }} />
+          <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center' }} onClick={handleLinkClick}>
+            <img src={logoSrc} alt="Siaya County Assembly Logo" style={{ height: '54px', width: 'auto', objectFit: 'contain' }} />
           </Link>
+          <div className="brand-copy">
+            <span className="brand-title">Siaya County Assembly</span>
+            <span className="brand-subtitle">Modern Digital Portal</span>
+          </div>
         </div>
         <button 
           className="mobile-menu-toggle" 

@@ -30,6 +30,7 @@ import ManageUsers from './pages/ManageUsers';
 import ClerkDashboard from './pages/ClerkDashboard';
 import Attachees from './pages/Attachees';
 import NetworkDevices from './pages/NetworkDevices';
+import HrAppraisals from './pages/HrAppraisals';
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
           <Route path="/clerk-dashboard" element={<ClerkDashboard />} />
           <Route path="/attachees" element={<Attachees />} />
           <Route path="/network-devices" element={<NetworkDevices />} />
+          <Route path="/hr-appraisals" element={<HrAppraisals />} />
         </Routes>
       </main>
       <Footer />
