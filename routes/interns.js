@@ -15,13 +15,21 @@ const resolveIntern = async (id, user) => {
   let intern = null;
   // Try by intern _id
   if (mongoose.Types.ObjectId.isValid(id)) {
-    intern = await Intern.findById(id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
+    intern = await Intern.findById(id).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
+    if (intern) return intern;
+
+    // if id is a user id, find intern linked to that user
+    intern = await Intern.findOne({ user: id }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
     if (intern) return intern;
   }
 
   // If not found by id, try to find by user email when available
   if (user && user.email) {
-    intern = await Intern.findOne({ email: user.email }).populate('department supervisor completionReports.supervisor evaluations.reviewer');
+    intern = await Intern.findOne({ email: user.email }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
+    if (intern) return intern;
+
+    // try finding by user id
+    intern = await Intern.findOne({ user: user._id }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
     if (intern) return intern;
   }
 
@@ -52,32 +60,43 @@ router.post('/', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async
   res.status(201).json(populated);
 });
 
-router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
-  const updates = {
-    name: req.body.name,
-    email: req.body.email,
-    phone: req.body.phone,
-    department: req.body.department,
-    supervisor: req.body.supervisor,
-    placement: req.body.placement,
-    startDate: req.body.startDate,
-    endDate: req.body.endDate,
-    status: req.body.status,
-  };
-  const intern = await Intern.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).populate('department supervisor completionReports.supervisor evaluations.reviewer');
-  if (!intern) {
-    return res.status(404).json({ message: 'Intern not found' });
+router.put('/:id', verifyToken, async (req, res) => {
+  // resolve intern by provided id or by logged-in user
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+
+  const userRole = req.user.role?.name;
+  const isAdminOrHr = ['Super Admin', 'HR Officer'].includes(userRole);
+  const isSelf = (intern.user && intern.user._id && intern.user._id.toString() === req.user._id.toString()) || (intern.email && req.user.email && intern.email === req.user.email);
+
+  if (!isAdminOrHr && !isSelf) {
+    return res.status(403).json({ message: 'Not authorized to update this intern' });
   }
+
+  const updates = {
+    name: req.body.name ?? intern.name,
+    email: req.body.email ?? intern.email,
+    phone: req.body.phone ?? intern.phone,
+    department: req.body.department ?? intern.department,
+    supervisor: req.body.supervisor ?? intern.supervisor,
+    placement: req.body.placement ?? intern.placement,
+    startDate: req.body.startDate ?? intern.startDate,
+    endDate: req.body.endDate ?? intern.endDate,
+    status: req.body.status ?? intern.status,
+    user: req.body.user ?? intern.user,
+  };
+
+  const updated = await Intern.findByIdAndUpdate(intern._id, updates, { new: true, runValidators: true }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
 
   await recordAudit({
     req,
     action: 'Updated intern',
     entity: 'Intern',
-    entityId: intern._id,
+    entityId: updated._id,
     details: updates,
   });
 
-  res.json(intern);
+  res.json(updated);
 });
 
 router.post('/:id/log', verifyToken, async (req, res) => {

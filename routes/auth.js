@@ -7,7 +7,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin'), async (req, res) => {
+router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer'), async (req, res) => {
   try {
     const { name, email, password, roleName, department } = req.body;
     const userRole = req.user.role?.name;
@@ -29,7 +29,8 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin')
     const user = new User({ name, email, password: hashed, role: role._id, department });
     await user.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    const created = await User.findById(user._id).populate('role department');
+    res.status(201).json({ message: 'User registered successfully', user: created });
   } catch (error) {
     res.status(500).json({ message: 'Registration failed', error: error.message });
   }

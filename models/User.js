@@ -50,6 +50,10 @@ const UserSchema = new mongoose.Schema({
       ref: 'Committee',
     },
   ],
+  profilePic: {
+    type: String,
+    trim: true,
+  },
   isActive: {
     type: Boolean,
     default: true,

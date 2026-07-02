@@ -7,6 +7,17 @@ const Committee = require('../models/Committee');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, '../uploads/avatars');
+fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g,'_')}`),
+});
+const upload = multer({ storage });
 
 router.get('/', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer', 'Committee Officer', 'Clerk'), async (req, res) => {
   const users = await User.find().populate('role department');
@@ -128,6 +139,25 @@ router.delete('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, re
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete user', error: error.message });
+  }
+});
+
+router.post('/:id/avatar', verifyToken, upload.single('avatar'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Allow user or admin to upload
+    const isSelf = req.user._id.toString() === user._id.toString();
+    const isAdmin = ['Super Admin', 'ICT Admin', 'HR Officer'].includes(req.user.role?.name);
+    if (!isSelf && !isAdmin) return res.status(403).json({ message: 'Not authorized' });
+
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    user.profilePic = `/uploads/avatars/${req.file.filename}`;
+    await user.save();
+    res.json({ message: 'Avatar uploaded', profilePic: user.profilePic });
+  } catch (err) {
+    res.status(500).json({ message: 'Upload failed', error: err.message });
   }
 });
 
