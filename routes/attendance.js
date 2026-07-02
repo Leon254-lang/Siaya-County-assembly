@@ -7,7 +7,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const ASSEMBLY_PREMISES = {
   latitude: 0.0626,
   longitude: 34.2878,
-  radiusMeters: 1500
+  radiusMeters: 3000
 };
 
 const getDistanceFromLatLonInMeters = (lat1, lon1, lat2, lon2) => {
