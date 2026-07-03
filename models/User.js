@@ -44,6 +44,14 @@ const UserSchema = new mongoose.Schema({
       trim: true,
     },
   },
+  documents: [
+    {
+      filename: String,
+      path: String,
+      type: String,
+      uploadedAt: { type: Date, default: Date.now },
+    },
+  ],
   committeeMemberships: [
     {
       type: mongoose.Schema.Types.ObjectId,

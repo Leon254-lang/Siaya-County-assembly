@@ -33,6 +33,7 @@ import ClerkDashboard from './pages/ClerkDashboard';
 import Attachees from './pages/Attachees';
 import NetworkDevices from './pages/NetworkDevices';
 import HrAppraisals from './pages/HrAppraisals';
+import HR from './pages/HR';
 import Registry from './pages/Registry';
 import Stores from './pages/Stores';
 import Forbidden from './pages/Forbidden';
@@ -93,6 +94,7 @@ function App() {
           <Route path="/attachees" element={<ProtectedRoute><Attachees /></ProtectedRoute>} />
           <Route path="/network-devices" element={<ProtectedRoute><NetworkDevices /></ProtectedRoute>} />
           <Route path="/hr-appraisals" element={<ProtectedRoute><HrAppraisals /></ProtectedRoute>} />
+          <Route path="/hr" element={<ProtectedRoute allowedRoles={["Super Admin","HR Officer"]}><HR /></ProtectedRoute>} />
           <Route path="/forbidden" element={<ProtectedRoute><Forbidden /></ProtectedRoute>} />
         </Routes>
       </main>

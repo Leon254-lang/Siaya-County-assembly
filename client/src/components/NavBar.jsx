@@ -41,6 +41,7 @@ export default function NavBar() {
     const normalizedRole = normalizeRole(role);
     const allLinks = [
     { to: '/leave-summary', label: 'Leave Summary', roles: ['HR Officer', 'Super Admin'] },
+    { to: '/hr', label: 'HR', roles: ['HR Officer', 'Super Admin'] },
     { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
       { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
