@@ -4,14 +4,16 @@ import api from '../services/api';
 
 export default function Registry() {
   const navigate = useNavigate();
+  const [role, setRole] = useState('');
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole') || JSON.parse(localStorage.getItem('user') || 'null')?.role || '';
-    if (!['Super Admin', 'Procurement Officer', 'Clerk'].includes(role)) {
+    const currentRole = localStorage.getItem('userRole') || JSON.parse(localStorage.getItem('user') || 'null')?.role || '';
+    setRole(currentRole);
+    if (!['Super Admin', 'Procurement Officer', 'Clerk', 'Registry'].includes(currentRole)) {
       navigate('/dashboard');
       return;
     }
@@ -73,12 +75,34 @@ export default function Registry() {
     <div className="page">
       <div className="page-header">
         <h1>🧾 Registry Workflow</h1>
-        <p>Review requisitions submitted to registry, forward them to clerk, or request clarification.</p>
+        <p>Review requisitions submitted to registry, forward them to clerk, request clarification, and access attendance tools.</p>
+      </div>
+
+      <div className="dashboard-grid" style={{ marginBottom: '1.25rem' }}>
+        <Link to="/registry" className="module-card" style={{ minHeight: '130px' }}>
+          <div>
+            <h2>Registry Requisitions</h2>
+            <p>Track all requisitions currently awaiting registry verification.</p>
+          </div>
+        </Link>
+        <Link to="/attendance" className="module-card" style={{ minHeight: '130px' }}>
+          <div>
+            <h2>Attendance</h2>
+            <p>Open the attendance register for registry staff and related approvals.</p>
+          </div>
+        </Link>
+        <Link to="/procurement/stores" className="module-card" style={{ minHeight: '130px' }}>
+          <div>
+            <h2>Stores Review</h2>
+            <p>Navigate to stores approvals once clerk forwards requisitions.</p>
+          </div>
+        </Link>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <Link to="/procurement"><button type="button">Back to Procurement</button></Link>
         <Link to="/procurement/stores"><button type="button">Go to Stores Workflow</button></Link>
+        <Link to="/attendance"><button type="button">Open Attendance</button></Link>
       </div>
 
       {message && (

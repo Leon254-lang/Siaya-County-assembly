@@ -5,7 +5,7 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', verifyToken, authorizeRoles('Super Admin', 'Procurement Officer', 'Clerk'), async (req, res) => {
+router.get('/', verifyToken, authorizeRoles('Super Admin', 'Procurement Officer', 'Clerk', 'Registry'), async (req, res) => {
   try {
     const records = await ProcurementRecord.find().sort({ createdAt: -1 });
     res.json({ records });
@@ -42,7 +42,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     if (!record) return res.status(404).json({ message: 'Record not found' });
 
     const userRole = req.user?.role?.name || req.user?.role || '';
-    const procurementRoles = ['Super Admin', 'Procurement Officer', 'Clerk'];
+    const procurementRoles = ['Super Admin', 'Procurement Officer', 'Clerk', 'Registry'];
     const isProcurementAdmin = procurementRoles.includes(userRole);
 
     if (!isProcurementAdmin) {
@@ -104,7 +104,9 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     const userRole = req.user?.role?.name || req.user?.role || '';
     const procurementRoles = ['Super Admin', 'Procurement Officer', 'Clerk'];
+    const registryRoles = ['Registry'];
     const isProcurementAdmin = procurementRoles.includes(userRole);
+    const isRegistryRole = registryRoles.includes(userRole);
 
     const payload = { ...req.body };
 
@@ -118,6 +120,10 @@ router.put('/:id', verifyToken, async (req, res) => {
         const userDept = (req.user?.department?.name || req.user?.department || '').toString().toLowerCase();
         if (!isProcurementAdmin && reqDept !== userDept) {
           return res.status(403).json({ message: 'Only the requesting department may submit the completed requisition.' });
+        }
+      } else if (newStatus === 'Submitted to Clerk' || newStatus === 'Clarification Requested' || newStatus === 'Rejected') {
+        if (!isProcurementAdmin && !isRegistryRole) {
+          return res.status(403).json({ message: 'Access denied: only registry, procurement, clerk or super admin can change this status.' });
         }
       } else {
         // All other status transitions require procurement/clerk/super admin
