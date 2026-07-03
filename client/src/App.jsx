@@ -69,7 +69,7 @@ function App() {
             path="/procurement/registry"
             element={
               <ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}>
-                <Registry />
+                <Navigate to="/registry" replace />
               </ProtectedRoute>
             }
           />
