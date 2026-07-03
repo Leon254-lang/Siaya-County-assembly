@@ -62,6 +62,7 @@ export default function NavBar() {
       { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/requests', label: 'Requests', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/registry', label: 'Registry', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
+      { to: '/registry', label: 'Registry Home', roles: ['Registry', 'Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/stores', label: 'Stores', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
       { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },

@@ -78,6 +78,7 @@ export default function Register() {
             <option value="Finance Officer">Finance Officer</option>
             <option value="Committee Officer">Committee Officer</option>
             <option value="Procurement Officer">Procurement Officer</option>
+              <option value="Registry">Registry</option>
             <option value="Security Officer">Security Officer</option>
             <option value="MCA">MCA</option>
             <option value="Clerk">Clerk</option>

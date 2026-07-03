@@ -73,6 +73,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/registry" element={<ProtectedRoute allowedRoles={['Registry','Super Admin','Procurement Officer','Clerk']}><Registry /></ProtectedRoute>} />
           <Route path="/procurement/requests" element={<ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}><ProcurementRequests /></ProtectedRoute>} />
           <Route
             path="/procurement/stores"

@@ -11,6 +11,7 @@ const roleOptions = [
   'Committee Officer',
   'Procurement Officer',
   'Security Officer',
+  'Registry',
   'MCA',
   'Intern',
 ];
