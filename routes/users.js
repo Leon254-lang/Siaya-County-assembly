@@ -20,12 +20,12 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get('/', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer', 'Committee Officer', 'Clerk'), async (req, res) => {
-  const users = await User.find().populate('role department');
+  const users = await User.find().select('-password').populate('role department');
   res.json(users);
 });
 
 router.get('/:id', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer', 'Committee Officer', 'Clerk'), async (req, res) => {
-  const user = await User.findById(req.params.id).populate('role department');
+  const user = await User.findById(req.params.id).select('-password').populate('role department');
   if (!user) return res.status(404).json({ message: 'User not found' });
   res.json(user);
 });
@@ -41,8 +41,9 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     const isSelf = req.user._id.toString() === req.params.id;
     const isAdmin = req.user.role?.name === 'Super Admin';
+    const canManageUsers = isAdmin || ['ICT Admin', 'HR Officer'].includes(req.user.role?.name);
 
-    if (!isSelf && !isAdmin) {
+    if (!isSelf && !canManageUsers) {
       return res.status(403).json({ message: 'You do not have permission to update this user.' });
     }
 
@@ -53,7 +54,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       }
     }
 
-    if (roleName) {
+    if (roleName && roleName !== user.role?.name) {
       if (!isAdmin) {
         return res.status(403).json({ message: 'Only administrators can change user roles.' });
       }
@@ -65,7 +66,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     if (departmentId !== undefined) {
-      if (!isAdmin) {
+      const currentDepartmentId = user.department ? user.department.toString() : '';
+      if (!isAdmin && departmentId !== currentDepartmentId) {
         return res.status(403).json({ message: 'Only administrators can change departments.' });
       }
       if (departmentId) {
@@ -74,7 +76,7 @@ router.put('/:id', verifyToken, async (req, res) => {
           return res.status(400).json({ message: 'Invalid department selected' });
         }
         user.department = department._id;
-      } else {
+      } else if (departmentId === '') {
         user.department = undefined;
       }
     }
@@ -108,8 +110,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     if (typeof password === 'string' && password.trim()) {
-      if (!isAdmin && !isSelf) {
-        return res.status(403).json({ message: 'Only administrators can update passwords for other users.' });
+      if (!isSelf && !canManageUsers) {
+        return res.status(403).json({ message: 'Only administrators, ICT Admins, or HR Officers can update passwords for other users.' });
       }
       user.password = await bcrypt.hash(password.trim(), 10);
     }
