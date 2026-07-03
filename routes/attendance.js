@@ -40,6 +40,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const {
       user,
+      userId,
       userType,
       date,
       month,
@@ -51,7 +52,8 @@ router.get('/', verifyToken, async (req, res) => {
 
     let query = {};
 
-    if (user) query.user = user;
+    if (userId) query.user = userId;
+    else if (user) query.user = user;
     if (userType) query.userType = userType;
     if (status) query.status = status;
     if (date) query.date = new Date(date);
@@ -91,8 +93,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Check-in endpoint
-router.post('/checkin', verifyToken, async (req, res) => {
+router.post(['/checkin', '/check-in'], verifyToken, async (req, res) => {
   try {
     const { method = 'manual', location, deviceId, latitude, longitude, address } = req.body;
     if (latitude == null || longitude == null) {
@@ -157,7 +158,7 @@ router.post('/checkin', verifyToken, async (req, res) => {
 });
 
 // Check-out endpoint
-router.post('/checkout', verifyToken, async (req, res) => {
+router.post(['/checkout', '/check-out'], verifyToken, async (req, res) => {
   try {
     const { method = 'manual', location, deviceId, breakTime = 0, latitude, longitude, address } = req.body;
     if (latitude == null || longitude == null) {

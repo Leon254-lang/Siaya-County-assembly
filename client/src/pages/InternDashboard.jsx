@@ -32,7 +32,8 @@ export default function InternDashboard() {
 
       // Load attendance
       const attendanceRes = await api.get(`/attendance?userId=${userId}`);
-      setAttendance(attendanceRes.data);
+      const attendanceRecords = attendanceRes.data.records || attendanceRes.data || [];
+      setAttendance(attendanceRecords);
 
       // Load tasks
       const tasksRes = await api.get(`/interns/${userId}/tasks`);
@@ -51,7 +52,7 @@ export default function InternDashboard() {
       setLeaves(leavesRes.data || []);
 
       // Load notifications
-      const notifRes = await api.get(`/announcements`);
+      const notifRes = await api.get('/communications/announcements', { params: { limit: 5 } });
       setNotifications(notifRes.data.slice(0, 5) || []);
 
       // Load feedback
@@ -60,7 +61,7 @@ export default function InternDashboard() {
 
       // Check if checked in today
       const today = new Date().toDateString();
-      const todayAttendance = attendanceRes.data?.find(a => new Date(a.date).toDateString() === today);
+      const todayAttendance = attendanceRecords.find((a) => new Date(a.date).toDateString() === today);
       setCheckedInToday(!!todayAttendance?.checkIn);
       setCheckOutTime(todayAttendance?.checkOut || null);
 

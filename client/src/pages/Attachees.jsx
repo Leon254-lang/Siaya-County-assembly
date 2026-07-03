@@ -32,7 +32,8 @@ export default function AttacheeDashboard() {
 
       // Load attendance
       const attendanceRes = await api.get(`/attendance?userId=${userId}`);
-      setAttendance(attendanceRes.data);
+      const attendanceRecords = attendanceRes.data.records || attendanceRes.data || [];
+      setAttendance(attendanceRecords);
 
       // Load duties
       const dutiesRes = await api.get(`/interns/${userId}/duties`);
@@ -51,7 +52,7 @@ export default function AttacheeDashboard() {
       setLeaves(leavesRes.data || []);
 
       // Load notifications
-      const notifRes = await api.get(`/announcements`);
+      const notifRes = await api.get('/communications/announcements', { params: { limit: 5 } });
       setNotifications(notifRes.data.slice(0, 5) || []);
 
       // Load evaluation
@@ -60,7 +61,7 @@ export default function AttacheeDashboard() {
 
       // Check if checked in today
       const today = new Date().toDateString();
-      const todayAttendance = attendanceRes.data?.find(a => new Date(a.date).toDateString() === today);
+      const todayAttendance = attendanceRecords.find(a => new Date(a.date).toDateString() === today);
       setCheckedInToday(!!todayAttendance?.checkIn);
       setCheckOutTime(todayAttendance?.checkOut || null);
 
@@ -79,24 +80,56 @@ export default function AttacheeDashboard() {
   const handleCheckIn = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post('/attendance/check-in', { userId });
+      if (!navigator.geolocation) {
+        setMessage('Geolocation is required to check in. Please use the Attendance page.');
+        return;
+      }
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+      });
+      const { latitude, longitude } = position.coords;
+      await api.post('/attendance/check-in', {
+        userId,
+        method: 'manual',
+        location: 'Attachee dashboard',
+        deviceId: 'browser',
+        latitude,
+        longitude,
+        address: 'Browser geolocation'
+      });
       setMessage('Checked in successfully');
       setCheckedInToday(true);
       loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to check in');
+      setMessage(err.response?.data?.message || 'Failed to check in');
     }
   };
 
   const handleCheckOut = async () => {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post('/attendance/check-out', { userId });
+      if (!navigator.geolocation) {
+        setMessage('Geolocation is required to check out. Please use the Attendance page.');
+        return;
+      }
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+      });
+      const { latitude, longitude } = position.coords;
+      await api.post('/attendance/check-out', {
+        userId,
+        method: 'manual',
+        location: 'Attachee dashboard',
+        deviceId: 'browser',
+        latitude,
+        longitude,
+        address: 'Browser geolocation'
+      });
       setMessage('Checked out successfully');
       setCheckOutTime(new Date().toLocaleTimeString());
       loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to check out');
+      setMessage(err.response?.data?.message || 'Failed to check out');
     }
   };
 
