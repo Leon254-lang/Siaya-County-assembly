@@ -75,6 +75,23 @@ const InternSchema = new mongoose.Schema({
       },
     },
   ],
+  duties: [
+    {
+      title: String,
+      description: String,
+      status: { type: String, enum: ['Pending', 'In Progress', 'Completed'], default: 'Pending' },
+      assignedAt: { type: Date, default: Date.now },
+      dueDate: Date,
+    },
+  ],
+  reports: [
+    {
+      type: String,
+      content: String,
+      weekEnding: Date,
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   completionReports: [
     {
       date: {

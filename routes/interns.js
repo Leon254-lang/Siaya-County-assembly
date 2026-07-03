@@ -103,16 +103,51 @@ router.put('/:id', verifyToken, async (req, res) => {
   res.json(updated);
 });
 
-router.post('/:id/log', verifyToken, async (req, res) => {
+router.get('/:id/duties', verifyToken, async (req, res) => {
   const intern = await resolveIntern(req.params.id, req.user);
-  if (!intern) {
-    return res.status(404).json({ message: 'Intern not found' });
-  }
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+  res.json(intern.duties || []);
+});
+
+router.put('/duties/:dutyId', verifyToken, async (req, res) => {
+  const intern = await Intern.findOne({ 'duties._id': req.params.dutyId });
+  if (!intern) return res.status(404).json({ message: 'Duty not found' });
+
+  const duty = intern.duties.id(req.params.dutyId);
+  if (!duty) return res.status(404).json({ message: 'Duty not found' });
+
+  if (req.body.status) duty.status = req.body.status;
+  if (req.body.description) duty.description = req.body.description;
+  if (req.body.title) duty.title = req.body.title;
+  if (req.body.dueDate) duty.dueDate = req.body.dueDate;
+
+  await intern.save();
+  await recordAudit({
+    req,
+    action: 'Updated intern duty',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: duty,
+  });
+
+  res.json(duty);
+});
+
+router.get('/:id/logbook', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+  res.json(intern.dailyLogs || []);
+});
+
+router.post('/:id/logbook', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
 
   const logEntry = {
     date: req.body.date ? new Date(req.body.date) : new Date(),
-    activity: req.body.activity,
-    notes: req.body.notes,
+    activity: req.body.activities || req.body.activity,
+    notes: req.body.notes || '',
+    hours: req.body.hours || null,
   };
 
   intern.dailyLogs.push(logEntry);
@@ -126,8 +161,91 @@ router.post('/:id/log', verifyToken, async (req, res) => {
     details: logEntry,
   });
 
-  const populated = await Intern.findById(intern._id).populate('department supervisor completionReports.supervisor evaluations.reviewer');
-  res.json(populated);
+  res.json(intern.dailyLogs);
+});
+
+router.get('/:id/reports', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+  res.json(intern.reports || []);
+});
+
+router.post('/:id/reports', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+
+  const report = {
+    type: req.body.type || 'General',
+    content: req.body.content || '',
+    weekEnding: req.body.weekEnding ? new Date(req.body.weekEnding) : null,
+    createdAt: new Date(),
+  };
+
+  intern.reports.push(report);
+  await intern.save();
+
+  await recordAudit({
+    req,
+    action: 'Added intern report',
+    entity: 'Intern',
+    entityId: intern._id,
+    details: report,
+  });
+
+  res.json(intern.reports);
+});
+
+router.get('/:id/leaves', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+
+  const userId = intern.user ? intern.user._id || intern.user : null;
+  const email = intern.email;
+  const query = userId ? { user: userId } : { email };
+
+  const leaves = await Leave.find(query).sort({ startDate: -1 });
+  res.json(leaves);
+});
+
+router.post('/:id/leaves', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+
+  const userId = intern.user ? intern.user._id || intern.user : null;
+  if (!userId) {
+    return res.status(400).json({ message: 'Intern user account not linked' });
+  }
+
+  const leaveData = {
+    user: userId,
+    type: req.body.type || 'annual',
+    startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+    endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+    reason: req.body.reason || '',
+    status: 'pending',
+    workflowStage: 'Submitted to HR',
+    reliefDuties: req.body.reliefDuties || '',
+    reliefStaffName: req.body.reliefStaffName || '',
+  };
+
+  const leaveRequest = new Leave(leaveData);
+  await leaveRequest.save();
+
+  await recordAudit({
+    req,
+    action: 'Requested intern leave',
+    entity: 'Leave',
+    entityId: leaveRequest._id,
+    details: leaveData,
+  });
+
+  res.status(201).json(leaveRequest);
+});
+
+router.get('/:id/evaluation', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.params.id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern not found' });
+  res.json(intern.evaluations || []);
 });
 
 router.post('/:id/evaluate', verifyToken, async (req, res) => {
