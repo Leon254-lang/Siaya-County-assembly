@@ -21,6 +21,7 @@ import Feedback from './pages/Feedback';
 import Leaders from './pages/Leaders';
 import Procurement from './pages/Procurement';
 import ProcurementRequests from './pages/ProcurementRequests';
+import MyRequests from './pages/MyRequests';
 import Finance from './pages/Finance';
 import FAQ from './pages/FAQ';
 import MediaCenter from './pages/MediaCenter';
@@ -51,6 +52,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+          <Route path="/my-requests" element={<ProtectedRoute><MyRequests /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
           <Route path="/visitors" element={<ProtectedRoute><Visitors /></ProtectedRoute>} />
           <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />

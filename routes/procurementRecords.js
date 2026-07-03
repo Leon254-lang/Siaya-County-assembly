@@ -14,6 +14,52 @@ router.get('/', verifyToken, authorizeRoles('Super Admin', 'Procurement Officer'
   }
 });
 
+// Return procurement records belonging to the logged in user (their department or requestedBy)
+router.get('/mine', verifyToken, async (req, res) => {
+  try {
+    const user = req.user || {};
+    const deptName = (user?.department?.name || user?.department || '').toString();
+    const userName = (user?.name || '').toString();
+
+    const query = {
+      $or: [
+        { department: deptName },
+        { requestedBy: userName }
+      ]
+    };
+
+    const records = await ProcurementRecord.find(query).sort({ createdAt: -1 });
+    res.json({ records });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching your procurement records', error: error.message });
+  }
+});
+
+// Get a single procurement record by id. Procurement roles may access any, others only their own.
+router.get('/:id', verifyToken, async (req, res) => {
+  try {
+    const record = await ProcurementRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ message: 'Record not found' });
+
+    const userRole = req.user?.role?.name || req.user?.role || '';
+    const procurementRoles = ['Super Admin', 'Procurement Officer', 'Clerk'];
+    const isProcurementAdmin = procurementRoles.includes(userRole);
+
+    if (!isProcurementAdmin) {
+      const reqDept = (record.department || '').toString().toLowerCase();
+      const userDept = (req.user?.department?.name || req.user?.department || '').toString().toLowerCase();
+      const userName = (req.user?.name || '').toString();
+      if (reqDept !== userDept && record.requestedBy !== userName) {
+        return res.status(403).json({ message: 'Access denied: you may only view your own procurement records.' });
+      }
+    }
+
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching procurement record', error: error.message });
+  }
+});
+
 router.post('/', verifyToken, async (req, res) => {
   try {
     const payload = { ...req.body };

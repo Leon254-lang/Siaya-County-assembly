@@ -45,6 +45,7 @@ export default function NavBar() {
     { to: '/hr', label: 'HR', roles: ['HR Officer', 'Super Admin'] },
     { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
+      { to: '/my-requests', label: 'My Requests', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/messages', label: 'Messages', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
