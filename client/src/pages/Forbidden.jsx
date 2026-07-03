@@ -14,7 +14,6 @@ export default function Forbidden() {
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
           <Link to="/dashboard"><button type="button">Return to Dashboard</button></Link>
-          <Link to="/procurement"><button type="button" className="secondary">Open Procurement</button></Link>
         </div>
       </div>
     </div>

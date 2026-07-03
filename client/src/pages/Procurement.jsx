@@ -23,6 +23,7 @@ const statusBadge = (status) => {
 export default function Procurement() {
   const [records, setRecords] = useState([]);
   const [procurementFiles, setProcurementFiles] = useState([]);
+  const [procurementAnnouncements, setProcurementAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeForm, setActiveForm] = useState('');
   const [message, setMessage] = useState('');
@@ -64,7 +65,7 @@ export default function Procurement() {
     return diff >= 0 && diff <= 60;
   }).length;
   const supplierPerformanceAlerts = suppliers.filter((item) => ['needs review', 'poor', 'at risk', 'unreliable'].some((value) => item.performance?.toLowerCase().includes(value))).length;
-  const notificationCount = pendingRequisitions + deliveriesPendingInspection + contractsExpiringSoon + supplierPerformanceAlerts;
+  const notificationCount = pendingRequisitions + deliveriesPendingInspection + contractsExpiringSoon + supplierPerformanceAlerts + procurementAnnouncements.length;
 
   const summaryMetrics = [
     { label: 'Pending Purchase Requisitions', value: pendingRequisitions, anchor: '#requisitions' },
@@ -76,6 +77,11 @@ export default function Procurement() {
     { label: 'Supplier Performance Alerts', value: supplierPerformanceAlerts, anchor: '#suppliers' },
     { label: 'Notifications', value: notificationCount, anchor: '#notifications' },
   ];
+
+  const procurementNotifications = procurementAnnouncements.map((announcement) => ({
+    title: announcement.title,
+    detail: announcement.body,
+  }));
 
   const notifications = [
     {
@@ -94,6 +100,7 @@ export default function Procurement() {
       title: 'Pending inspection',
       detail: `${deliveriesPendingInspection} delivery item${deliveriesPendingInspection === 1 ? '' : 's'} need inspection or verification.`,
     },
+    ...procurementNotifications,
   ];
 
   useEffect(() => {
@@ -104,12 +111,14 @@ export default function Procurement() {
     setLoading(true);
     setError('');
     try {
-      const [recordsResponse, filesResponse] = await Promise.all([
+      const [recordsResponse, filesResponse, announcementsResponse] = await Promise.all([
         api.get('/procurement-records'),
         api.get('/procurement/files'),
+        api.get('/communications/announcements?role=Procurement Officer&limit=8'),
       ]);
       setRecords(recordsResponse.data.records || []);
       setProcurementFiles(filesResponse.data.files || []);
+      setProcurementAnnouncements(announcementsResponse.data || []);
     } catch (err) {
       console.error(err);
       setError('Unable to load procurement dashboard data.');

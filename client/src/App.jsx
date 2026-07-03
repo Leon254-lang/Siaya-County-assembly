@@ -20,6 +20,7 @@ import Interns from './pages/Interns';
 import Feedback from './pages/Feedback';
 import Leaders from './pages/Leaders';
 import Procurement from './pages/Procurement';
+import ProcurementRequests from './pages/ProcurementRequests';
 import Finance from './pages/Finance';
 import FAQ from './pages/FAQ';
 import MediaCenter from './pages/MediaCenter';
@@ -61,7 +62,7 @@ function App() {
           <Route path="/interns" element={<ProtectedRoute><Interns /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
           <Route path="/leaders" element={<ProtectedRoute><Leaders /></ProtectedRoute>} />
-          <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
+          <Route path="/procurement" element={<ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}><Procurement /></ProtectedRoute>} />
           <Route
             path="/procurement/registry"
             element={
@@ -70,6 +71,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/procurement/requests" element={<ProtectedRoute allowedRoles={['Super Admin', 'Procurement Officer', 'Clerk']}><ProcurementRequests /></ProtectedRoute>} />
           <Route
             path="/procurement/stores"
             element={

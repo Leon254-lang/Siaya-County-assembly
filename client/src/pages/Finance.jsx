@@ -515,7 +515,6 @@ export default function Finance() {
             </div>
           ))}
           <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Link to="/procurement" className="module-link">Open Procurement</Link>
             <Link to="/documents" className="module-link">Open Documents</Link>
           </div>
         </div>

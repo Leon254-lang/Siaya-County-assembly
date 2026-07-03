@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import api from '../services/api';
 
 export default function NavBar() {
   const normalizeRole = (value) => {
@@ -57,7 +58,8 @@ export default function NavBar() {
       { to: '/mcas', label: 'MCA Dashboard', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk', 'MCA'] },
       { to: '/assets', label: 'Assets', roles: ['Super Admin', 'ICT Admin', 'Finance Officer'] },
       { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
-      { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'ICT Admin', 'Procurement Officer'] },
+      { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
+      { to: '/procurement/requests', label: 'Requests', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/registry', label: 'Registry', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/stores', label: 'Stores', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
@@ -73,6 +75,27 @@ export default function NavBar() {
   };
 
   const allowedLinks = getAllowedLinks(userRole);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const procurementRoles = ['Super Admin', 'Procurement Officer', 'Clerk'];
+
+  useEffect(() => {
+    let mounted = true;
+    const loadCount = async () => {
+      try {
+        if (!procurementRoles.includes(userRole)) return;
+        const res = await api.get('/procurement-records');
+        const records = res.data.records || [];
+        const count = records.filter(r => r.type === 'requisition' && (String(r.status || '').toLowerCase().includes('pending') || String(r.status || '').toLowerCase().includes('requested') || String(r.workflowStage || '').toLowerCase().includes('requested'))).length;
+        if (mounted) setPendingRequestsCount(count);
+      } catch (err) {
+        // silently ignore
+      }
+    };
+
+    loadCount();
+    const interval = setInterval(loadCount, 20000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [userRole]);
   const logoSrc = 'uploads/siaya_logo.png';
 
   const handleLogout = () => {
@@ -125,7 +148,12 @@ export default function NavBar() {
             {isLoggedIn ? (
               <>
                 {allowedLinks.map(link => (
-                  <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
+                  <Link key={link.to} to={link.to} onClick={handleLinkClick} style={{ position: 'relative' }}>
+                    {link.label}
+                    {link.to === '/procurement/requests' && pendingRequestsCount > 0 && (
+                      <span style={{ background: '#ef4444', color: '#fff', borderRadius: '999px', padding: '0 6px', fontSize: '0.75rem', marginLeft: '8px' }}>{pendingRequestsCount}</span>
+                    )}
+                  </Link>
                 ))}
                 {userRole === 'Super Admin' && (
                   <Link to="/register" onClick={handleLinkClick}>Register</Link>
@@ -146,7 +174,11 @@ export default function NavBar() {
             {isLoggedIn ? (
               <>
                 {allowedLinks.map(link => (
-                  <Link key={link.to} to={link.to} onClick={handleLinkClick}>{link.label}</Link>
+                  <Link key={link.to} to={link.to} onClick={handleLinkClick} style={{ position: 'relative' }}>{link.label}
+                    {link.to === '/procurement/requests' && pendingRequestsCount > 0 && (
+                      <span style={{ background: '#ef4444', color: '#fff', borderRadius: '999px', padding: '0 6px', fontSize: '0.75rem', marginLeft: '8px' }}>{pendingRequestsCount}</span>
+                    )}
+                  </Link>
                 ))}
                 {userRole === 'Super Admin' && (
                   <Link to="/register" onClick={handleLinkClick}>Register</Link>

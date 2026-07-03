@@ -42,6 +42,15 @@ export default function Documents() {
     responseStatus: 'not_requested',
     responseNotes: '',
   });
+  const [requisitionRequestForm, setRequisitionRequestForm] = useState({
+    title: '',
+    department: '',
+    amount: '',
+    priority: 'Medium',
+    description: '',
+  });
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     fetchDepartments();
@@ -71,6 +80,40 @@ export default function Documents() {
       setDepartments(response.data);
     } catch (error) {
       console.error('Failed to load departments:', error);
+    }
+  };
+
+  const handleRequestFormChange = (event) => {
+    const { name, value } = event.target;
+    setRequisitionRequestForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitRequisitionRequest = async (event) => {
+    event.preventDefault();
+    setRequestMessage('');
+    setRequestError('');
+
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      await api.post('/procurement-records', {
+        type: 'requisition',
+        title: requisitionRequestForm.title,
+        department: requisitionRequestForm.department || storedUser?.department?.name || '',
+        amount: Number(requisitionRequestForm.amount) || 0,
+        priority: requisitionRequestForm.priority,
+        requestedBy: storedUser?.name || 'Department',
+        description: requisitionRequestForm.description,
+        status: 'Requested',
+        workflowStage: 'Requested',
+      });
+      setRequestMessage('Procurement request submitted successfully. Procurement officers will be notified.');
+      setRequisitionRequestForm({ title: '', department: '', amount: '', priority: 'Medium', description: '' });
+      if (activeTab === 'all') {
+        fetchDocuments();
+      }
+    } catch (error) {
+      console.error('Failed to submit procurement request:', error);
+      setRequestError(error.response?.data?.message || 'Unable to submit procurement request.');
     }
   };
 
@@ -370,6 +413,60 @@ export default function Documents() {
         )}
 
         {/* Documents Table */}
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div>
+              <h2>Request Procurement Requisition</h2>
+              <p style={{ margin: '0.5rem 0 0', color: '#475569' }}>Submit a procurement request for review by procurement officers. This request will appear in the procurement workflow as a new requisition.</p>
+            </div>
+          </div>
+
+          {requestMessage && <div className="message success-message">{requestMessage}</div>}
+          {requestError && <div className="message error-message">{requestError}</div>}
+
+          <form onSubmit={handleSubmitRequisitionRequest} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+            <div className="grid-columns" style={{ gap: '1rem' }}>
+              <label>
+                Title
+                <input name="title" value={requisitionRequestForm.title} onChange={handleRequestFormChange} required />
+              </label>
+              <label>
+                Department
+                <select name="department" value={requisitionRequestForm.department} onChange={handleRequestFormChange} required>
+                  <option value="">Select department</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Amount
+                <input name="amount" type="number" min="0" value={requisitionRequestForm.amount} onChange={handleRequestFormChange} required />
+              </label>
+              <label>
+                Priority
+                <select name="priority" value={requisitionRequestForm.priority} onChange={handleRequestFormChange}>
+                  {['Low', 'Medium', 'High'].map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label>
+              Description
+              <textarea name="description" rows="3" value={requisitionRequestForm.description} onChange={handleRequestFormChange} required />
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="submit">Submit request</button>
+              <button type="button" className="secondary" onClick={() => {
+                setRequisitionRequestForm({ title: '', department: '', amount: '', priority: 'Medium', description: '' });
+                setRequestMessage('');
+                setRequestError('');
+              }}>Clear</button>
+            </div>
+          </form>
+        </div>
+
         <div className="documents-list">
           {activeTab === 'inbox' ? (
             <div style={{ marginBottom: '2rem' }}>
