@@ -178,7 +178,7 @@ router.patch('/leave/:id/reject', verifyToken, authorizeRoles('Super Admin', 'HR
 // Recruitment - vacancies
 router.get('/vacancies', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
   try {
-    const vacs = await Vacancy.find().sort({ createdAt: -1 });
+    const vacs = await Vacancy.find().populate('department postedBy').sort({ createdAt: -1 });
     res.json(vacs);
   } catch (error) {
     res.status(500).json({ message: 'Failed to load vacancies', error: error.message });
