@@ -20,6 +20,7 @@ const seed = async () => {
       'Finance Officer',
       'Committee Officer',
       'Intern',
+      'Registry',
       'Security Officer',
     ];
 
