@@ -23,6 +23,7 @@ export default function Meetings() {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
   const [committees, setCommittees] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [message, setMessage] = useState('');
@@ -37,6 +38,7 @@ export default function Meetings() {
   const [form, setForm] = useState({
     title: '',
     committee: '',
+    department: '',
     room: '',
     startTime: '',
     endTime: '',
@@ -52,14 +54,16 @@ export default function Meetings() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [meetingsRes, committeesRes, usersRes] = await Promise.all([
+      const [meetingsRes, committeesRes, departmentsRes, usersRes] = await Promise.all([
         api.get('/meetings?upcoming=true'),
         api.get('/committees'),
+        api.get('/departments'),
         api.get('/users'),
       ]);
 
       setMeetings(meetingsRes.data);
       setCommittees(committeesRes.data);
+      setDepartments(departmentsRes.data || []);
       setUsers(usersRes.data);
     } catch (err) {
       console.error('Failed loading meetings data:', err);
@@ -89,10 +93,20 @@ export default function Meetings() {
     }
   }, [form.startTime, form.endTime]);
 
+  useEffect(() => {
+    if (form.department) {
+      const assignedDept = departments.find((dept) => dept._id === form.department);
+      if (assignedDept?.boardroom) {
+        setForm((prev) => ({ ...prev, room: assignedDept.boardroom }));
+      }
+    }
+  }, [form.department, departments]);
+
   const resetForm = () => {
     setForm({
       title: '',
       committee: '',
+      department: '',
       room: '',
       startTime: '',
       endTime: '',
@@ -202,6 +216,7 @@ export default function Meetings() {
       const payload = {
         title: form.title,
         committee: form.committee || undefined,
+        department: form.department || undefined,
         room: form.room,
         startTime: form.startTime ? new Date(form.startTime).toISOString() : undefined,
         endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
@@ -225,7 +240,7 @@ export default function Meetings() {
       if (form.minutesFile) {
         const minutesData = new FormData();
         minutesData.append('file', form.minutesFile);
-        await api.post(`/meetings/${newMeeting._1}/upload-minutes`, minutesData, {
+        await api.post(`/meetings/${newMeeting._id}/upload-minutes`, minutesData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -326,11 +341,22 @@ export default function Meetings() {
             </label>
             <label>
               Committee
-              <select name="committee" value={form.committee} onChange={handleFormChange} required>
+              <select name="committee" value={form.committee} onChange={handleFormChange}>
                 <option value="">Select a committee...</option>
                 {committees.map((committee) => (
                   <option key={committee._id} value={committee._id}>
                     {committee.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Department
+              <select name="department" value={form.department} onChange={handleFormChange}>
+                <option value="">Select a department (optional)</option>
+                {departments.map((department) => (
+                  <option key={department._id} value={department._id}>
+                    {department.name}{department.boardroom ? ` — ${department.boardroom}` : ''}
                   </option>
                 ))}
               </select>
@@ -340,7 +366,13 @@ export default function Meetings() {
             )}
             <label>
               Boardroom
-              <select name="room" value={form.room} onChange={handleFormChange} required>
+              <select
+                name="room"
+                value={form.room}
+                onChange={handleFormChange}
+                required
+                disabled={Boolean(form.department && departments.find((dept) => dept._id === form.department)?.boardroom)}
+              >
                 <option value="">Select a boardroom...</option>
                 {boardrooms.map((room) => (
                   <option key={room} value={room} disabled={busyRooms.includes(room)}>
@@ -348,6 +380,9 @@ export default function Meetings() {
                   </option>
                 ))}
               </select>
+              {form.department && departments.find((dept) => dept._id === form.department)?.boardroom && (
+                <p className="form-note">This department is assigned to {departments.find((dept) => dept._id === form.department)?.boardroom}. The room will be used automatically.</p>
+              )}
             </label>
             <div className="room-availability">
               <h3>Room availability</h3>

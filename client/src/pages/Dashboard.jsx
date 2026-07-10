@@ -147,7 +147,7 @@ export default function Dashboard() {
     auditLogs: 0,
   });
   const [ictUsers, setIctUsers] = useState([]);
-  const [departmentForm, setDepartmentForm] = useState({ name: '', description: '', modules: [] });
+  const [departmentForm, setDepartmentForm] = useState({ name: '', description: '', modules: [], boardroom: '' });
   const [editingDepartmentId, setEditingDepartmentId] = useState('');
   const [departmentMessage, setDepartmentMessage] = useState('');
   const [adminSettings, setAdminSettings] = useState({
@@ -295,7 +295,7 @@ export default function Dashboard() {
   };
 
   const resetDepartmentForm = () => {
-    setDepartmentForm({ name: '', description: '', modules: [] });
+    setDepartmentForm({ name: '', description: '', modules: [], boardroom: '' });
     setEditingDepartmentId('');
     setDepartmentMessage('');
   };
@@ -310,6 +310,7 @@ export default function Dashboard() {
           name: departmentForm.name,
           description: departmentForm.description,
           modules: departmentForm.modules,
+          boardroom: departmentForm.boardroom || undefined,
         });
         setDepartmentMessage('Department updated successfully.');
       } else {
@@ -317,6 +318,7 @@ export default function Dashboard() {
           name: departmentForm.name,
           description: departmentForm.description,
           modules: departmentForm.modules,
+          boardroom: departmentForm.boardroom || undefined,
         });
         setDepartmentMessage('Department created successfully.');
       }
@@ -335,6 +337,7 @@ export default function Dashboard() {
       name: department.name || '',
       description: department.description || '',
       modules: department.modules || [],
+      boardroom: department.boardroom || '',
     });
     setDepartmentMessage('');
   };
@@ -688,6 +691,15 @@ export default function Dashboard() {
                     Description
                     <input name="description" value={departmentForm.description} onChange={handleDepartmentInputChange} />
                   </label>
+                  <label>
+                    Assigned boardroom
+                    <select name="boardroom" value={departmentForm.boardroom} onChange={handleDepartmentInputChange}>
+                      <option value="">No boardroom assigned</option>
+                      {['Boardroom 1', 'Boardroom 2', 'Boardroom 3', 'Boardroom 4', 'Boardroom 5'].map((room) => (
+                        <option key={room} value={room}>{room}</option>
+                      ))}
+                    </select>
+                  </label>
                   <div>
                     <strong>Enabled modules</strong>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -717,6 +729,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <p style={{ margin: '0.3rem 0 0.7rem' }}>{department.description || 'Department records are active.'}</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                        <span style={{ color: department.boardroom ? 'var(--primary-color)' : 'var(--text-secondary)', fontWeight: department.boardroom ? 600 : 400 }}>
+                          {department.boardroom ? `Boardroom: ${department.boardroom}` : 'No boardroom assigned'}
+                        </span>
+                      </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         {department.users.length === 0 ? (
                           <span style={{ color: 'var(--text-secondary)' }}>No assigned staff yet.</span>

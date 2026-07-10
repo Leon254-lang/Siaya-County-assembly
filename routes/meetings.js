@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const Meeting = require('../models/Meeting');
 const Committee = require('../models/Committee');
+const Department = require('../models/Department');
 const Document = require('../models/Document');
 const Message = require('../models/Message');
 const Announcement = require('../models/Announcement');
@@ -110,7 +111,7 @@ router.get('/', verifyToken, async (req, res) => {
 
   const meetings = await Meeting.find(query)
     .sort({ startTime: 1 })
-    .populate('committee attendees attendance.user');
+    .populate('committee attendees attendance.user department');
   res.json(meetings);
 });
 
@@ -151,7 +152,7 @@ router.get('/availability', verifyToken, async (req, res) => {
 });
 
 router.get('/:id', verifyToken, async (req, res) => {
-  const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user');
+  const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user department');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
   res.json(meeting);
 });
@@ -206,6 +207,15 @@ Please arrive on time and confirm attendance through the meeting portal.`;
 router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
   const meetingData = { ...req.body };
   const committee = meetingData.committee ? await Committee.findById(meetingData.committee) : null;
+  const department = meetingData.department ? await Department.findById(meetingData.department) : null;
+
+  if (meetingData.department && !department) {
+    return res.status(400).json({ message: 'Invalid department selected.' });
+  }
+
+  if (!meetingData.room && department?.boardroom) {
+    meetingData.room = department.boardroom;
+  }
 
   if (meetingData.attendees && Array.isArray(meetingData.attendees)) {
     meetingData.attendance = meetingData.attendees.map((user) => ({ user, status: 'Confirmed' }));
@@ -220,7 +230,7 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
 
   const meeting = new Meeting(meetingData);
   await meeting.save();
-  await meeting.populate('committee attendees attendance.user');
+  await meeting.populate('committee attendees attendance.user department');
 
   try {
     const document = await buildMeetingDocument(meeting, committee, req.user._id);
@@ -272,7 +282,20 @@ router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Su
   const meeting = await Meeting.findById(req.params.id);
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
-  const proposedRoom = updateData.room || meeting.room;
+  const proposedDepartmentId = updateData.department || meeting.department;
+  let proposedDepartment = null;
+  if (proposedDepartmentId) {
+    proposedDepartment = await Department.findById(proposedDepartmentId);
+    if (!proposedDepartment) {
+      return res.status(400).json({ message: 'Invalid department selected.' });
+    }
+  }
+
+  let proposedRoom = updateData.room || meeting.room;
+  if (!updateData.room && proposedDepartment?.boardroom && !meeting.room) {
+    proposedRoom = proposedDepartment.boardroom;
+  }
+
   const proposedStartTime = updateData.startTime || meeting.startTime;
   const proposedEndTime = ensureInterval(proposedStartTime, updateData.endTime || meeting.endTime);
 
@@ -285,6 +308,7 @@ router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Su
   if (updateData.attendees && Array.isArray(updateData.attendees)) {
     meeting.title = updateData.title ?? meeting.title;
     meeting.committee = updateData.committee ?? meeting.committee;
+    meeting.department = updateData.department ?? meeting.department;
     meeting.room = proposedRoom;
     meeting.startTime = proposedStartTime;
     meeting.endTime = proposedEndTime;
@@ -292,17 +316,18 @@ router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Su
     meeting.attendees = updateData.attendees;
     meeting.attendance = updateData.attendees.map((user) => ({ user, status: 'Confirmed' }));
     await meeting.save();
-    await meeting.populate('committee attendees attendance.user');
+    await meeting.populate('committee attendees attendance.user department');
     return res.json(meeting);
   }
 
   const updatedMeeting = await Meeting.findByIdAndUpdate(req.params.id, {
     ...updateData,
+    room: proposedRoom,
     endTime: proposedEndTime,
   }, {
     new: true,
     runValidators: true,
-  }).populate('committee attendees attendance.user');
+  }).populate('committee attendees attendance.user department');
 
   if (!updatedMeeting) return res.status(404).json({ message: 'Meeting not found' });
   res.json(updatedMeeting);

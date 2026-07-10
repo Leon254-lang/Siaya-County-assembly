@@ -23,6 +23,10 @@ const MeetingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Committee',
   },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+  },
   room: {
     type: String,
     trim: true,
