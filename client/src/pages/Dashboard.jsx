@@ -560,9 +560,11 @@ export default function Dashboard() {
             <li>Role-based controls for secure administration and audit-ready workflows.</li>
             <li>Real-time updates for announcements, schedules and citizen feedback.</li>
           </ul>
-          <div className="summary-actions">
-            <Link to="/login" className="hero-action">Get Started</Link>
-          </div>
+          {!isLoggedIn && (
+            <div className="summary-actions">
+              <Link to="/login" className="hero-action">Get Started</Link>
+            </div>
+          )}
         </div>
       </div>
 
