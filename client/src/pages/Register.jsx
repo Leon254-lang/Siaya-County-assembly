@@ -33,13 +33,13 @@ export default function Register() {
 
     try {
       await api.post('/auth/register', { name, email, password, roleName });
-      setSuccess('User created successfully. You can add another user.');
+      setSuccess('User created.');
       setName('');
       setEmail('');
       setPassword('');
       setRoleName('Clerk');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'User creation failed.');
+      setMessage(error.response?.data?.message || 'Could not create user.');
     }
   };
 
@@ -55,7 +55,7 @@ export default function Register() {
   return (
     <div className="card">
       <h1>Create User</h1>
-      <p>Only Super Admins can create new staff accounts and assign roles.</p>
+      <p>Only Super Admins can create accounts and assign roles.</p>
       <form onSubmit={handleSubmit}>
         <label>
           Full Name

@@ -21,17 +21,17 @@ const heroStats = [
   {
     label: 'Live modules',
     value: '12',
-    detail: 'Manage documents, attendance, meetings, and public feedback in one portal.',
+    detail: 'Manage documents, attendance, meetings, and feedback in one place.',
   },
   {
     label: 'Meeting schedules',
     value: '8+',
-    detail: 'View confirmed assembly and committee sittings with reminders and calendar access.',
+    detail: 'View confirmed sittings and committee schedules.',
   },
   {
     label: 'Public feedback',
     value: 'Open',
-    detail: 'Receive and manage public participation enquiries and report submissions.',
+    detail: 'Receive and manage public submissions and enquiries.',
   },
 ];
 
@@ -40,39 +40,39 @@ const imageFallback = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/s
 const features = [
   {
     title: 'Citizen Services',
-    description: 'Access public participation, feedback and notices from one central county portal.',
+    description: 'Access participation, feedback, and notices in one place.',
   },
   {
     title: 'Operational Transparency',
-    description: 'Track meetings, documents and county workflows clearly and securely.',
+    description: 'Track meetings, documents, and workflows clearly.',
   },
   {
     title: 'Staff Collaboration',
-    description: 'Coordinate attendance, assets, visitors and intern management effortlessly.',
+    description: 'Coordinate attendance, assets, visitors, and interns.',
   },
   {
     title: 'Secure Administration',
-    description: 'Manage sensitive records with role-based access and audit-ready reporting.',
+    description: 'Manage records with role-based access and audit trails.',
   },
 ];
 
 const quickLinks = [
   {
-  title: 'Know Your Leaders',
-  logo: '👥',
-  description: 'Get to know the dedicated leaders serving the people of Siaya County. Access comprehensive profiles of the Speaker, MCAs, County Assembly committees, and key administrative officials. Learn about their responsibilities, leadership journeys, represented wards, ongoing initiatives, and contributions to policy-making, oversight, and community development. This platform promotes transparency, accountability, and citizen engagement by providing easy access to information about your elected and appointed leaders.',
-  path: '/leaders',
-},
+    title: 'Know Your Leaders',
+    logo: '👥',
+    description: 'See profiles for the Speaker, MCAs, committees, and senior officials.',
+    path: '/leaders',
+  },
   {
     title: 'Frequently Asked Questions',
     logo: '❓',
-    description: 'Find answers to common questions about county services, procedures, and how to engage with the Siaya County Assembly.',
+    description: 'Find answers to common questions about county services.',
     path: '/faq',
   },
   {
     title: 'Media Center',
     logo: '📺',
-    description: 'Stay updated with the latest news, press releases, events, and media resources from Siaya County Assembly.',
+    description: 'See the latest news, events, and media updates.',
     path: '/media',
   },
 ];
@@ -568,8 +568,8 @@ export default function Dashboard() {
 
       {!isLoggedIn ? (
         <section className="unauthenticated-dashboard card">
-          <h2>Secure access required</h2>
-          <p>Dashboard modules and management tools are available only after logging in. Please sign in with your credentials to continue.</p>
+          <h2>Sign in required</h2>
+          <p>Sign in to view dashboard tools and modules.</p>
           <Link to="/login" className="module-link">Log In</Link>
         </section>
       ) : (
@@ -639,7 +639,7 @@ export default function Dashboard() {
             <section className="modules-section">
               <div className="section-header theme-red">
                 <h2>💻 ICT Officer Dashboard</h2>
-                <p>Use this workspace as your central operations center for user administration, ICT assets, support requests, security, backups and communications.</p>
+                <p>Use this workspace as your operations center for users, assets, requests, security, and communications.</p>
               </div>
 
               <div className="dashboard-grid">

@@ -13,7 +13,7 @@ export default function Bills() {
       setBills(res.data);
     } catch (err) {
       console.error(err);
-      setMessage('Failed to load bills.');
+      setMessage('Could not load bills.');
     }
   };
 
@@ -33,7 +33,7 @@ export default function Bills() {
       load();
     } catch (err) {
       console.error(err);
-      setMessage('Failed to create bill.');
+      setMessage('Could not create bill.');
     }
   };
 
@@ -44,7 +44,7 @@ export default function Bills() {
       load();
     } catch (err) {
       console.error(err);
-      setMessage('Failed to submit motion.');
+      setMessage('Could not submit motion.');
     }
   };
 
@@ -55,7 +55,7 @@ export default function Bills() {
       load();
     } catch (err) {
       console.error(err);
-      setMessage('Failed to add voting item.');
+      setMessage('Could not add voting item.');
     }
   };
 
@@ -66,7 +66,7 @@ export default function Bills() {
       load();
     } catch (err) {
       console.error(err);
-      setMessage('Failed to record vote.');
+      setMessage('Could not record vote.');
     }
   };
 
@@ -74,7 +74,7 @@ export default function Bills() {
     <div className="page">
       <div className="page-header">
         <h1>Bills & Motions</h1>
-        <p>Create bills, submit motions, review status, and manage voting.</p>
+        <p>Create bills, submit motions, and manage voting.</p>
       </div>
 
       {message && <div className="notification">{message}</div>}
@@ -181,7 +181,7 @@ export default function Bills() {
               ))}
             </ul>
             <form onSubmit={async (e) => { e.preventDefault(); const recommendation = e.target.recommendation.value; try { await api.post(`/bills/${selected._id}/recommendation`, { recommendation }); setMessage('Recommendation submitted'); load(); } catch (err) { setMessage('Failed to submit recommendation'); } e.target.recommendation.value=''; }}>
-              <input name="recommendation" placeholder="Recommendation text (for committee use)" />
+              <input name="recommendation" placeholder="Recommendation" />
               <button className="secondary-button">Submit Recommendation</button>
             </form>
           </div>

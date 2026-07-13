@@ -66,7 +66,7 @@ export default function Messages() {
     const body = compose.body.trim();
 
     if (!subject || !body) {
-      setMessage('Subject and body are required.');
+      setMessage('Subject and message are required.');
       return;
     }
 
@@ -84,10 +84,10 @@ export default function Messages() {
       setSelected(null);
       await fetchSent();
       await fetchInbox();
-      setMessage('Message sent successfully.');
+      setMessage('Message sent.');
     } catch (error) {
       console.error('Failed to send message:', error);
-      setMessage(error.response?.data?.message || 'Failed to send message.');
+      setMessage(error.response?.data?.message || 'Could not send message.');
     }
   };
 
@@ -123,7 +123,7 @@ export default function Messages() {
   return (
     <div className="card">
       <h1>Internal Messaging</h1>
-      <p>Send secure messages to individual staff or entire departments.</p>
+      <p>Send messages to staff or departments.</p>
 
       {message && <div className="notification">{message}</div>}
 
@@ -180,7 +180,7 @@ export default function Messages() {
       {activeTab !== 'compose' && (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {(activeTab === 'inbox' ? inbox : sent).length === 0 ? (
-            <p>{activeTab === 'inbox' ? 'No messages in your inbox yet.' : 'You have not sent any messages yet.'}</p>
+            <p>{activeTab === 'inbox' ? 'No messages yet.' : 'No sent messages yet.'}</p>
           ) : (
             <div style={{ display: 'grid', gap: '1rem' }}>
               {((activeTab === 'inbox' ? inbox : sent)).map((msg) => (

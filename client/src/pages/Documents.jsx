@@ -106,14 +106,14 @@ export default function Documents() {
         status: 'Requested',
         workflowStage: 'Requested',
       });
-      setRequestMessage('Procurement request submitted successfully. Procurement officers will be notified.');
+      setRequestMessage('Request submitted.');
       setRequisitionRequestForm({ title: '', department: '', amount: '', priority: 'Medium', description: '' });
       if (activeTab === 'all') {
         fetchDocuments();
       }
     } catch (error) {
       console.error('Failed to submit procurement request:', error);
-      setRequestError(error.response?.data?.message || 'Unable to submit procurement request.');
+      setRequestError(error.response?.data?.message || 'Could not submit request.');
     }
   };
 

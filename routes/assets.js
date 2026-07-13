@@ -71,18 +71,18 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(201).json(populated);
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(400).json({ message: 'Asset tag already exists. Please choose a different asset tag.' });
+      return res.status(400).json({ message: 'Asset tag already exists.' });
     }
 
     if (error?.name === 'ValidationError') {
       return res.status(400).json({
-        message: 'Asset registration failed. Please review the asset details and try again.',
+        message: 'Asset registration failed.',
         errors: error.errors,
       });
     }
 
     console.error('Failed to create asset:', error);
-    return res.status(500).json({ message: 'Failed to register the asset. Please try again.' });
+    return res.status(500).json({ message: 'Could not register asset.' });
   }
 });
 
@@ -110,11 +110,11 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.json(asset);
   } catch (error) {
     if (error?.name === 'ValidationError') {
-      return res.status(400).json({ message: 'Asset update failed. Please review the details and try again.' });
+      return res.status(400).json({ message: 'Asset update failed.' });
     }
 
     console.error('Failed to update asset:', error);
-    return res.status(500).json({ message: 'Failed to update asset. Please try again.' });
+    return res.status(500).json({ message: 'Could not update asset.' });
   }
 });
 

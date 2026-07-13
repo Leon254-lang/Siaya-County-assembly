@@ -31,14 +31,14 @@ const sectionLinks = [
 ];
 
 const infoTiles = [
-  { title: 'Add new employees', description: 'Create staff accounts, assign departments, and track employment status.' },
-  { title: 'Promote & transfer', description: 'Move employees between departments and upgrade roles efficiently.' },
-  { title: 'Approve leave', description: 'Review pending leave applications and confirm leave balances.' },
-  { title: 'Create vacancies', description: 'Publish open roles and receive online applications.' },
-  { title: 'Shortlist candidates', description: 'Select qualified applicants and schedule interview slots.' },
-  { title: 'Manage appraisals', description: 'Create forms, score staff performance, and recommend promotions.' },
-  { title: 'Track attendance', description: 'Monitor lateness, absenteeism, and approve adjustments.' },
-  { title: 'Manage trainings', description: 'Register participants, record completion, and upload certificates.' },
+  { title: 'Add new employees', description: 'Create accounts, assign departments, and track staff status.' },
+  { title: 'Promote & transfer', description: 'Move staff between departments and update roles.' },
+  { title: 'Approve leave', description: 'Review leave requests and update balances.' },
+  { title: 'Create vacancies', description: 'Publish roles and receive applications.' },
+  { title: 'Shortlist candidates', description: 'Select applicants and schedule interviews.' },
+  { title: 'Manage appraisals', description: 'Create forms, review performance, and recommend promotions.' },
+  { title: 'Track attendance', description: 'Monitor attendance and approve adjustments.' },
+  { title: 'Manage trainings', description: 'Register participants and record completion.' },
 ];
 
 export default function HRPage() {

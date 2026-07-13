@@ -23,7 +23,7 @@ export default function Login() {
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userRole', userRole);
       localStorage.setItem('userId', user.id || user._id || '');
-      setMessage('Login successful.');
+      setMessage('Signed in.');
 
       const redirectMap = {
         'Super Admin': '/dashboard',
@@ -40,7 +40,7 @@ export default function Login() {
       const redirectPath = redirectMap[userRole] || '/dashboard';
       setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Login failed.');
+      setMessage(error.response?.data?.message || 'Could not sign in.');
     }
   };
 
@@ -49,16 +49,16 @@ export default function Login() {
       <div className="login-panel">
         <div className="login-copy">
           <span>Siaya County Assembly</span>
-          <h1>Secure access to the county assembly management portal</h1>
-          <p>Sign in to manage meetings, documents, attendance, public participation and member workflows from one secure platform.</p>
+          <h1>Access the county assembly portal</h1>
+          <p>Sign in to manage meetings, documents, attendance, and public participation.</p>
         </div>
 
         <div className="login-card card">
           <div className="login-card-head">
             <div className="login-card-icon">🔐</div>
             <div>
-              <h2>Sign in to your account</h2>
-              <p>Use your registered email and password to continue.</p>
+              <h2>Sign in</h2>
+              <p>Use your email and password to continue.</p>
             </div>
           </div>
           <form onSubmit={handleSubmit}>
@@ -78,7 +78,7 @@ export default function Login() {
 
       <aside className="login-side">
         <div className="login-side-card">
-          <h2>Why sign in?</h2>
+          <h2>Why sign in</h2>
           <ul>
             <li>Access role-based dashboards and county workflows.</li>
             <li>Review assembly notices, meetings and committee schedules.</li>

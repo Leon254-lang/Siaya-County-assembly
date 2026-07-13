@@ -14,13 +14,13 @@ router.post('/', verifyToken, async (req, res) => {
   const { name, description, modules, boardroom } = req.body;
 
   if (boardroom && !boardrooms.includes(boardroom)) {
-    return res.status(400).json({ message: 'Invalid boardroom selected.' });
+    return res.status(400).json({ message: 'Select a valid boardroom.' });
   }
 
   if (boardroom) {
     const existing = await Department.findOne({ boardroom });
     if (existing) {
-      return res.status(409).json({ message: 'Boardroom already assigned to another department.' });
+      return res.status(409).json({ message: 'Boardroom already in use.' });
     }
   }
 
@@ -44,13 +44,13 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 
     if (boardroom && !boardrooms.includes(boardroom)) {
-      return res.status(400).json({ message: 'Invalid boardroom selected.' });
+      return res.status(400).json({ message: 'Select a valid boardroom.' });
     }
 
     if (boardroom) {
       const existing = await Department.findOne({ boardroom, _id: { $ne: department._id } });
       if (existing) {
-        return res.status(409).json({ message: 'Boardroom already assigned to another department.' });
+        return res.status(409).json({ message: 'Boardroom already in use.' });
       }
     }
 

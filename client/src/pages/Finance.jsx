@@ -9,27 +9,27 @@ const recordStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected', 'Paid', 'C
 const financeModules = [
   {
     title: 'Budget Management',
-    description: 'Create proposals, allocate funds, track utilization, and monitor remaining balances for every department.',
+    description: 'Create budgets, track spending, and monitor balances.',
   },
   {
     title: 'Payment Management',
-    description: 'Receive payment requests, verify documents, record payments, and track approval status.',
+    description: 'Review payment requests, record payments, and track approvals.',
   },
   {
     title: 'Revenue Management',
-    description: 'Record revenue receipts by source, track collections, and generate revenue reports.',
+    description: 'Record revenue receipts and monitor collections.',
   },
   {
     title: 'Expenditure Management',
-    description: 'Categorize expenses, compare actual spending against approved budget, and control overspend.',
+    description: 'Track expenses against approved budgets.',
   },
   {
     title: 'Invoice Management',
-    description: 'Receive supplier bills, verify invoice details, match purchase orders, and track unpaid invoices.',
+    description: 'Review supplier bills and payment status.',
   },
   {
     title: 'Procurement Integration',
-    description: 'View approved requisitions, purchase orders, and confirm funds before payment processing.',
+    description: 'Check requisitions and purchase orders before payment.',
   },
 ];
 
@@ -111,7 +111,7 @@ export default function Finance() {
         <div className="page-header">
           <span className="eyebrow">Finance Officer Dashboard</span>
           <h1>Access Denied</h1>
-          <p>You do not have permission to access the finance dashboard. Please sign in with a Finance Officer or Super Admin account.</p>
+          <p>Sign in with a Finance Officer or Super Admin account to view this dashboard.</p>
         </div>
       </div>
     );

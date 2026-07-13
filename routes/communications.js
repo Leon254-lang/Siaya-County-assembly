@@ -38,7 +38,7 @@ router.get('/announcements', verifyToken, async (req, res) => {
 
     res.json(announcements);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to load announcements', error: error.message });
+    res.status(500).json({ message: 'Could not load announcements.', error: error.message });
   }
 });
 
@@ -59,7 +59,7 @@ router.post('/announcements', verifyToken, authorizeRoles('Super Admin', 'Commit
     const populated = await Announcement.findById(announcement._id).populate('createdBy', 'name email');
     res.status(201).json(populated);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to create announcement', error: error.message });
+    res.status(500).json({ message: 'Could not create announcement.', error: error.message });
   }
 });
 
@@ -85,7 +85,7 @@ router.get('/messages', verifyToken, async (req, res) => {
 
     res.json(messages);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to load messages', error: error.message });
+    res.status(500).json({ message: 'Could not load messages.', error: error.message });
   }
 });
 
@@ -93,7 +93,7 @@ router.post('/messages', verifyToken, async (req, res) => {
   try {
     const { subject, body, to, toDepartment } = req.body;
     if (!subject || !body) {
-      return res.status(400).json({ message: 'Subject and body are required' });
+      return res.status(400).json({ message: 'Subject and message are required.' });
     }
 
     const message = new Message({
@@ -112,7 +112,7 @@ router.post('/messages', verifyToken, async (req, res) => {
 
     res.status(201).json(populated);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to send message', error: error.message });
+    res.status(500).json({ message: 'Could not send message.', error: error.message });
   }
 });
 
@@ -135,7 +135,7 @@ router.post('/messages/:id/read', verifyToken, async (req, res) => {
 
     res.json(populated);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to mark message read', error: error.message });
+    res.status(500).json({ message: 'Could not mark as read.', error: error.message });
   }
 });
 

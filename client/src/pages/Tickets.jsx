@@ -34,7 +34,7 @@ export default function Tickets() {
       setTickets(response.data);
     } catch (error) {
       console.error('Failed to load tickets', error);
-      setMessage('Unable to load tickets.');
+      setMessage('Unable to load issues.');
     }
   };
 
@@ -109,10 +109,10 @@ export default function Tickets() {
       setTickets((prev) => [response.data, ...prev]);
       setSelectedTicket(response.data);
       resetForm();
-      setMessage('Issue submitted successfully.');
+      setMessage('Issue submitted.');
     } catch (error) {
       console.error('Error submitting ticket:', error);
-      setMessage('Failed to submit the issue.');
+      setMessage('Could not submit issue.');
     }
   };
 
@@ -135,10 +135,10 @@ export default function Tickets() {
       const response = await api.put(`/tickets/${selectedTicket._id}`, payload);
       setSelectedTicket(response.data);
       setTickets((prev) => prev.map((ticket) => (ticket._id === response.data._id ? response.data : ticket)));
-      setMessage('Ticket updated successfully.');
+      setMessage('Issue updated.');
     } catch (error) {
       console.error('Failed to update ticket:', error);
-      setMessage('Unable to update ticket.');
+      setMessage('Could not update issue.');
     }
   };
 
@@ -174,8 +174,8 @@ export default function Tickets() {
   return (
     <div className="tickets-page">
       <div className="page-header">
-        <h1>Internal Issue Tracker</h1>
-        <p>Submit IT, maintenance, or office issues and track resolution from a central helpdesk.</p>
+        <h1>Issue Tracker</h1>
+        <p>Submit and track office issues from one place.</p>
       </div>
 
       <div className="dashboard-grid">
@@ -278,7 +278,7 @@ export default function Tickets() {
             </div>
 
             <div className="form-note">
-              Update the ticket status, assign support staff, and add resolution notes or comments below.
+              Update the issue status, assign staff, and add notes below.
             </div>
 
             <form className="form-grid" onSubmit={handleUpdateTicket}>

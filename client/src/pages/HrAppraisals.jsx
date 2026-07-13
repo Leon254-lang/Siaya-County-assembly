@@ -266,12 +266,12 @@ export default function HrAppraisals() {
       <section className="card">
         <div className="section-header theme-red">
           <h2>📊 HR Appraisal Center</h2>
-          <p>Run structured staff evaluations, auto-calculate scores, and track reviews from one simple workspace.</p>
+          <p>Manage staff evaluations and track reviews from one workspace.</p>
         </div>
 
         {message && <div className="message">{message}</div>}
         <div className="info-panel" style={{ padding: '1rem 0', marginTop: '1rem' }}>
-          <h3>HR responsibilities</h3>
+          <h3>HR tasks</h3>
           <ul style={{ margin: '0.75rem 0 0', paddingLeft: '1.25rem' }}>
             {hrResponsibilities.map((item) => (
               <li key={item} style={{ marginBottom: '0.5rem' }}>{item}</li>
@@ -288,12 +288,12 @@ export default function HrAppraisals() {
           <div className="dashboard-card">
             <h3>Active appraisals</h3>
             <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)' }}>{summary.total}</p>
-            <p>Review sessions created for staff.</p>
+            <p>Staff evaluations in progress.</p>
           </div>
           <div className="dashboard-card">
             <h3>Pending review</h3>
             <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-color)' }}>{summary.pending}</p>
-            <p>Needs manager follow-up.</p>
+            <p>Needs follow-up.</p>
           </div>
           <div className="dashboard-card">
             <h3>Reviewed</h3>

@@ -44,7 +44,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     const canManageUsers = isAdmin || ['ICT Admin', 'HR Officer'].includes(req.user.role?.name);
 
     if (!isSelf && !canManageUsers) {
-      return res.status(403).json({ message: 'You do not have permission to update this user.' });
+      return res.status(403).json({ message: 'You cannot update this user.' });
     }
 
     if (email && email !== user.email) {
@@ -56,7 +56,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     if (roleName && roleName !== user.role?.name) {
       if (!isAdmin) {
-        return res.status(403).json({ message: 'Only administrators can change user roles.' });
+        return res.status(403).json({ message: 'Only admins can change roles.' });
       }
       const role = await Role.findOne({ name: roleName });
       if (!role) {
@@ -68,7 +68,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (departmentId !== undefined) {
       const currentDepartmentId = user.department ? user.department.toString() : '';
       if (!isAdmin && departmentId !== currentDepartmentId) {
-        return res.status(403).json({ message: 'Only administrators can change departments.' });
+        return res.status(403).json({ message: 'Only admins can change departments.' });
       }
       if (departmentId) {
         const department = await Department.findById(departmentId);
@@ -104,14 +104,14 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     if (typeof isActive === 'boolean') {
       if (!isAdmin) {
-        return res.status(403).json({ message: 'Only administrators can change active status.' });
+        return res.status(403).json({ message: 'Only admins can change status.' });
       }
       user.isActive = isActive;
     }
 
     if (typeof password === 'string' && password.trim()) {
       if (!isSelf && !canManageUsers) {
-        return res.status(403).json({ message: 'Only administrators, ICT Admins, or HR Officers can update passwords for other users.' });
+        return res.status(403).json({ message: 'Only admins can change other passwords.' });
       }
       user.password = await bcrypt.hash(password.trim(), 10);
     }
@@ -138,9 +138,9 @@ router.delete('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, re
     }
 
     await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User deleted successfully' });
+    res.json({ message: 'User deleted.' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to delete user', error: error.message });
+    res.status(500).json({ message: 'Could not delete user.', error: error.message });
   }
 });
 
@@ -154,12 +154,12 @@ router.post('/:id/avatar', verifyToken, upload.single('avatar'), async (req, res
     const isAdmin = ['Super Admin', 'ICT Admin', 'HR Officer'].includes(req.user.role?.name);
     if (!isSelf && !isAdmin) return res.status(403).json({ message: 'Not authorized' });
 
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ message: 'No file selected.' });
     user.profilePic = `/uploads/avatars/${req.file.filename}`;
     await user.save();
-    res.json({ message: 'Avatar uploaded', profilePic: user.profilePic });
+    res.json({ message: 'Avatar updated.', profilePic: user.profilePic });
   } catch (err) {
-    res.status(500).json({ message: 'Upload failed', error: err.message });
+    res.status(500).json({ message: 'Upload failed.', error: err.message });
   }
 });
 

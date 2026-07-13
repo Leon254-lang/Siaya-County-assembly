@@ -65,11 +65,11 @@ export default function ManageUsers() {
     const mode = searchParams.get('mode');
     if (mode === 'create') {
       setShowCreateForm(true);
-      setMessage('Create a new user account from the form below.');
+      setMessage('Create a new account below.');
     }
     if (mode === 'reset') {
       setShowCreateForm(false);
-      setMessage('Select a user and use Edit to reset their password.');
+      setMessage('Select a user and edit their account to reset the password.');
     }
   }, [searchParams]);
 
@@ -161,7 +161,7 @@ export default function ManageUsers() {
   return (
     <div className="card">
       <h1>Manage Users</h1>
-      <p>Use this page to create new accounts, update staff details, reset passwords, and activate or deactivate access for assembly users.</p>
+      <p>Create accounts, update staff details, reset passwords, and manage access here.</p>
 
       {message && <div className="message">{message}</div>}
 

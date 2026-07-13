@@ -102,7 +102,7 @@ export default function MyRequests() {
   return (
     <div className="card">
       <h1>My Procurement Requests</h1>
-      <p>View and complete requisitions requested by your department.</p>
+      <p>View and complete department requisitions.</p>
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <button onClick={fetchMyRequests}>Refresh</button>
@@ -177,7 +177,7 @@ export default function MyRequests() {
               </div>
             </div>
           ) : (
-            <div style={{ color: '#6b7280' }}><p>Select a requisition to view and complete it.</p></div>
+            <div style={{ color: '#6b7280' }}><p>Select a requisition to continue.</p></div>
           )}
         </div>
       </div>

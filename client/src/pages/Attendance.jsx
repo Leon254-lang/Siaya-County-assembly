@@ -201,12 +201,12 @@ export default function Attendance() {
 
   const handleCheckIn = async () => {
     if (!checkInOutForm.latitude || !checkInOutForm.longitude) {
-      alert('Location is required. Please verify your device location before checking in.');
+      alert('Enable location before checking in.');
       return;
     }
 
     if (!isWithinPremises(checkInOutForm.latitude, checkInOutForm.longitude)) {
-      alert('You must be within the Siaya County Assembly premises to sign in.');
+      alert('You must be on site to check in.');
       return;
     }
 
@@ -215,7 +215,7 @@ export default function Attendance() {
       setCurrentAttendance(response.data);
       setShowCheckInOut(false);
       fetchAttendanceRecords();
-      alert('Checked in successfully!');
+      alert('Checked in.');
     } catch (error) {
       alert(error.response?.data?.message || 'Check-in failed');
     }
@@ -223,12 +223,12 @@ export default function Attendance() {
 
   const handleCheckOut = async () => {
     if (!checkInOutForm.latitude || !checkInOutForm.longitude) {
-      alert('Location is required. Please verify your device location before checking out.');
+      alert('Enable location before checking out.');
       return;
     }
 
     if (!isWithinPremises(checkInOutForm.latitude, checkInOutForm.longitude)) {
-      alert('You must be within the Siaya County Assembly premises to sign out.');
+      alert('You must be on site to check out.');
       return;
     }
 
@@ -237,7 +237,7 @@ export default function Attendance() {
       setCurrentAttendance(response.data);
       setShowCheckInOut(false);
       fetchAttendanceRecords();
-      alert('Checked out successfully!');
+      alert('Checked out.');
     } catch (error) {
       alert(error.response?.data?.message || 'Check-out failed');
     }
@@ -247,7 +247,7 @@ export default function Attendance() {
     try {
       const response = await api.post('/attendance/generate-qr', { expiresIn: 24 });
       setQrCode(response.data);
-      alert('QR code generated successfully!');
+      alert('QR code generated.');
     } catch (error) {
       alert(error.response?.data?.message || 'QR generation failed');
     }
@@ -265,7 +265,7 @@ export default function Attendance() {
         reason: ''
       });
       fetchLeaveRequests();
-      alert('Leave request submitted successfully!');
+      alert('Leave request submitted.');
     } catch (error) {
       alert(error.response?.data?.message || 'Leave request failed');
     }
@@ -303,7 +303,7 @@ export default function Attendance() {
       const response = await api.get(`/attendance/report?startDate=${startDate}&endDate=${endDate}`);
       setShowReport(response.data);
     } catch (error) {
-      alert('Failed to generate report');
+      alert('Could not generate report');
     }
   };
 
@@ -734,7 +734,7 @@ export default function Attendance() {
                     </p>
                   )}
                   {geoLocation.status === 'not-detected' && (
-                    <p style={{ margin: '0.5rem 0' }}>Location must be enabled on your device before you can sign attendance.</p>
+                    <p style={{ margin: '0.5rem 0' }}>Turn on location to check in.</p>
                   )}
                 </div>
 
@@ -882,7 +882,7 @@ export default function Attendance() {
               {qrCode.qrCode}
             </div>
             <p><strong>Expires:</strong> {new Date(qrCode.expiresAt).toLocaleString()}</p>
-            <p>Use this QR code for attendance check-in/check-out</p>
+            <p>Use this QR code to check in or out.</p>
             <button onClick={() => setQrCode(null)} style={{ marginTop: '1rem' }}>Close</button>
           </div>
         </div>

@@ -8,8 +8,8 @@ export default function MediaPost() {
   if (!item) {
     return (
       <div className="page">
-        <h1>Media item not found</h1>
-        <p>The requested media item was not found. Please return to the media center.</p>
+        <h1>Media not found</h1>
+        <p>This item is not available. Return to the media center.</p>
         <Link to="/media" className="link-arrow">
           ← Back to Media Center
         </Link>

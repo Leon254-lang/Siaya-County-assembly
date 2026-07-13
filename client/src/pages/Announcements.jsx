@@ -31,7 +31,7 @@ export default function Announcements() {
       setAnnouncements(response.data);
     } catch (error) {
       console.error('Failed to load announcements:', error);
-      setMessage('Unable to load announcements at this time.');
+      setMessage('Unable to load announcements.');
     }
   };
 
@@ -58,11 +58,11 @@ export default function Announcements() {
       await api.post('/communications/announcements', payload);
       setForm({ title: '', body: '', type: 'announcement', targetDepartment: '' });
       setIsCreating(false);
-      setMessage('Announcement created successfully.');
+      setMessage('Announcement created.');
       fetchAnnouncements();
     } catch (error) {
       console.error('Failed to create announcement:', error);
-      setMessage(error.response?.data?.message || 'Failed to create announcement.');
+      setMessage(error.response?.data?.message || 'Could not create announcement.');
     }
   };
 
@@ -77,7 +77,7 @@ export default function Announcements() {
   return (
     <div className="card">
       <h1>Internal Communications</h1>
-      <p>Publish announcements and notices to departments, committees, and staff.</p>
+      <p>Publish notices for departments and staff.</p>
 
       {message && <div className="notification">{message}</div>}
 
@@ -141,7 +141,7 @@ export default function Announcements() {
       )}
 
       {announcements.length === 0 ? (
-        <p>No announcements or notices found.</p>
+        <p>No announcements found.</p>
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {announcements.map((item) => (

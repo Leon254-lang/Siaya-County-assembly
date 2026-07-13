@@ -55,7 +55,7 @@ export default function Feedback() {
       setItems(response.data);
     } catch (error) {
       console.error('Failed to load public participation items:', error);
-      setMessage('Unable to load public participation data.');
+      setMessage('Unable to load data.');
     }
   };
 
@@ -87,10 +87,10 @@ export default function Feedback() {
       setItems((prev) => [response.data, ...prev]);
       setSelectedItem(response.data);
       resetForm();
-      setMessage('Public participation item created.');
+      setMessage('Item created.');
     } catch (error) {
       console.error('Failed to create item:', error);
-      setMessage('Unable to create public participation item.');
+      setMessage('Could not create item.');
     }
   };
 
@@ -111,10 +111,10 @@ export default function Feedback() {
       const response = await api.put(`/feedback/${selectedItem._id}`, payload);
       setSelectedItem(response.data);
       setItems((prev) => prev.map((item) => (item._id === response.data._id ? response.data : item)));
-      setMessage('Item published successfully.');
+      setMessage('Item published.');
     } catch (error) {
       console.error('Failed to publish item:', error);
-      setMessage('Unable to publish item.');
+      setMessage('Could not publish item.');
     }
   };
 
@@ -131,10 +131,10 @@ export default function Feedback() {
       setSelectedItem(response.data);
       setItems((prev) => prev.map((item) => (item._id === response.data._id ? response.data : item)));
       setCommentForm(initialCommentForm);
-      setMessage('Comment submitted.');
+      setMessage('Comment sent.');
     } catch (error) {
       console.error('Failed to submit comment:', error);
-      setMessage('Unable to submit comment.');
+      setMessage('Could not send comment.');
     }
   };
 
@@ -151,10 +151,10 @@ export default function Feedback() {
       setSelectedItem(response.data);
       setItems((prev) => prev.map((item) => (item._id === response.data._id ? response.data : item)));
       setRegistrationForm(initialRegistrationForm);
-      setMessage('Event registration submitted.');
+      setMessage('Registration submitted.');
     } catch (error) {
       console.error('Failed to register for event:', error);
-      setMessage('Unable to submit event registration.');
+      setMessage('Could not submit registration.');
     }
   };
 
@@ -174,8 +174,8 @@ export default function Feedback() {
   return (
     <div className="page-shell">
       <div className="page-header">
-        <h1>Public Participation Management</h1>
-        <p>Publish bills and notices, collect citizen comments, manage event registrations, and track feedback reports.</p>
+        <h1>Public Participation</h1>
+        <p>Publish notices, collect comments, and manage event registrations.</p>
       </div>
 
       <div className="dashboard-grid">
@@ -283,7 +283,7 @@ export default function Feedback() {
                 {item.publishedOn && <span className="asset-meta">Published: {new Date(item.publishedOn).toLocaleDateString()}</span>}
               </button>
             ))}
-            {items.length === 0 && <p>No public participation items available yet.</p>}
+            {items.length === 0 && <p>No items available.</p>}
           </div>
         </section>
       </div>
