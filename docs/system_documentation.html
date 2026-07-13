@@ -1,10 +1,353 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>ICAMS Documentation</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.5; color: #1f2937; max-width: 900px; margin: 40px auto; padding: 0 20px; }
-    h1, h2, h3 { color: #0f172a; }
-    code { background: #f3f4f6; padding: 2px 4px; }
-    pre { background: #f8fafc; padding: 12px; overflow-x: auto; }
-  </style></head>
-  <body># Integrated County Assembly Management System (ICAMS) Documentation<br/><br/>## 1. Overview<br/>Integrated County Assembly Management System (ICAMS) is a web-based platform designed to centralize and digitize operational workflows for a county assembly. It supports administrative, legislative, HR, finance, procurement, attendance, visitor, and public engagement functions in a single system.<br/><br/>## 2. Purpose<br/>The system is intended to:<br/>- streamline internal operations for county assembly staff<br/>- improve service delivery to members of the public<br/>- maintain audit trails and accountability<br/>- provide role-based access to sensitive records<br/>- support document, meeting, request, and attendance tracking<br/><br/>## 3. Core Functional Modules<br/><br/>### 3.1 Authentication and User Management<br/>- User registration and login<br/>- Role-based access control<br/>- Password-protected sessions<br/>- Admin user management<br/>- User roles such as Super Admin, ICT Admin, HR Officer, Clerk, Procurement Officer, and general users<br/><br/>### 3.2 Dashboard<br/>- Personalized landing page after authentication<br/>- Summary of upcoming meetings, reminders, and announcements<br/>- Administrative overview for privileged users<br/>- Quick links to major modules<br/><br/>### 3.3 Document Management<br/>- Create, edit, view, and track documents<br/>- Document numbering and metadata management<br/>- Upload and download attachments<br/>- Assign documents, move them through departments, and maintain workflow history<br/>- Support for bills, memos, letters, minutes, and reports<br/><br/>### 3.4 Attendance and Leave Management<br/>- Staff attendance tracking<br/>- Leave request submission and approval flows<br/>- Attendance summaries and reports<br/>- Support for attendance-related administrative oversight<br/><br/>### 3.5 Meetings and Sessions<br/>- Schedule meetings and sessions<br/>- View meeting reminders and calendars<br/>- Manage committee and assembly-related events<br/><br/>### 3.6 Committees and Leadership<br/>- Maintain committees and leadership profiles<br/>- Support council and parliamentary-related organization structure<br/><br/>### 3.7 Visitors and Public Participation<br/>- Register visitor details<br/>- Capture feedback and public engagement data<br/>- Manage complaints and support requests<br/><br/>### 3.8 Assets and Network Devices<br/>- Track assembly assets<br/>- Monitor devices and infrastructure records<br/><br/>### 3.9 Procurement and Stores<br/>- Manage procurement requests<br/>- Track store inventory and related workflows<br/>- Support registry-linked procurement operations<br/><br/>### 3.10 Finance and Bills<br/>- Manage financial records<br/>- Handle bills and finance-related records<br/><br/>### 3.11 HR and Appraisals<br/>- Manage staff-related HR workflows<br/>- Handle internships, attachees, appraisals, and HR records<br/><br/>### 3.12 Communications and Media<br/>- Publish announcements and notices<br/>- Manage media centre posts and public communications<br/><br/>### 3.13 Audit and Monitoring<br/>- Maintain audit logs for system activity<br/>- Support oversight for administrative actions<br/><br/>## 4. User Roles<br/>The system supports several user roles with varying permissions:<br/>- Super Admin<br/>- ICT Admin<br/>- HR Officer<br/>- Clerk<br/>- Procurement Officer<br/>- Registry<br/>- General users<br/><br/>## 5. Typical Business Workflows<br/><br/>### 5.1 Login Flow<br/>1. User enters credentials on the login page.<br/>2. Backend authenticates the user.<br/>3. A token is issued and stored locally.<br/>4. The user is redirected to the dashboard or authorized page.<br/><br/>### 5.2 Document Workflow<br/>1. A user creates a document with metadata.<br/>2. The document is submitted for review.<br/>3. It can be assigned to a department or user.<br/>4. The document can be approved, rejected, archived, or moved.<br/>5. Actions are recorded in the audit trail.<br/><br/>### 5.3 Leave Workflow<br/>1. Staff submits leave request.<br/>2. The system captures leave type, dates, and supporting information.<br/>3. The request is routed for approval.<br/>4. The leave record is updated in the attendance/HR module.<br/><br/>### 5.4 Procurement Workflow<br/>1. A request is created.<br/>2. It is routed for review and approval.<br/>3. The request is tracked through procurement and registry processes.<br/>4. Records are stored for accountability.<br/><br/>## 6. Technical Architecture<br/><br/>### 6.1 Frontend<br/>- React application with Vite<br/>- Client-side routing using React Router<br/>- Reusable UI components and pages<br/><br/>### 6.2 Backend<br/>- Node.js + Express server<br/>- RESTful API routes<br/>- Authentication using JSON Web Tokens<br/>- MongoDB database via Mongoose<br/><br/>### 6.3 File Handling<br/>- Upload support for attachments and documents<br/>- Static upload directories for files such as documents, avatars, leave files, procurement files, and meeting uploads<br/><br/>### 6.4 Security Considerations<br/>- Token-based access control<br/>- Role-based permissions for protected routes<br/>- Audit logging for sensitive actions<br/><br/>## 7. Main Routes<br/>The application exposes the following major route groups:<br/>- /dashboard<br/>- /login<br/>- /register<br/>- /documents<br/>- /attendance<br/>- /meetings<br/>- /committees<br/>- /visitors<br/>- /assets<br/>- /tickets<br/>- /interns<br/>- /finance<br/>- /procurement<br/>- /registry<br/>- /announcements<br/>- /messages<br/>- /audit-logs<br/>- /manage-users<br/>- /hr-appraisals<br/>- /hr<br/><br/>## 8. Deployment Notes<br/>- Backend can be run with npm start or npm run dev<br/>- Frontend can be started separately in the client folder<br/>- Environment configuration should define database and JWT settings<br/>- The app is designed to be deployed as a web application with MongoDB support<br/><br/>## 9. Summary<br/>ICAMS is a comprehensive digital platform for managing assembly operations, combining administrative, legislative, HR, finance, and public-service workflows in one secure system.<br/></body></html>
+<html><head><meta charset="utf-8"><title>ICAMS Documentation</title>
+<style>
+@page { size: A4; margin: 18mm; }
+body{font-family:Arial,Helvetica,sans-serif;line-height:1.45;color:#1f2937;max-width:900px;margin:0 auto;padding:6px 4px;}
+h1,h2,h3{color:#0f172a;font-family:Georgia,Times New Roman,serif;}
+h1{font-size:24px;border-bottom:2px solid #2563eb;padding-bottom:8px;margin-top:0;}
+h2{font-size:18px;margin-top:24px;page-break-after:avoid;}
+h3{font-size:15px;margin-top:14px;}
+p,li{margin:6px 0;font-size:13px;}
+ul{padding-left:20px;margin:6px 0;}
+.cover{border:1px solid #d1d5db;padding:30px 24px;border-radius:12px;background:linear-gradient(135deg,#f8fafc,#eff6ff);text-align:center;page-break-after:always;}
+.logo{width:90px;height:90px;border-radius:50%;background:#2563eb;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:34px;font-weight:bold;margin-bottom:16px;}
+.toc{margin-top:10px;padding-left:8px;}
+.signoff{margin-top:28px;padding-top:12px;border-top:1px solid #d1d5db;}
+</style></head><body>
+<div class="cover">
+<div class="logo">SA</div>
+<h1 style="border:none;margin-bottom:8px;">Integrated County Assembly Management System</h1>
+<h2 style="margin-top:6px;">System Documentation</h2>
+<p><strong>Prepared for:</strong> Siaya County Assembly</p>
+<p><strong>Document Type:</strong> Functional, Administrative, and User-Role Documentation</p>
+<p><strong>Version:</strong> 1.0</p>
+<p><strong>Prepared on:</strong> 13 July 2026</p>
+</div>
+<h2>Table of Contents</h2>
+<div class="toc">
+<p><strong>Executive Summary</strong></p>
+<p><strong>1. Overview</strong></p>
+<p><strong>2. Purpose</strong></p>
+<p><strong>3. Core Functional Modules</strong></p>
+<p style="margin-left:16px;">3.1 Authentication and User Management</p>
+<p style="margin-left:16px;">3.2 Dashboard</p>
+<p style="margin-left:16px;">3.3 Document Management</p>
+<p style="margin-left:16px;">3.4 Attendance and Leave Management</p>
+<p style="margin-left:16px;">3.5 Meetings and Sessions</p>
+<p style="margin-left:16px;">3.6 Committees and Leadership</p>
+<p style="margin-left:16px;">3.7 Visitors and Public Participation</p>
+<p style="margin-left:16px;">3.8 Assets and Network Devices</p>
+<p style="margin-left:16px;">3.9 Procurement and Stores</p>
+<p style="margin-left:16px;">3.10 Finance and Bills</p>
+<p style="margin-left:16px;">3.11 HR and Appraisals</p>
+<p style="margin-left:16px;">3.12 Communications and Media</p>
+<p style="margin-left:16px;">3.13 Audit and Monitoring</p>
+<p><strong>4. User Roles</strong></p>
+<p><strong>5. How Each User Should Use the System</strong></p>
+<p style="margin-left:16px;">5.1 Super Admin</p>
+<p style="margin-left:16px;">5.2 ICT Admin</p>
+<p style="margin-left:16px;">5.3 HR Officer</p>
+<p style="margin-left:16px;">5.4 Clerk</p>
+<p style="margin-left:16px;">5.5 Procurement Officer</p>
+<p style="margin-left:16px;">5.6 Registry</p>
+<p style="margin-left:16px;">5.7 General Users</p>
+<p><strong>6. Typical Business Workflows</strong></p>
+<p style="margin-left:16px;">6.1 Login Flow</p>
+<p style="margin-left:16px;">6.2 Document Workflow</p>
+<p style="margin-left:16px;">6.3 Leave Workflow</p>
+<p style="margin-left:16px;">6.4 Procurement Workflow</p>
+<p><strong>7. Technical Architecture</strong></p>
+<p style="margin-left:16px;">7.1 Frontend</p>
+<p style="margin-left:16px;">7.2 Backend</p>
+<p style="margin-left:16px;">7.3 File Handling</p>
+<p style="margin-left:16px;">7.4 Security Considerations</p>
+<p><strong>8. Main Routes</strong></p>
+<p><strong>9. Deployment Notes</strong></p>
+<p><strong>10. Version History</strong></p>
+<p><strong>11. Approval and Sign-off</strong></p>
+<p><strong>12. Summary</strong></p>
+</div>
+<div style="page-break-before:always"></div>
+<h1>Integrated County Assembly Management System (ICAMS) Documentation</h1>
+<div style="height:6px;"></div>
+<h2>Executive Summary</h2>
+<p>Integrated County Assembly Management System (ICAMS) is a centralized web-based platform designed to digitize and streamline county assembly operations. It supports document management, attendance, meetings, visitors, procurement, finance, HR, public participation, communications, and audit monitoring in one unified system. The platform is built for role-based access, accountability, and ease of daily administration.</p>
+<div style="height:6px;"></div>
+<h2>1. Overview</h2>
+<p>ICAMS provides a secure digital environment for county assembly staff and administrators to manage operations, records, requests, and communications. The system brings together core processes such as document tracking, attendance management, procurement workflow, HR administration, and public engagement into a single portal.</p>
+<div style="height:6px;"></div>
+<h2>2. Purpose</h2>
+<p>The system is intended to:</p>
+<ul>
+<li>streamline internal operations for county assembly staff</li>
+<li>improve service delivery to members of the public</li>
+<li>maintain audit trails and accountability</li>
+<li>provide role-based access to sensitive records</li>
+<li>support document, meeting, request, and attendance tracking</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>3. Core Functional Modules</h2>
+<div style="height:6px;"></div>
+<h3>3.1 Authentication and User Management</h3>
+<ul>
+<li>User registration and login</li>
+<li>Role-based access control</li>
+<li>Password-protected sessions</li>
+<li>Admin user management</li>
+<li>User roles such as Super Admin, ICT Admin, HR Officer, Clerk, Procurement Officer, Registry, and general users</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.2 Dashboard</h3>
+<ul>
+<li>Personalized landing page after authentication</li>
+<li>Summary of upcoming meetings, reminders, and announcements</li>
+<li>Administrative overview for privileged users</li>
+<li>Quick links to major modules</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.3 Document Management</h3>
+<ul>
+<li>Create, edit, view, and track documents</li>
+<li>Document numbering and metadata management</li>
+<li>Upload and download attachments</li>
+<li>Assign documents, move them through departments, and maintain workflow history</li>
+<li>Support for bills, memos, letters, minutes, and reports</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.4 Attendance and Leave Management</h3>
+<ul>
+<li>Staff attendance tracking</li>
+<li>Leave request submission and approval flows</li>
+<li>Attendance summaries and reports</li>
+<li>Support for attendance-related administrative oversight</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.5 Meetings and Sessions</h3>
+<ul>
+<li>Schedule meetings and sessions</li>
+<li>View meeting reminders and calendars</li>
+<li>Manage committee and assembly-related events</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.6 Committees and Leadership</h3>
+<ul>
+<li>Maintain committees and leadership profiles</li>
+<li>Support council and parliamentary-related organization structure</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.7 Visitors and Public Participation</h3>
+<ul>
+<li>Register visitor details</li>
+<li>Capture feedback and public engagement data</li>
+<li>Manage complaints and support requests</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.8 Assets and Network Devices</h3>
+<ul>
+<li>Track assembly assets</li>
+<li>Monitor devices and infrastructure records</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.9 Procurement and Stores</h3>
+<ul>
+<li>Manage procurement requests</li>
+<li>Track store inventory and related workflows</li>
+<li>Support registry-linked procurement operations</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.10 Finance and Bills</h3>
+<ul>
+<li>Manage financial records</li>
+<li>Handle bills and finance-related records</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.11 HR and Appraisals</h3>
+<ul>
+<li>Manage staff-related HR workflows</li>
+<li>Handle internships, attachees, appraisals, and HR records</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.12 Communications and Media</h3>
+<ul>
+<li>Publish announcements and notices</li>
+<li>Manage media centre posts and public communications</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>3.13 Audit and Monitoring</h3>
+<ul>
+<li>Maintain audit logs for system activity</li>
+<li>Support oversight for administrative actions</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>4. User Roles</h2>
+<p>The system supports several user roles with varying permissions:</p>
+<ul>
+<li>Super Admin</li>
+<li>ICT Admin</li>
+<li>HR Officer</li>
+<li>Clerk</li>
+<li>Procurement Officer</li>
+<li>Registry</li>
+<li>General users</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>5. How Each User Should Use the System</h2>
+<div style="height:6px;"></div>
+<h3>5.1 Super Admin</h3>
+<ul>
+<li>Manage system-wide settings and user accounts.</li>
+<li>Approve or monitor critical administrative actions.</li>
+<li>Review audit logs, manage roles, and oversee high-level operations.</li>
+<li>Use the dashboard to monitor activity across modules.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.2 ICT Admin</h3>
+<ul>
+<li>Maintain system access, technical operations, and digital infrastructure.</li>
+<li>Manage users, monitor system health, and review audit-related events.</li>
+<li>Support department-level system use and troubleshoot access issues.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.3 HR Officer</h3>
+<ul>
+<li>Manage staff records, leave requests, internships, attachees, and appraisal workflows.</li>
+<li>Review HR-related requests and update personnel information.</li>
+<li>Use the HR and attendance modules to support staff administration.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.4 Clerk</h3>
+<ul>
+<li>Coordinate administrative and legislative operations.</li>
+<li>Manage meetings, documents, schedules, and official records.</li>
+<li>Use the system as the operational hub for assembly correspondence and support functions.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.5 Procurement Officer</h3>
+<ul>
+<li>Create and review procurement requests.</li>
+<li>Track procurement-related records, stores, and associated approvals.</li>
+<li>Use the procurement and registry modules to maintain accountability.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.6 Registry</h3>
+<ul>
+<li>Process registry-related documents and requests.</li>
+<li>Maintain records that support procurement and administrative workflows.</li>
+<li>Ensure document movement and record handling are properly tracked.</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>5.7 General Users</h3>
+<ul>
+<li>Log in to access the dashboard and relevant personal modules.</li>
+<li>Submit requests, view announcements, and interact with assigned workflows.</li>
+<li>Use the system for daily operational tasks according to their assigned role.</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>6. Typical Business Workflows</h2>
+<div style="height:6px;"></div>
+<h3>6.1 Login Flow</h3>
+<p>1. User enters credentials on the login page.</p>
+<p>2. Backend authenticates the user.</p>
+<p>3. A token is issued and stored locally.</p>
+<p>4. The user is redirected to the dashboard or authorized page.</p>
+<div style="height:6px;"></div>
+<h3>6.2 Document Workflow</h3>
+<p>1. A user creates a document with metadata.</p>
+<p>2. The document is submitted for review.</p>
+<p>3. It can be assigned to a department or user.</p>
+<p>4. The document can be approved, rejected, archived, or moved.</p>
+<p>5. Actions are recorded in the audit trail.</p>
+<div style="height:6px;"></div>
+<h3>6.3 Leave Workflow</h3>
+<p>1. Staff submits leave request.</p>
+<p>2. The system captures leave type, dates, and supporting information.</p>
+<p>3. The request is routed for approval.</p>
+<p>4. The leave record is updated in the attendance/HR module.</p>
+<div style="height:6px;"></div>
+<h3>6.4 Procurement Workflow</h3>
+<p>1. A request is created.</p>
+<p>2. It is routed for review and approval.</p>
+<p>3. The request is tracked through procurement and registry processes.</p>
+<p>4. Records are stored for accountability.</p>
+<div style="height:6px;"></div>
+<h2>7. Technical Architecture</h2>
+<div style="height:6px;"></div>
+<h3>7.1 Frontend</h3>
+<ul>
+<li>React application with Vite</li>
+<li>Client-side routing using React Router</li>
+<li>Reusable UI components and pages</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>7.2 Backend</h3>
+<ul>
+<li>Node.js + Express server</li>
+<li>RESTful API routes</li>
+<li>Authentication using JSON Web Tokens</li>
+<li>MongoDB database via Mongoose</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>7.3 File Handling</h3>
+<ul>
+<li>Upload support for attachments and documents</li>
+<li>Static upload directories for files such as documents, avatars, leave files, procurement files, and meeting uploads</li>
+</ul>
+<div style="height:6px;"></div>
+<h3>7.4 Security Considerations</h3>
+<ul>
+<li>Token-based access control</li>
+<li>Role-based permissions for protected routes</li>
+<li>Audit logging for sensitive actions</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>8. Main Routes</h2>
+<p>The application exposes the following major route groups:</p>
+<ul>
+<li>/dashboard</li>
+<li>/login</li>
+<li>/register</li>
+<li>/documents</li>
+<li>/attendance</li>
+<li>/meetings</li>
+<li>/committees</li>
+<li>/visitors</li>
+<li>/assets</li>
+<li>/tickets</li>
+<li>/interns</li>
+<li>/finance</li>
+<li>/procurement</li>
+<li>/registry</li>
+<li>/announcements</li>
+<li>/messages</li>
+<li>/audit-logs</li>
+<li>/manage-users</li>
+<li>/hr-appraisals</li>
+<li>/hr</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>9. Deployment Notes</h2>
+<ul>
+<li>Backend can be run with npm start or npm run dev</li>
+<li>Frontend can be started separately in the client folder</li>
+<li>Environment configuration should define database and JWT settings</li>
+<li>The app is designed to be deployed as a web application with MongoDB support</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>10. Version History</h2>
+<ul>
+<li>Version 1.0 — Initial documentation release covering system overview, modules, workflows, roles, and deployment notes.</li>
+</ul>
+<div style="height:6px;"></div>
+<h2>11. Approval and Sign-off</h2>
+<p>Prepared by: ____________________________</p>
+<div style="height:6px;"></div>
+<p>Reviewed by: ____________________________</p>
+<div style="height:6px;"></div>
+<p>Approved by: ____________________________</p>
+<div style="height:6px;"></div>
+<p>Date: ____________________________</p>
+<div style="height:6px;"></div>
+<p>Position: ____________________________</p>
+<div style="height:6px;"></div>
+<h2>12. Summary</h2>
+<p>ICAMS is a comprehensive digital platform for managing assembly operations, combining administrative, legislative, HR, finance, and public-service workflows in one secure system. The documentation above explains how each user role should interact with the system to perform daily responsibilities efficiently and securely.</p></body></html>
