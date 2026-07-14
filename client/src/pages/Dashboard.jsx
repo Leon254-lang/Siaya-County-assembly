@@ -730,41 +730,43 @@ export default function Dashboard() {
 
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>⚙️ System Administration</h3>
-                <form onSubmit={handleAdministrationSave} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <form onSubmit={handleAdministrationSave} style={{ display: 'grid', gap: '0.75rem', marginTop: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
                     <input type="checkbox" checked={adminSettings.systemSettings} onChange={(event) => setAdminSettings((prev) => ({ ...prev, systemSettings: event.target.checked }))} />
-                    Enable core system settings
+                    Core settings
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
                     <input type="checkbox" checked={adminSettings.modulesEnabled} onChange={(event) => setAdminSettings((prev) => ({ ...prev, modulesEnabled: event.target.checked }))} />
-                    Enable application modules
+                    Application modules
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
                     <input type="checkbox" checked={adminSettings.emailNotifications} onChange={(event) => setAdminSettings((prev) => ({ ...prev, emailNotifications: event.target.checked }))} />
-                    Email notifications
+                    Email alerts
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
                     <input type="checkbox" checked={adminSettings.smsNotifications} onChange={(event) => setAdminSettings((prev) => ({ ...prev, smsNotifications: event.target.checked }))} />
-                    SMS notifications
+                    SMS alerts
                   </label>
-                  <label>
-                    Password policy
+                  <label style={{ display: 'grid', gap: '0.35rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Password policy</span>
                     <select value={adminSettings.passwordPolicy} onChange={(event) => setAdminSettings((prev) => ({ ...prev, passwordPolicy: event.target.value }))}>
                       <option value="Standard">Standard</option>
                       <option value="Strong">Strong</option>
                       <option value="Very Strong">Very Strong</option>
                     </select>
                   </label>
-                  <label>
-                    Session timeout (minutes)
+                  <label style={{ display: 'grid', gap: '0.35rem', background: '#f8fafc', padding: '0.6rem 0.7rem', borderRadius: '10px' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Session timeout</span>
                     <select value={adminSettings.sessionTimeout} onChange={(event) => setAdminSettings((prev) => ({ ...prev, sessionTimeout: event.target.value }))}>
-                      <option value="15">15</option>
-                      <option value="30">30</option>
-                      <option value="60">60</option>
-                      <option value="120">120</option>
+                      <option value="15">15 min</option>
+                      <option value="30">30 min</option>
+                      <option value="60">60 min</option>
+                      <option value="120">120 min</option>
                     </select>
                   </label>
-                  <button type="submit">Save administration settings</button>
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-start' }}>
+                    <button type="submit" style={{ padding: '0.6rem 0.9rem' }}>Save</button>
+                  </div>
                 </form>
               </div>
 
@@ -832,14 +834,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="card" style={{ marginTop: '1rem' }}>
-                <h3>📌 ICT Officer Focus</h3>
-                <ul>
-                  {ictResponsibilities.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
+
             </section>
           )}
 
@@ -859,14 +854,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-              <div className="card">
-                <h3>HR responsibilities</h3>
-                <ul>
-                  {hrResponsibilities.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
+
             </section>
           )}
 
