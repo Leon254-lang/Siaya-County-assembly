@@ -56,6 +56,7 @@ export default function Attendance() {
     endDate: '',
     reason: ''
   });
+  const [leaveError, setLeaveError] = useState('');
 
   const ASSEMBLY_PREMISES = {
     latitude: 0.051274198250157124,
@@ -285,13 +286,17 @@ export default function Attendance() {
         reason: reason?.trim() || ''
       });
 
+      setLeaveError('');
       setShowLeaveForm(false);
       setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '' });
       fetchLeaveRequests();
       alert('Leave request submitted.');
     } catch (error) {
       console.error('Leave submission error', error);
-      alert(error.response?.data?.message || 'Leave request failed');
+      const serverData = error.response?.data;
+      const message = serverData?.message || serverData || error.message || 'Leave request failed';
+      setLeaveError(typeof message === 'string' ? message : JSON.stringify(message));
+      alert(message);
     }
   };
 
@@ -865,6 +870,11 @@ export default function Attendance() {
                   <button type="button" onClick={() => setShowLeaveForm(false)}>Cancel</button>
                   <button type="submit">Submit Request</button>
                 </div>
+                {leaveError && (
+                  <div style={{ marginTop: '0.5rem', color: '#b91c1c', background: '#fee2e2', padding: '0.5rem', borderRadius: '6px' }}>
+                    <strong>Error:</strong> {leaveError}
+                  </div>
+                )}
               </div>
             </form>
           </div>
