@@ -75,11 +75,11 @@ const LeaveSchema = new mongoose.Schema({
   },
 });
 
-// Calculate days requested automatically
-LeaveSchema.pre('save', function(next) {
+// Calculate days requested automatically before validation
+LeaveSchema.pre('validate', function(next) {
   if (this.startDate && this.endDate) {
     const diffTime = Math.abs(this.endDate - this.startDate);
-    this.daysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    this.daysRequested = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
   }
   next();
 });
