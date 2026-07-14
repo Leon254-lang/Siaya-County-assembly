@@ -256,17 +256,41 @@ export default function Attendance() {
   const handleLeaveRequest = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/leave', leaveForm);
-      setShowLeaveForm(false);
-      setLeaveForm({
-        type: 'annual',
-        startDate: '',
-        endDate: '',
-        reason: ''
+      // Basic client-side validation to give faster, clearer feedback
+      const { startDate, endDate, reason, type } = leaveForm;
+      if (!startDate || !endDate) return alert('Please select both start and end dates.');
+
+      // Normalize dates to local midnight to avoid timezone surprises
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start) || isNaN(end)) return alert('Please provide valid dates.');
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const minStart = new Date(today);
+      minStart.setDate(minStart.getDate() + 1); // must request at least one day before
+
+      if (start < minStart) return alert('Leave must start at least one day from today.');
+      if (end < start) return alert('End date must be the same or after the start date.');
+
+      // Send normalized ISO dates (local midnight) to server
+      const normalizedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate()).toISOString();
+      const normalizedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate()).toISOString();
+
+      await api.post('/leave', {
+        type: type || 'annual',
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
+        reason: reason?.trim() || ''
       });
+
+      setShowLeaveForm(false);
+      setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '' });
       fetchLeaveRequests();
       alert('Leave request submitted.');
     } catch (error) {
+      console.error('Leave submission error', error);
       alert(error.response?.data?.message || 'Leave request failed');
     }
   };
