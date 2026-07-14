@@ -21,17 +21,17 @@ const heroStats = [
   {
     label: 'Live modules',
     value: '12',
-    detail: 'Manage documents, attendance, meetings, and feedback in one place.',
+    detail: 'Core workflows in one place.',
   },
   {
     label: 'Meeting schedules',
     value: '8+',
-    detail: 'View confirmed sittings and committee schedules.',
+    detail: 'Confirmed sittings and committee plans.',
   },
   {
     label: 'Public feedback',
     value: 'Open',
-    detail: 'Receive and manage public submissions and enquiries.',
+    detail: 'Public input and updates are tracked.',
   },
 ];
 
@@ -40,19 +40,19 @@ const imageFallback = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/s
 const features = [
   {
     title: 'Citizen Services',
-    description: 'Access participation, feedback, and notices in one place.',
+    description: 'Public participation and notices in one place.',
   },
   {
     title: 'Operational Transparency',
-    description: 'Track meetings, documents, and workflows clearly.',
+    description: 'Meetings, documents, and workflows at a glance.',
   },
   {
     title: 'Staff Collaboration',
-    description: 'Coordinate attendance, assets, visitors, and interns.',
+    description: 'Attendance, assets, visitors, and interns together.',
   },
   {
     title: 'Secure Administration',
-    description: 'Manage records with role-based access and audit trails.',
+    description: 'Role-based access and audit-ready records.',
   },
 ];
 
@@ -60,19 +60,19 @@ const quickLinks = [
   {
     title: 'Know Your Leaders',
     logo: '👥',
-    description: 'See profiles for the Speaker, MCAs, committees, and senior officials.',
+    description: 'Speaker and MCA profiles.',
     path: '/leaders',
   },
   {
     title: 'Frequently Asked Questions',
     logo: '❓',
-    description: 'Find answers to common questions about county services.',
+    description: 'Answers to common service questions.',
     path: '/faq',
   },
   {
     title: 'Media Center',
     logo: '📺',
-    description: 'See the latest news, events, and media updates.',
+    description: 'News, events, and media updates.',
     path: '/media',
   },
 ];
@@ -252,21 +252,18 @@ export default function Dashboard() {
 
 
   const hrQuickActions = [
-    { title: 'Start appraisal', icon: '📝', description: 'Generate a new appraisal for a staff member.', path: '/hr-appraisals' },
-    { title: 'Review performance', icon: '✅', description: 'Mark appraisals as reviewed after manager approval.', path: '/hr-appraisals' },
-    { title: 'View HR records', icon: '📁', description: 'Open the HR workspace for attendance and staff documents.', path: '/attendance' },
+    { title: 'Start appraisal', icon: '📝', description: 'Create a new staff appraisal.', path: '/hr-appraisals' },
+    { title: 'Review performance', icon: '✅', description: 'Mark completed reviews.', path: '/hr-appraisals' },
+    { title: 'View HR records', icon: '📁', description: 'Open the HR workspace.', path: '/attendance' },
   ];
 
   const ictQuickActions = [
-    { title: 'Add User', icon: '➕', description: 'Create a new staff account and assign a role.', path: '/manage-users?mode=create' },
-    { title: 'Reset Password', icon: '🔑', description: 'Update a staff password from the user management screen.', path: '/manage-users?mode=reset' },
-    { title: 'Register ICT Asset', icon: '🖥️', description: 'Register new computers, printers, scanners and related equipment.', path: '/network-devices' },
-    { title: 'Backup Database', icon: '💾', description: 'Review the backup and continuity status from the administration workspace.', path: '/audit-logs' },
-    { title: 'Restore Backup', icon: '↩️', description: 'Open the security and audit workspace to verify and restore backup history.', path: '/audit-logs' },
-    { title: 'View Audit Logs', icon: '🧾', description: 'Review user actions, access changes and key system events.', path: '/audit-logs' },
-    { title: 'Resolve Support Ticket', icon: '🛠️', description: 'Work through helpdesk issues and update ticket status.', path: '/tickets' },
-    { title: 'Send Announcement', icon: '📢', description: 'Publish notices and internal communications to staff.', path: '/announcements' },
-    { title: 'Generate Reports', icon: '📊', description: 'Open the reporting and document workspace for operational reports.', path: '/documents' },
+    { title: 'Add User', icon: '➕', description: 'Create a staff account.', path: '/manage-users?mode=create' },
+    { title: 'Reset Password', icon: '🔑', description: 'Update a staff password.', path: '/manage-users?mode=reset' },
+    { title: 'Register ICT Asset', icon: '🖥️', description: 'Log new devices and equipment.', path: '/network-devices' },
+    { title: 'Review Audit Logs', icon: '🧾', description: 'Check recent admin activity.', path: '/audit-logs' },
+    { title: 'Resolve Tickets', icon: '🛠️', description: 'Work through support requests.', path: '/tickets' },
+    { title: 'Share Notice', icon: '📢', description: 'Publish updates to staff.', path: '/announcements' },
   ];
 
   useEffect(() => {
@@ -386,43 +383,43 @@ export default function Dashboard() {
     {
       title: 'User Accounts',
       icon: '👤',
-      description: 'Create, edit, activate or deactivate staff accounts, reset passwords and manage roles.',
-      operations: ['Create accounts', 'Edit staff profiles', 'Reset passwords', 'Assign roles', 'Activate or disable access'],
+      description: 'Create and manage staff accounts.',
+      operations: ['Create accounts', 'Reset passwords', 'Assign roles'],
       path: '/manage-users',
     },
     {
       title: 'Departments & Teams',
       icon: '🏛️',
-      description: 'Add departments, assign users, transfer staff and maintain team structure.',
-      operations: ['Add departments', 'Assign staff', 'Transfer staff', 'View departmental lists', 'Manage module access'],
+      description: 'Keep departments and staff groups aligned.',
+      operations: ['Add departments', 'Assign staff', 'Transfer staff'],
       path: '/assets',
     },
     {
       title: 'Devices, Assets & Software',
       icon: '🖥️',
-      description: 'Register computers, printers, scanners, software and track maintenance history.',
-      operations: ['Register devices', 'Assign equipment', 'Track maintenance', 'Record disposal', 'Monitor inventory'],
+      description: 'Track equipment and support items.',
+      operations: ['Register devices', 'Track maintenance', 'Monitor inventory'],
       path: '/assets',
     },
     {
       title: 'Helpdesk & Support',
       icon: '🛠️',
-      description: 'Receive ICT support requests, assign tickets, update status and close resolved issues.',
-      operations: ['Create support tickets', 'Assign technicians', 'Track pending issues', 'Close resolved requests', 'Record maintenance reports'],
+      description: 'Manage ICT support requests.',
+      operations: ['Create tickets', 'Assign technicians', 'Close issues'],
       path: '/tickets',
     },
     {
       title: 'Security, Audit & Backup',
       icon: '🔐',
-      description: 'Review login history, audit entries, failed attempts and backup readiness from one place.',
-      operations: ['Review audit logs', 'Monitor failed logins', 'View access activity', 'Track backup status', 'Manage security alerts'],
+      description: 'Review access and system activity.',
+      operations: ['Review audit logs', 'Check backups', 'Track alerts'],
       path: '/audit-logs',
     },
     {
       title: 'Documents, Announcements & Reports',
       icon: '📁',
-      description: 'Publish notices, manage official documents and generate operational reports.',
-      operations: ['Upload templates', 'Publish announcements', 'Share notices', 'View document repository', 'Generate activity reports'],
+      description: 'Share notices and official documents.',
+      operations: ['Publish notices', 'View documents', 'Generate reports'],
       path: '/documents',
     },
   ];
@@ -437,8 +434,8 @@ export default function Dashboard() {
             <span className="hero-badge">Accessible</span>
             <span className="hero-badge">Real-time</span>
           </div>
-          <h1>Secure digital access to assembly services, meetings, documents and citizen engagement</h1>
-          <p>Manage county assembly operations, stay informed on sittings and announcements, and participate in public feedback from one central portal.</p>
+          <h1>One secure portal for assembly work and public services</h1>
+          <p>Manage meetings, documents, staff, and public feedback from one simple workspace.</p>
 
           <div className="hero-actions">
             <Link to="/login" className="hero-action">Secure Access</Link>
@@ -494,7 +491,7 @@ export default function Dashboard() {
         <div className="stat-card green">
           <span>Secure Access</span>
           <h3>Role-based</h3>
-          <p>Only authorized staff can register users, approve actions, and manage official records.</p>
+          <p>Only authorized staff can manage accounts and records.</p>
         </div>
       </section>
 
@@ -521,44 +518,29 @@ export default function Dashboard() {
               <Link to={link.path} className="link-arrow">→</Link>
             </div>
           ))}
-          {userRole === 'Super Admin' && (
-            <div className="quick-link-card">
-              <div className="link-logo">👤</div>
-              <h3>Manage Users</h3>
-              <p>Update staff details, roles, status and remove user accounts from one secure control page.</p>
-              <Link to="/manage-users" className="link-arrow">→</Link>
-            </div>
-          )}
-          {(userRole === 'Super Admin' || userRole === 'ICT Admin') && (
-            <div className="quick-link-card">
-              <div className="link-logo">🛡️</div>
-              <h3>Audit Logs</h3>
-              <p>Review system activity, user operations, and audit entries for secure administration.</p>
-              <Link to="/audit-logs" className="link-arrow">→</Link>
-            </div>
-          )}
+
         </div>
       </section>
 
       <div className="hero-feature-grid">
         <div className="info-card find-us-card">
           <h2>How to Find Us</h2>
-          <p>Our offices are located at the Siaya County Assembly Complex, along Riat Road in Siaya town. We are centrally positioned for easy access by county staff, residents, and visitors.</p>
+          <p>Visit the Siaya County Assembly Complex on Riat Road in Siaya town.</p>
           <ul>
-            <li>From Siaya town center: head east on Riat Road toward the county complex.</li>
-            <li>From Kisumu: take the Kisumu–Siaya Highway and continue onto Riat Road after entering Siaya town.</li>
-            <li>By public transport: use matatus and boda bodas serving Siaya town; ask for the County Assembly Complex stop.</li>
+            <li>From town center, head east on Riat Road.</li>
+            <li>From Kisumu, continue on the Siaya road into town.</li>
+            <li>Public transport to the County Assembly Complex is available.</li>
           </ul>
           <p><strong>Contact:</strong> +254 700 000 000 | <a href="mailto:info@siaya.go.ke">info@siaya.go.ke</a></p>
         </div>
 
         <div className="card summary-card">
           <h2>Integrated County Assembly Management System</h2>
-          <p>Streamline county operations with our comprehensive digital platform. Access all modules from the navigation above or explore the features below.</p>
+          <p>A simple digital platform for the Assembly’s daily operations and public services.</p>
           <ul>
-            <li>Single access point for documents, meetings, attendance and public participation.</li>
-            <li>Role-based controls for secure administration and audit-ready workflows.</li>
-            <li>Real-time updates for announcements, schedules and citizen feedback.</li>
+            <li>One place for documents, meetings, and participation.</li>
+            <li>Role-based access for secure administration.</li>
+            <li>Live updates for announcements and feedback.</li>
           </ul>
           {!isLoggedIn && (
             <div className="summary-actions">
@@ -641,7 +623,7 @@ export default function Dashboard() {
             <section className="modules-section">
               <div className="section-header theme-red">
                 <h2>💻 ICT Officer Dashboard</h2>
-                <p>Use this workspace as your operations center for users, assets, requests, security, and communications.</p>
+                <p>Manage users, assets, requests, and communications.</p>
               </div>
 
               <div className="dashboard-grid">
@@ -669,7 +651,6 @@ export default function Dashboard() {
 
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>⚡ Quick Actions</h3>
-                <p>These shortcuts give the ICT officer instant access to the most common administrative tasks.</p>
                 <div className="modules-grid">
                   {ictQuickActions.map((action) => (
                     <Link to={action.path} className="module-card" key={action.title}>
@@ -682,7 +663,6 @@ export default function Dashboard() {
 
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>🏛️ Department Management</h3>
-                <p>Create or update departments, review staff by department, and keep team assignments aligned.</p>
                 {departmentMessage && <div className="message">{departmentMessage}</div>}
                 <form onSubmit={handleDepartmentSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
                   <label>
@@ -750,7 +730,6 @@ export default function Dashboard() {
 
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>⚙️ System Administration</h3>
-                <p>Enable modules, configure email and SMS notifications, set password policy, and adjust session timeout settings.</p>
                 <form onSubmit={handleAdministrationSave} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <input type="checkbox" checked={adminSettings.systemSettings} onChange={(event) => setAdminSettings((prev) => ({ ...prev, systemSettings: event.target.checked }))} />
@@ -791,7 +770,6 @@ export default function Dashboard() {
 
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>📄 Document & File Operations</h3>
-                <p>Create official templates, notices, or templates for storage and share them with departments.</p>
                 {documentMessage && <div className="message">{documentMessage}</div>}
                 <form onSubmit={handleDocumentTemplateSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
                   <label>
@@ -855,8 +833,7 @@ export default function Dashboard() {
               </div>
 
               <div className="card" style={{ marginTop: '1rem' }}>
-                <h3>📌 ICT Officer Mandate & Responsibilities</h3>
-                <p>This workspace supports the ICT Officer’s core mandate for planning infrastructure, managing networks, securing systems and supporting Assembly operations.</p>
+                <h3>📌 ICT Officer Focus</h3>
                 <ul>
                   {ictResponsibilities.map((item) => (
                     <li key={item}>{item}</li>

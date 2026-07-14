@@ -40,10 +40,27 @@ export default function NavBar() {
 
   const getAllowedLinks = (role) => {
     const normalizedRole = normalizeRole(role);
+
+    if (normalizedRole === 'Super Admin') {
+      return [
+        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/manage-users', label: 'Users' },
+        { to: '/hr', label: 'HR' },
+        { to: '/procurement', label: 'Procurement' },
+        { to: '/finance', label: 'Finance' },
+        { to: '/documents', label: 'Documents' },
+        { to: '/announcements', label: 'Announcements' },
+        { to: '/meetings', label: 'Meetings' },
+        { to: '/audit-logs', label: 'Audit Logs' },
+        { to: '/tickets', label: 'Helpdesk' },
+        { to: '/feedback', label: 'Public' },
+      ];
+    }
+
     const allLinks = [
-    { to: '/leave-summary', label: 'Leave Summary', roles: ['HR Officer', 'Super Admin'] },
-    { to: '/hr', label: 'HR', roles: ['HR Officer', 'Super Admin'] },
-    { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
+      { to: '/leave-summary', label: 'Leave Summary', roles: ['HR Officer', 'Super Admin'] },
+      { to: '/hr', label: 'HR', roles: ['HR Officer', 'Super Admin'] },
+      { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
       { to: '/my-requests', label: 'My Requests', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
