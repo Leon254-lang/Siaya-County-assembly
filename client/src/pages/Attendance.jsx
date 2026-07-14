@@ -99,6 +99,7 @@ export default function Attendance() {
   const currentUserRole = normalizeRole(localStorage.getItem('userRole') || JSON.parse(localStorage.getItem('user') || 'null')?.role || '');
   const isHRRole = ['Super Admin', 'HR Officer'].includes(currentUserRole);
   const isClerkRole = ['Super Admin', 'Clerk'].includes(currentUserRole);
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -158,6 +159,7 @@ export default function Attendance() {
       fetchLeaveRequests();
     }
     checkCurrentAttendance();
+    checkActiveLeave();
   }, [activeTab, filters, pagination.currentPage]);
 
   const fetchAttendanceRecords = async () => {
@@ -194,6 +196,19 @@ export default function Attendance() {
       console.error('Failed to fetch leave requests:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check if current user has active leave (pending or approved) to disable new requests
+  const checkActiveLeave = async () => {
+    try {
+      const response = await api.get('/leave');
+      const myLeaves = response.data.requests || [];
+      const active = myLeaves.some(l => l.status === 'pending' || l.status === 'approved');
+      const btn = document.getElementById('request-leave-btn');
+      if (btn) btn.disabled = active;
+    } catch (err) {
+      console.error('Failed to check active leave:', err);
     }
   };
 
@@ -356,9 +371,24 @@ export default function Attendance() {
     try {
       await api.post(`/leave/${leaveId}/${action}`, payload);
       fetchLeaveRequests();
+      checkActiveLeave();
       alert(`Leave request ${action.replace(/-/g, ' ')} successfully!`);
     } catch (error) {
+      console.error('Leave action error', error);
       alert(error.response?.data?.message || `Leave ${action.replace(/-/g, ' ')} failed`);
+    }
+  };
+
+  const handleReportReturn = async (leaveId) => {
+    if (!confirm('Confirm you have returned from leave and want to mark it in the system?')) return;
+    try {
+      await api.post(`/leave/${leaveId}/return`);
+      fetchLeaveRequests();
+      checkActiveLeave();
+      alert('Return recorded. You can now request new leave.');
+    } catch (err) {
+      console.error('Return reporting failed', err);
+      alert(err.response?.data?.message || 'Failed to report return');
     }
   };
 
@@ -489,7 +519,7 @@ export default function Attendance() {
           )}
           {activeTab === 'leave' && (
             <>
-              <button onClick={() => {
+              <button id="request-leave-btn" onClick={() => {
         setShowLeaveForm(true);
         setLeaveError('');
       }}>📝 Request Leave</button>
@@ -702,7 +732,21 @@ export default function Attendance() {
                           </div>
                         )}
                         {request.workflowStage !== 'Submitted to HR' && request.workflowStage !== 'Submitted to Clerk' && (
-                          <span style={{ color: '#6b7280' }}>No action required</span>
+                          (() => {
+                            const requesterId = request.user?._id || request.user?.id;
+                            const meId = currentUser.id || currentUser._id;
+                            if (request.status === 'approved' && !request.returned && requesterId && meId && String(requesterId) === String(meId)) {
+                              return (
+                                <button
+                                  onClick={() => handleReportReturn(request._id)}
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                                >
+                                  🟢 Report Return
+                                </button>
+                              );
+                            }
+                            return <span style={{ color: '#6b7280' }}>No action required</span>;
+                          })()
                         )}
                       </td>
                     </tr>

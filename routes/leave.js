@@ -28,7 +28,15 @@ router.get('/', verifyToken, async (req, res) => {
 
     let query = {};
 
-    if (user) query.user = user;
+    // Only HR or Super Admin can query arbitrary users; normal users only see their own requests
+    const userRole = req.user.role?.name;
+    const isHr = ['Super Admin', 'HR Officer'].includes(userRole);
+    if (user && isHr) {
+      query.user = user;
+    } else if (!isHr) {
+      // restrict to current user's requests
+      query.user = req.user._id;
+    }
     if (status) query.status = status;
     if (type) query.type = type;
     if (startDate && endDate) {
@@ -121,6 +129,24 @@ router.post('/', verifyToken, async (req, res) => {
 
     if (end < start) {
       return res.status(400).json({ message: 'Leave end date must be the same as or after the start date.' });
+    }
+
+    // Prevent submitting a new request if user has an active pending or approved leave overlapping
+    const overlapping = await Leave.findOne({
+      user: req.user._id,
+      $or: [
+        { status: 'pending' },
+        { status: 'approved' }
+      ],
+      $or: [
+        { startDate: { $lte: end, $gte: start } },
+        { endDate: { $lte: end, $gte: start } },
+        { startDate: { $lte: start }, endDate: { $gte: end } }
+      ]
+    });
+
+    if (overlapping) {
+      return res.status(400).json({ message: 'You already have an overlapping or active leave (pending/approved). Please return from leave before requesting another.' });
     }
 
     const leaveRequest = new Leave({
