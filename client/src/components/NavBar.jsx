@@ -41,54 +41,59 @@ export default function NavBar() {
   const getAllowedLinks = (role) => {
     const normalizedRole = normalizeRole(role);
 
+    const superAdminLinks = [
+      { to: '/dashboard', label: 'Dashboard' },
+      { to: '/manage-users', label: 'Users' },
+      { to: '/hr', label: 'HR' },
+      { to: '/attendance', label: 'Attendance' },
+      { to: '/meetings', label: 'Meetings' },
+      { to: '/committees', label: 'Committees' },
+      { to: '/documents', label: 'Documents' },
+      { to: '/announcements', label: 'Announcements' },
+      { to: '/procurement', label: 'Procurement' },
+      { to: '/finance', label: 'Finance' },
+      { to: '/assets', label: 'Assets' },
+      { to: '/visitors', label: 'Visitors' },
+      { to: '/audit-logs', label: 'Audit Logs' },
+      { to: '/tickets', label: 'Helpdesk' },
+      { to: '/feedback', label: 'Public' },
+    ];
+
     if (normalizedRole === 'Super Admin') {
-      return [
-        { to: '/dashboard', label: 'Dashboard' },
-        { to: '/manage-users', label: 'Users' },
-        { to: '/hr', label: 'HR' },
-        { to: '/procurement', label: 'Procurement' },
-        { to: '/finance', label: 'Finance' },
-        { to: '/documents', label: 'Documents' },
-        { to: '/announcements', label: 'Announcements' },
-        { to: '/meetings', label: 'Meetings' },
-        { to: '/audit-logs', label: 'Audit Logs' },
-        { to: '/tickets', label: 'Helpdesk' },
-        { to: '/feedback', label: 'Public' },
-      ];
+      return superAdminLinks;
     }
 
     const allLinks = [
+      { to: '/dashboard', label: 'Dashboard', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'Registry', 'MCA', 'Intern', 'Security Officer'] },
+      { to: '/manage-users', label: 'Users', roles: ['Super Admin', 'ICT Admin', 'HR Officer', 'Clerk'] },
+      { to: '/hr', label: 'HR', roles: ['Super Admin', 'HR Officer'] },
       { to: '/leave-summary', label: 'Leave Summary', roles: ['HR Officer', 'Super Admin'] },
-      { to: '/hr', label: 'HR', roles: ['HR Officer', 'Super Admin'] },
-      { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
-      { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
-      { to: '/my-requests', label: 'My Requests', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
+      { to: '/manage-interns', label: 'Manage Interns', roles: ['HR Officer', 'Super Admin'] },
+      { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'ICT Admin', 'HR Officer', 'Clerk', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'Registry', 'MCA', 'Intern', 'Security Officer'] },
+      { to: '/meetings', label: 'Meetings', roles: ['Super Admin', 'Committee Officer', 'HR Officer', 'Clerk'] },
+      { to: '/committees', label: 'Committees', roles: ['Super Admin', 'Committee Officer', 'Clerk', 'HR Officer'] },
+      { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/messages', label: 'Messages', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
-      { to: '/audit-logs', label: 'Audit Logs', roles: ['Super Admin', 'ICT Admin'] },
-      { to: '/manage-users', label: 'Manage Users', roles: ['Super Admin', 'ICT Admin', 'HR Officer'] },
-      { to: '/committees', label: 'Committees', roles: ['Super Admin', 'Committee Officer', 'Clerk', 'HR Officer'] },
-      { to: '/attendance', label: 'Attendance', roles: ['Super Admin', 'ICT Admin', 'HR Officer', 'Clerk', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'Registry', 'MCA', 'Intern', 'Security Officer'] },
-      { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
-      { to: '/meetings', label: 'Meetings', roles: ['Super Admin', 'Committee Officer', 'HR Officer'] },
-      { to: '/sessions', label: 'Sessions', roles: ['Super Admin', 'Committee Officer', 'Clerk'] },
-      { to: '/mcas', label: 'MCA Dashboard', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk', 'MCA'] },
-      { to: '/assets', label: 'Assets', roles: ['Super Admin', 'ICT Admin', 'Finance Officer'] },
-      { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer'] },
       { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/requests', label: 'Requests', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
-      { to: '/registry', label: 'Registry', roles: ['Registry', 'Super Admin', 'Procurement Officer', 'Clerk'] },
-      { to: '/procurement/stores', label: 'Stores', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
-      { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
-      { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
+      { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer', 'Clerk'] },
+      { to: '/assets', label: 'Assets', roles: ['Super Admin', 'ICT Admin', 'Finance Officer'] },
+      { to: '/visitors', label: 'Visitors', roles: ['Super Admin', 'Security Officer'] },
+      { to: '/audit-logs', label: 'Audit Logs', roles: ['Super Admin', 'ICT Admin'] },
       { to: '/tickets', label: 'Helpdesk', roles: ['Super Admin', 'ICT Admin'] },
-      { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer', 'Intern'] },
-      { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
       { to: '/feedback', label: 'Public', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
       { to: '/faq', label: 'FAQ', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
       { to: '/media', label: 'Media', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
+      { to: '/mcas', label: 'MCA Dashboard', roles: ['Super Admin', 'HR Officer', 'Committee Officer', 'Clerk', 'MCA'] },
+      { to: '/sessions', label: 'Sessions', roles: ['Super Admin', 'Committee Officer', 'Clerk'] },
+      { to: '/bills', label: 'Bills', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
+      { to: '/voting', label: 'Voting', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA'] },
+      { to: '/interns', label: 'Interns', roles: ['Super Admin', 'HR Officer', 'Intern'] },
+      { to: '/leaders', label: 'Leaders', roles: ['Super Admin', 'HR Officer', 'Security Officer', 'Committee Officer', 'Finance Officer', 'ICT Admin', 'Clerk', 'Intern', 'Procurement Officer', 'MCA'] },
     ];
+
     return allLinks.filter(link => link.roles.includes(normalizedRole));
   };
 
