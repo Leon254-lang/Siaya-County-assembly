@@ -438,7 +438,9 @@ export default function Dashboard() {
           <p>Manage meetings, documents, staff, and public feedback from one simple workspace.</p>
 
           <div className="hero-actions">
-            <Link to="/login" className="hero-action">Secure Access</Link>
+            {!isLoggedIn && (
+              <Link to="/login" className="hero-action">Secure Access</Link>
+            )}
             <Link to="/faq" className="hero-action secondary">Explore Services</Link>
           </div>
 
