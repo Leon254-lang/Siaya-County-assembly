@@ -4,6 +4,8 @@ import api from '../services/api';
 export default function LeaveSummaryPage() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
     fetchLeaveRequests();
@@ -17,8 +19,27 @@ export default function LeaveSummaryPage() {
       setLeaveRequests(res.data.requests || []);
     } catch (err) {
       console.error('Failed to load leave requests', err);
+      setActionError('Unable to load leave requests.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLeaveDecision = async (id, action, comments = '') => {
+    try {
+      setActionError('');
+      setActionMessage('');
+      if (action === 'approve') {
+        await api.patch(`/hr/leave/${id}/approve`);
+        setActionMessage('Leave approved successfully.');
+      } else if (action === 'reject') {
+        await api.patch(`/hr/leave/${id}/reject`, { comments });
+        setActionMessage('Leave rejected successfully.');
+      }
+      fetchLeaveRequests();
+    } catch (err) {
+      console.error('Leave approval failed', err);
+      setActionError(err.response?.data?.message || 'Leave approval action failed.');
     }
   };
 
@@ -29,6 +50,16 @@ export default function LeaveSummaryPage() {
   return (
     <div className="card">
       <h2>HR Leave Summary</h2>
+      {actionError && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: 8, background: '#fee2e2', color: '#b91c1c' }}>
+          {actionError}
+        </div>
+      )}
+      {actionMessage && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: 8, background: '#dcfce7', color: '#166534' }}>
+          {actionMessage}
+        </div>
+      )}
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -48,29 +79,59 @@ export default function LeaveSummaryPage() {
             </div>
           </div>
 
-          <h3>Recently Returned</h3>
+          <h3>Pending Leave Requests</h3>
           <div className="table-responsive">
             <table>
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Type</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Return Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaveRequests.filter(l => l.returned).slice(0, 20).map(r => (
-                <tr key={r._id}>
-                  <td>{r.user?.name || 'Unknown'}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{r.type}</td>
-                  <td>{new Date(r.startDate).toLocaleDateString()}</td>
-                  <td>{new Date(r.endDate).toLocaleDateString()}</td>
-                  <td>{r.returnDate ? new Date(r.returnDate).toLocaleDateString() : '-'}</td>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Type</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Days</th>
+                  <th>Status</th>
+                  <th>Stage</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {leaveRequests.map((r) => (
+                  <tr key={r._id}>
+                    <td>{r.user?.name || 'Unknown'}</td>
+                    <td style={{ textTransform: 'capitalize' }}>{r.type}</td>
+                    <td>{new Date(r.startDate).toLocaleDateString()}</td>
+                    <td>{new Date(r.endDate).toLocaleDateString()}</td>
+                    <td>{r.daysRequested}</td>
+                    <td>{r.status}</td>
+                    <td>{r.workflowStage || 'Submitted to HR'}</td>
+                    <td>
+                      {r.status === 'pending' ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleLeaveDecision(r._id, 'approve')}
+                            style={{ padding: '0.4rem 0.75rem', borderRadius: 6, background: '#16a34a', color: 'white', border: 'none' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const comments = prompt('Enter rejection comments (optional)');
+                              if (comments !== null) handleLeaveDecision(r._id, 'reject', comments);
+                            }}
+                            style={{ padding: '0.4rem 0.75rem', borderRadius: 6, background: '#dc2626', color: 'white', border: 'none' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#6b7280' }}>{r.status}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </div>

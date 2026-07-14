@@ -58,6 +58,13 @@ export default function Attendance() {
   });
   const [leaveError, setLeaveError] = useState('');
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const leaveStartMin = tomorrow.toISOString().split('T')[0];
+  const leaveEndMin = leaveForm.startDate || leaveStartMin;
+
   const ASSEMBLY_PREMISES = {
     latitude: 0.051274198250157124,
     longitude: 34.29512813904587,
@@ -256,28 +263,42 @@ export default function Attendance() {
 
   const handleLeaveRequest = async (e) => {
     e.preventDefault();
+    setLeaveError('');
     try {
-      // Basic client-side validation to give faster, clearer feedback
       const { startDate, endDate, reason, type } = leaveForm;
-      if (!startDate || !endDate) return alert('Please select both start and end dates.');
+      if (!startDate || !endDate) {
+        setLeaveError('Please select both start and end dates.');
+        return;
+      }
 
-      // Normalize dates to local midnight to avoid timezone surprises
       const start = new Date(startDate);
       const end = new Date(endDate);
+      if (isNaN(start) || isNaN(end)) {
+        setLeaveError('Please provide valid dates.');
+        return;
+      }
 
-      if (isNaN(start) || isNaN(end)) return alert('Please provide valid dates.');
+      const tomorrow = new Date();
+      tomorrow.setHours(0, 0, 0, 0);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      if (start < tomorrow) {
+        setLeaveError('Leave must start at least one day from today.');
+        return;
+      }
+      if (end < start) {
+        setLeaveError('End date must be the same or after the start date.');
+        return;
+      }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const minStart = new Date(today);
-      minStart.setDate(minStart.getDate() + 1); // must request at least one day before
+      const normalizedStart = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      const normalizedEnd = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
 
-      if (start < minStart) return alert('Leave must start at least one day from today.');
-      if (end < start) return alert('End date must be the same or after the start date.');
-
-      // Send normalized ISO dates (local midnight) to server
-      const normalizedStart = new Date(start.getFullYear(), start.getMonth(), start.getDate()).toISOString();
-      const normalizedEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate()).toISOString();
+      console.log('Submitting leave request', {
+        type: type || 'annual',
+        startDate: normalizedStart,
+        endDate: normalizedEnd,
+        reason: reason?.trim() || ''
+      });
 
       await api.post('/leave', {
         type: type || 'annual',
@@ -294,9 +315,9 @@ export default function Attendance() {
     } catch (error) {
       console.error('Leave submission error', error);
       const serverData = error.response?.data;
+      const status = error.response?.status;
       const message = serverData?.message || serverData || error.message || 'Leave request failed';
-      setLeaveError(typeof message === 'string' ? message : JSON.stringify(message));
-      alert(message);
+      setLeaveError(typeof message === 'string' ? `(${status || '??'}) ${message}` : JSON.stringify(message));
     }
   };
 
@@ -451,7 +472,10 @@ export default function Attendance() {
           )}
           {activeTab === 'leave' && (
             <>
-              <button onClick={() => setShowLeaveForm(true)}>📝 Request Leave</button>
+              <button onClick={() => {
+        setShowLeaveForm(true);
+        setLeaveError('');
+      }}>📝 Request Leave</button>
               <button onClick={fetchLeaveRequests}>🔄 Refresh</button>
             </>
           )}
@@ -843,15 +867,23 @@ export default function Attendance() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <input
                     type="date"
+                    min={leaveStartMin}
                     value={leaveForm.startDate}
-                    onChange={(e) => setLeaveForm({...leaveForm, startDate: e.target.value})}
+                    onChange={(e) => {
+                      setLeaveForm({ ...leaveForm, startDate: e.target.value });
+                      setLeaveError('');
+                    }}
                     required
                     style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
                   />
                   <input
                     type="date"
+                    min={leaveEndMin}
                     value={leaveForm.endDate}
-                    onChange={(e) => setLeaveForm({...leaveForm, endDate: e.target.value})}
+                    onChange={(e) => {
+                      setLeaveForm({ ...leaveForm, endDate: e.target.value });
+                      setLeaveError('');
+                    }}
                     required
                     style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
                   />
@@ -867,7 +899,10 @@ export default function Attendance() {
                 />
 
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => setShowLeaveForm(false)}>Cancel</button>
+                  <button type="button" onClick={() => {
+                    setShowLeaveForm(false);
+                    setLeaveError('');
+                  }}>Cancel</button>
                   <button type="submit">Submit Request</button>
                 </div>
                 {leaveError && (

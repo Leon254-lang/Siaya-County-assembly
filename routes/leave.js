@@ -3,6 +3,7 @@ const multer = require('multer');
 const Leave = require('../models/Leave');
 const Attendance = require('../models/Attendance');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 
@@ -63,19 +64,46 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+const parseDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value !== 'string') return null;
+
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3) return null;
+
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const validLeaveTypes = ['annual', 'sick', 'maternity', 'paternity', 'emergency', 'study', 'compassionate'];
+
 // Submit leave request
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { type, startDate, endDate, reason } = req.body;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDateOnly(startDate);
+    const end = parseDateOnly(endDate);
+    const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+
+    if (!type || !validLeaveTypes.includes(type)) {
+      return res.status(400).json({ message: 'Select a valid leave type.' });
+    }
+
+    if (!start || !end) {
+      return res.status(400).json({ message: 'Valid start and end dates are required.' });
+    }
+
+    if (!trimmedReason) {
+      return res.status(400).json({ message: 'Please provide a reason for the leave.' });
+    }
+
     const tomorrow = new Date();
     tomorrow.setHours(0, 0, 0, 0);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (isNaN(start) || isNaN(end)) {
-      return res.status(400).json({ message: 'Valid start and end dates are required.' });
-    }
 
     if (start < tomorrow) {
       return res.status(400).json({ message: 'Leave must be requested at least one day before the start date.' });
@@ -90,17 +118,42 @@ router.post('/', verifyToken, async (req, res) => {
       type,
       startDate: start,
       endDate: end,
-      reason,
+      reason: trimmedReason,
+      status: 'pending',
+      workflowStage: 'Submitted to HR',
     });
 
     await leaveRequest.save();
+
+    await recordAudit({
+      req,
+      action: 'Submitted leave request',
+      entity: 'Leave',
+      entityId: leaveRequest._id,
+      details: {
+        type,
+        startDate: leaveRequest.startDate,
+        endDate: leaveRequest.endDate,
+        reason: trimmedReason,
+        status: leaveRequest.status,
+        workflowStage: leaveRequest.workflowStage,
+      },
+    });
 
     const populatedRequest = await Leave.findById(leaveRequest._id)
       .populate('user', 'name email department role');
 
     res.status(201).json(populatedRequest);
   } catch (error) {
-    res.status(500).json({ message: 'Error submitting leave request', error: error.message });
+    console.error('Leave submit failed:', {
+      user: req.user?._id,
+      body: req.body,
+      error: error.message,
+    });
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: `Leave request invalid: ${error.message}`, error: error.message });
+    }
+    res.status(500).json({ message: `Error submitting leave request: ${error.message}`, error: error.message });
   }
 });
 
