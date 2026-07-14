@@ -698,30 +698,42 @@ export default function Dashboard() {
                     <button type="button" onClick={resetDepartmentForm} className="secondary">Clear</button>
                   </div>
                 </form>
-                <div style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem' }}>
+                <div style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
                   {departmentStaffGroups.length === 0 ? (
-                    <p>No departments available yet.</p>
+                    <p style={{ gridColumn: '1 / -1' }}>No departments available yet.</p>
                   ) : departmentStaffGroups.map((department) => (
-                    <div key={department._id} className="card" style={{ padding: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                        <strong>{department.name}</strong>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <button type="button" onClick={() => startDepartmentEdit(department)} style={{ padding: '0.6rem 0.9rem' }}>Edit</button>
-                          <Link to="/manage-users?mode=reset" className="module-link" style={{ marginTop: 0, padding: '0.6rem 0.9rem' }}>Assign Users</Link>
+                    <div key={department._id} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '0.98rem' }}>{department.name}</strong>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <button type="button" onClick={() => startDepartmentEdit(department)} style={{ padding: '0.45rem 0.7rem' }}>Edit</button>
+                          <Link to="/manage-users?mode=reset" className="module-link" style={{ marginTop: 0, padding: '0.45rem 0.7rem' }}>Assign</Link>
                         </div>
                       </div>
-                      <p style={{ margin: '0.3rem 0 0.7rem' }}>{department.description || 'Department records are active.'}</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                        <span style={{ color: department.boardroom ? 'var(--primary-color)' : 'var(--text-secondary)', fontWeight: department.boardroom ? 600 : 400 }}>
+                      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{department.description || 'No description added yet.'}</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        <span style={{ color: department.boardroom ? 'var(--primary-color)' : 'var(--text-secondary)', fontWeight: department.boardroom ? 600 : 400, fontSize: '0.85rem' }}>
                           {department.boardroom ? `Boardroom: ${department.boardroom}` : 'No boardroom assigned'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {department.modules?.length ? department.modules.map((moduleName) => (
+                          <span key={moduleName} style={{ padding: '0.25rem 0.5rem', background: '#f8fafc', borderRadius: '999px', fontSize: '0.8rem' }}>{moduleName}</span>
+                        )) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No modules enabled</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                         {department.users.length === 0 ? (
-                          <span style={{ color: 'var(--text-secondary)' }}>No assigned staff yet.</span>
-                        ) : department.users.map((user) => (
-                          <span key={user._id} style={{ padding: '0.35rem 0.6rem', background: '#f8fafc', borderRadius: '999px' }}>{user.name}</span>
-                        ))}
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No assigned staff yet</span>
+                        ) : (
+                          <>
+                            {department.users.slice(0, 4).map((user) => (
+                              <span key={user._id} style={{ padding: '0.25rem 0.5rem', background: '#f1f5f9', borderRadius: '999px', fontSize: '0.8rem' }}>{user.name}</span>
+                            ))}
+                            {department.users.length > 4 && <span style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>+{department.users.length - 4} more</span>}
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -838,7 +850,7 @@ export default function Dashboard() {
             </section>
           )}
 
-          {['HR Officer', 'Super Admin'].includes(userRole) && (
+          {userRole === 'HR Officer' && (
             <section className="modules-section">
               <div className="section-header theme-red">
                 <h2>👩‍💼 HR Performance & Appraisal Center</h2>
@@ -854,7 +866,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-
             </section>
           )}
 
