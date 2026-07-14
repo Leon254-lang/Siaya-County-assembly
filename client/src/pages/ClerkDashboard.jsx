@@ -30,6 +30,15 @@ export default function ClerkDashboard() {
         .filter((item) => item.type === 'requisition' && item.status === 'Submitted to Clerk');
       setProcurementRequisitions(requisitionsForClerk);
 
+      // Load leave requests routed to clerk for approval
+      try {
+        const leavesRes = await api.get('/leave');
+        const leavesForClerk = leavesRes.data.requests.filter(l => l.workflowStage === 'Submitted to Clerk');
+        setPendingApprovals(prev => [...prev, ...leavesForClerk]);
+      } catch (err) {
+        console.error('Failed to load leave requests for clerk:', err);
+      }
+
       // Load upcoming sittings/meetings
       const meetingsRes = await api.get('/meetings');
       const upcomingMeets = meetingsRes.data.filter(m => new Date(m.date) > new Date());

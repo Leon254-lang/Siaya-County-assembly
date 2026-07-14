@@ -28,14 +28,31 @@ router.get('/', verifyToken, async (req, res) => {
 
     let query = {};
 
-    // Only HR or Super Admin can query arbitrary users; normal users only see their own requests
+    // Role gating: HR can view all, Clerk can view requests submitted to clerk, others only their own
     const userRole = req.user.role?.name;
     const isHr = ['Super Admin', 'HR Officer'].includes(userRole);
-    if (user && isHr) {
-      query.user = user;
-    } else if (!isHr) {
-      // restrict to current user's requests
-      query.user = req.user._id;
+    const isClerk = ['Super Admin', 'Clerk'].includes(userRole);
+
+    if (user) {
+      // allow HR to query arbitrary users; allow Clerk to query their own id or fetch clerk-assignable items
+      if (isHr) {
+        query.user = user;
+      } else if (String(user) === String(req.user._id)) {
+        query.user = user;
+      } else {
+        // other roles must not query arbitrary users
+        query.user = req.user._id;
+      }
+    } else {
+      if (isHr) {
+        // no user restriction
+      } else if (isClerk) {
+        // Clerks should see items assigned to them (Submitted to Clerk)
+        query.workflowStage = 'Submitted to Clerk';
+      } else {
+        // regular users only see their own requests
+        query.user = req.user._id;
+      }
     }
     if (status) query.status = status;
     if (type) query.type = type;
