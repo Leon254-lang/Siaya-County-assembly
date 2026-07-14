@@ -84,10 +84,12 @@ const validLeaveTypes = ['annual', 'sick', 'maternity', 'paternity', 'emergency'
 // Submit leave request
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const { type, startDate, endDate, reason } = req.body;
+    const { type, startDate, endDate, reason, reliefStaffName, reliefDuties } = req.body;
     const start = parseDateOnly(startDate);
     const end = parseDateOnly(endDate);
     const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
+    const trimmedReliefStaffName = typeof reliefStaffName === 'string' ? reliefStaffName.trim() : '';
+    const trimmedReliefDuties = typeof reliefDuties === 'string' ? reliefDuties.trim() : '';
 
     if (!type || !validLeaveTypes.includes(type)) {
       return res.status(400).json({ message: 'Select a valid leave type.' });
@@ -99,6 +101,14 @@ router.post('/', verifyToken, async (req, res) => {
 
     if (!trimmedReason) {
       return res.status(400).json({ message: 'Please provide a reason for the leave.' });
+    }
+
+    if (!trimmedReliefStaffName) {
+      return res.status(400).json({ message: 'Please provide the name of the person who will manage your duties.' });
+    }
+
+    if (!trimmedReliefDuties) {
+      return res.status(400).json({ message: 'Please describe the duties or information for the relief person.' });
     }
 
     const tomorrow = new Date();
@@ -119,6 +129,8 @@ router.post('/', verifyToken, async (req, res) => {
       startDate: start,
       endDate: end,
       reason: trimmedReason,
+      reliefStaffName: trimmedReliefStaffName,
+      reliefDuties: trimmedReliefDuties,
       status: 'pending',
       workflowStage: 'Submitted to HR',
     });
@@ -135,6 +147,8 @@ router.post('/', verifyToken, async (req, res) => {
         startDate: leaveRequest.startDate,
         endDate: leaveRequest.endDate,
         reason: trimmedReason,
+        reliefStaffName: trimmedReliefStaffName,
+        reliefDuties: trimmedReliefDuties,
         status: leaveRequest.status,
         workflowStage: leaveRequest.workflowStage,
       },

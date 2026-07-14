@@ -54,7 +54,9 @@ export default function Attendance() {
     type: 'annual',
     startDate: '',
     endDate: '',
-    reason: ''
+    reason: '',
+    reliefStaffName: '',
+    reliefDuties: ''
   });
   const [leaveError, setLeaveError] = useState('');
 
@@ -265,7 +267,7 @@ export default function Attendance() {
     e.preventDefault();
     setLeaveError('');
     try {
-      const { startDate, endDate, reason, type } = leaveForm;
+      const { startDate, endDate, reason, type, reliefStaffName, reliefDuties } = leaveForm;
       if (!startDate || !endDate) {
         setLeaveError('Please select both start and end dates.');
         return;
@@ -275,6 +277,17 @@ export default function Attendance() {
       const end = new Date(endDate);
       if (isNaN(start) || isNaN(end)) {
         setLeaveError('Please provide valid dates.');
+        return;
+      }
+
+      const trimmedReliefStaffName = reliefStaffName?.trim();
+      const trimmedReliefDuties = reliefDuties?.trim();
+      if (!trimmedReliefStaffName) {
+        setLeaveError('Please provide the name of the person who will manage your duties.');
+        return;
+      }
+      if (!trimmedReliefDuties) {
+        setLeaveError('Please describe the duties or information for the relief person.');
         return;
       }
 
@@ -297,19 +310,23 @@ export default function Attendance() {
         type: type || 'annual',
         startDate: normalizedStart,
         endDate: normalizedEnd,
-        reason: reason?.trim() || ''
+        reason: reason?.trim() || '',
+        reliefStaffName: trimmedReliefStaffName,
+        reliefDuties: trimmedReliefDuties
       });
 
       await api.post('/leave', {
         type: type || 'annual',
         startDate: normalizedStart,
         endDate: normalizedEnd,
-        reason: reason?.trim() || ''
+        reason: reason?.trim() || '',
+        reliefStaffName: trimmedReliefStaffName,
+        reliefDuties: trimmedReliefDuties
       });
 
       setLeaveError('');
       setShowLeaveForm(false);
-      setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '' });
+      setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '', reliefStaffName: '', reliefDuties: '' });
       fetchLeaveRequests();
       alert('Leave request submitted.');
     } catch (error) {
@@ -893,6 +910,24 @@ export default function Attendance() {
                   placeholder="Reason for leave"
                   value={leaveForm.reason}
                   onChange={(e) => setLeaveForm({...leaveForm, reason: e.target.value})}
+                  required
+                  rows="3"
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Person managing your duties while away"
+                  value={leaveForm.reliefStaffName}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, reliefStaffName: e.target.value })}
+                  required
+                  style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                />
+
+                <textarea
+                  placeholder="Information about the relief person or duties they will perform"
+                  value={leaveForm.reliefDuties}
+                  onChange={(e) => setLeaveForm({ ...leaveForm, reliefDuties: e.target.value })}
                   required
                   rows="3"
                   style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
