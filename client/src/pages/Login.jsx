@@ -6,12 +6,15 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [verificationUrl, setVerificationUrl] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
       const response = await api.post('/auth/login', { email, password });
+      setVerificationUrl('');
       localStorage.setItem('icamsToken', response.data.token);
 
       const meResponse = await api.get('/auth/me');
@@ -41,7 +44,27 @@ export default function Login() {
       setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
       const serverMessage = error.response?.data?.message || 'Could not sign in.';
+      setVerificationUrl(error.response?.data?.verificationUrl || '');
       setMessage(serverMessage);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setMessage('Enter your email address first.');
+      return;
+    }
+
+    setIsResending(true);
+    setMessage('Sending a new verification email...');
+    try {
+      const response = await api.post('/auth/resend-verification', { email });
+      setMessage(response.data.message || 'Verification email sent.');
+      setVerificationUrl('');
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Could not resend verification email.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -74,6 +97,19 @@ export default function Login() {
             <button type="submit">Sign In</button>
           </form>
           {message && <div className="message">{message}</div>}
+          {verificationUrl && (
+            <div className="message" style={{ marginTop: '0.75rem' }}>
+              <a href={verificationUrl} target="_blank" rel="noopener noreferrer">Open verification link</a>
+            </div>
+          )}
+          <button type="button" onClick={handleResendVerification} disabled={isResending} style={{ marginTop: '0.75rem', width: '100%' }}>
+            {isResending ? 'Sending...' : 'Resend verification email'}
+          </button>
+          {verificationUrl && (
+            <div className="message" style={{ marginTop: '0.75rem' }}>
+              <a href={verificationUrl} target="_blank" rel="noopener noreferrer">Open verification link</a>
+            </div>
+          )}
         </div>
       </div>
 

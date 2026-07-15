@@ -39,12 +39,14 @@ const sendVerificationEmail = async (user, token, req = null) => {
   const text = `Hello ${user.name || 'there'},\n\nPlease verify your email address by opening this link:\n${verificationUrl}\n\nIf you did not create this account, you can safely ignore this email.`;
   const html = `<p>Hello ${user.name || 'there'},</p><p>Please verify your email address by clicking the button below.</p><p><a href="${verificationUrl}" target="_blank" rel="noopener noreferrer">Verify Email</a></p><p>If you did not create this account, you can safely ignore this email.</p>`;
 
-  await sendReminder({
+  const mailResult = await sendReminder({
     to: user.email,
     subject,
     text,
     html,
   });
+
+  return { verificationUrl, mailResult };
 };
 
 router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer'), async (req, res) => {
@@ -86,11 +88,12 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin',
     await user.save();
 
     const created = await User.findById(user._id).populate('role department');
-    await sendVerificationEmail(created, verificationToken, req);
+    const verification = await sendVerificationEmail(created, verificationToken, req);
 
     res.status(201).json({
       message: 'User created. A verification email has been sent. The user will not be able to log in until the email is verified.',
       user: created,
+      verificationUrl: verification.verificationUrl,
     });
   } catch (error) {
     res.status(500).json({ message: 'Registration failed.', error: error.message });
@@ -112,8 +115,18 @@ router.post('/login', async (req, res) => {
     }
 
     if (user.isEmailVerified === false) {
+      if (!user.emailVerificationToken) {
+        const verificationToken = createVerificationToken();
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await user.save();
+      }
+
+      const verificationUrl = buildVerificationUrl(user.emailVerificationToken, req);
       return res.status(403).json({
-        message: 'Please verify your email before logging in. Check your inbox for the verification link.',
+        message: 'Please verify your email before logging in. Use the verification link below if the email is not delivered.',
+        requiresVerification: true,
+        verificationUrl,
       });
     }
 
