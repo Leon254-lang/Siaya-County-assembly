@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
@@ -43,8 +44,44 @@ import Forbidden from './pages/Forbidden';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  const [installPrompt, setInstallPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  };
+
   return (
     <div className="app-shell">
+      {installPrompt && (
+        <div style={{ background: '#0d6efd', color: '#fff', padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600 }}>
+          Install this app for faster access on your device.
+          <button type="button" onClick={handleInstallClick} style={{ marginLeft: '0.75rem', background: '#fff', color: '#0d6efd', border: 'none', borderRadius: '999px', padding: '0.35rem 0.8rem', cursor: 'pointer', fontWeight: 700 }}>
+            Install
+          </button>
+        </div>
+      )}
       <NavBar />
       <main className="app-main">
         <Routes>

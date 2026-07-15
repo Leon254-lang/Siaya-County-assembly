@@ -2,6 +2,17 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
+let deferredPrompt = null;
+
+const installPromptHandler = (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', installPromptHandler);
+}
+
 export default function NavBar() {
   const normalizeRole = (value) => {
     if (typeof value === 'string') return value.trim();
@@ -14,6 +25,8 @@ export default function NavBar() {
   const [userRole, setUserRole] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
+  const [installLabel, setInstallLabel] = useState('Install app');
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -34,8 +47,37 @@ export default function NavBar() {
       }
     };
 
+    const onAppInstalled = () => {
+      setCanInstall(false);
+      setInstallLabel('Installed');
+    };
+
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+      setCanInstall(true);
+      setInstallLabel('Install app');
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.addEventListener('appinstalled', () => setCanInstall(false));
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      }
+    };
   }, []);
 
   const getAllowedLinks = (role) => {
@@ -137,6 +179,23 @@ export default function NavBar() {
     setIsDesktopMenuOpen(false);
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      setInstallLabel('Install not available');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallLabel('Installing...');
+    } else {
+      setInstallLabel('Install app');
+    }
+    deferredPrompt = null;
+    setCanInstall(false);
+  };
+
   return (
     <>
       <nav className="nav-bar">
@@ -168,6 +227,9 @@ export default function NavBar() {
           </button>
 
           <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+            {canInstall && (
+              <button type="button" onClick={handleInstallClick} style={{ marginRight: '0.5rem' }}>{installLabel}</button>
+            )}
             {isLoggedIn ? (
               <>
                 {allowedLinks.map(link => (
@@ -194,6 +256,9 @@ export default function NavBar() {
           </div>
 
           <div className={`desktop-dropdown ${isDesktopMenuOpen ? 'open' : ''}`}>
+            {canInstall && (
+              <button type="button" onClick={handleInstallClick}>{installLabel}</button>
+            )}
             {isLoggedIn ? (
               <>
                 {allowedLinks.map(link => (
