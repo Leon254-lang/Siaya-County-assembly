@@ -40,7 +40,8 @@ export default function Login() {
       const redirectPath = redirectMap[userRole] || '/dashboard';
       setTimeout(() => navigate(redirectPath), 1000);
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Could not sign in.');
+      const serverMessage = error.response?.data?.message || 'Could not sign in.';
+      setMessage(serverMessage);
     }
   };
 

@@ -33,7 +33,7 @@ export default function Register() {
 
     try {
       await api.post('/auth/register', { name, email, password, roleName });
-      setSuccess('User created.');
+      setSuccess('User created. A verification email has been sent.');
       setName('');
       setEmail('');
       setPassword('');

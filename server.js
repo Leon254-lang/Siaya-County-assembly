@@ -10,6 +10,7 @@ const Role = require('./models/Role');
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
