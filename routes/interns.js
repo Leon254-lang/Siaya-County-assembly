@@ -9,7 +9,7 @@ const { recordAudit } = require('../middleware/audit');
 const router = express.Router();
 
 router.get('/', verifyToken, async (req, res) => {
-  const interns = await Intern.find().populate('department supervisor completionReports.supervisor evaluations.reviewer');
+  const interns = await Intern.find().populate('department supervisor completionReports.supervisor evaluations.reviewer user');
   res.json(interns);
 });
 

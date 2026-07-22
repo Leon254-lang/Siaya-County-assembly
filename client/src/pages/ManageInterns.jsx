@@ -173,7 +173,7 @@ export default function ManageInterns() {
                 >
                   <option value="">-- Create new user or choose existing --</option>
                   {availableInternUsers.map((u) => (
-                    <option key={u._id} value={u._1d ? u._id : u._id}>{u.name} — {u.email}</option>
+                    <option key={u._id} value={u._id}>{u.name} — {u.email}</option>
                   ))}
                 </select>
               </div>
@@ -239,7 +239,18 @@ export default function ManageInterns() {
                   <div key={i._id} className="list-item">
                     <div>
                       <strong>{i.name}</strong>
-                      <div style={{color: '#6b7280'}}>{i.email} · {i.phone}</div>
+                      <div style={{color: '#6b7280'}}>
+                        {i.email} · {i.phone}
+                        {i.user ? (
+                          <div className="intern-link-badge intern-linked">
+                            Linked user: {i.user.name || i.user.email} ({i.user.email || i.user._id})
+                          </div>
+                        ) : (
+                          <div className="intern-link-badge intern-unlinked">
+                            No linked user account yet
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div style={{display: 'flex', gap: '0.5rem'}}>
                       <button className="btn-small" onClick={() => startEdit(i)}>Edit</button>
