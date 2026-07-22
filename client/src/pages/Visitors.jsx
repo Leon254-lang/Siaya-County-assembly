@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import Button from '../components/UI/Button';
 
 const initialForm = {
   name: '',
@@ -134,8 +135,8 @@ export default function Visitors() {
       <p>Register visitors, track entry and exit times, and print visitor badges.</p>
 
       <div className="visitor-toolbar">
-        <button type="button" onClick={resetForm}>New Registration</button>
-        <button type="button" disabled>Daily Report</button>
+        <Button type="button" variant="secondary" onClick={resetForm}>New Registration</Button>
+        <Button type="button" variant="tertiary" disabled>Daily Report</Button>
       </div>
 
       <form className="visitor-form" onSubmit={handleRegister}>
@@ -181,7 +182,7 @@ export default function Visitors() {
           </label>
         </div>
         <div className="form-actions">
-          <button type="submit" disabled={saving}>{saving ? 'Registering...' : 'Register Visitor'}</button>
+          <Button type="submit" disabled={saving}>{saving ? 'Registering...' : 'Register Visitor'}</Button>
         </div>
       </form>
 
@@ -199,8 +200,8 @@ export default function Visitors() {
                     <br />Host: {visitor.host?.name || '-'} | Purpose: {visitor.purpose}
                   </div>
                   <div className="visitor-row-actions">
-                    <button type="button" onClick={() => handlePrintBadge(visitor)}>Print Badge</button>
-                    <button type="button" onClick={() => handleCheckOut(visitor._id)}>Check Out</button>
+                    <Button type="button" variant="secondary" onClick={() => handlePrintBadge(visitor)}>Print Badge</Button>
+                    <Button type="button" variant="secondary" onClick={() => handleCheckOut(visitor._id)}>Check Out</Button>
                   </div>
                 </li>
               ))}
@@ -239,9 +240,9 @@ export default function Visitors() {
                     <td>{visitor.exitTime ? new Date(visitor.exitTime).toLocaleString() : '-'}</td>
                     <td>{visitor.status}</td>
                     <td>
-                      <button type="button" onClick={() => handlePrintBadge(visitor)}>Badge</button>
+                      <Button type="button" variant="secondary" onClick={() => handlePrintBadge(visitor)}>Badge</Button>
                       {visitor.status === 'inside' && (
-                        <button type="button" onClick={() => handleCheckOut(visitor._id)}>Check Out</button>
+                        <Button type="button" variant="secondary" onClick={() => handleCheckOut(visitor._id)}>Check Out</Button>
                       )}
                     </td>
                   </tr>

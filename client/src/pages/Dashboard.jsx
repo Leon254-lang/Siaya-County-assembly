@@ -631,27 +631,27 @@ export default function Dashboard() {
               <div className="dashboard-grid">
                 <div className="dashboard-card">
                   <h3>Total users</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)' }}>{ictOverview.totalUsers}</p>
+                  <p className="big-number primary">{ictOverview.totalUsers}</p>
                   <p>{ictOverview.activeUsers} active • {ictOverview.inactiveUsers} inactive</p>
                 </div>
                 <div className="dashboard-card">
                   <h3>Departments</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-color)' }}>{ictOverview.departments}</p>
+                  <p className="big-number accent">{ictOverview.departments}</p>
                   <p>Configured units for administration, finance, procurement, ICT and more.</p>
                 </div>
                 <div className="dashboard-card">
                   <h3>ICT assets</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{ictOverview.assets}</p>
+                  <p className="big-number">{ictOverview.assets}</p>
                   <p>Registered computers, printers, scanners and related equipment.</p>
                 </div>
                 <div className="dashboard-card">
                   <h3>Support queue</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)' }}>{ictOverview.openTickets}</p>
+                  <p className="big-number primary">{ictOverview.openTickets}</p>
                   <p>{ictOverview.resolvedTickets} resolved • {ictOverview.auditLogs} audit records</p>
                 </div>
               </div>
 
-              <div className="card" style={{ marginBottom: '1rem' }}>
+              <div className="card mb-1">
                 <h3>⚡ Quick Actions</h3>
                 <div className="modules-grid">
                   {ictQuickActions.map((action) => (
@@ -666,7 +666,7 @@ export default function Dashboard() {
               <div className="card" style={{ marginBottom: '1rem' }}>
                 <h3>🏛️ Department Management</h3>
                 {departmentMessage && <div className="message">{departmentMessage}</div>}
-                <form onSubmit={handleDepartmentSubmit} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                <form onSubmit={handleDepartmentSubmit} className="form-grid">
                   <label>
                     Department name
                     <input name="name" value={departmentForm.name} onChange={handleDepartmentInputChange} required />
@@ -700,11 +700,11 @@ export default function Dashboard() {
                     <button type="button" onClick={resetDepartmentForm} className="secondary">Clear</button>
                   </div>
                 </form>
-                <div style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+                  <div style={{ marginTop: '1.5rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
                   {departmentStaffGroups.length === 0 ? (
                     <p style={{ gridColumn: '1 / -1' }}>No departments available yet.</p>
                   ) : departmentStaffGroups.map((department) => (
-                    <div key={department._id} className="card" style={{ padding: '0.9rem', display: 'grid', gap: '0.6rem' }}>
+                    <div key={department._id} className="card dept-card">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <strong style={{ fontSize: '0.98rem' }}>{department.name}</strong>
                         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>

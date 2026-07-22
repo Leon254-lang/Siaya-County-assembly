@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 export default function Documents() {
   const [documents, setDocuments] = useState([]);
@@ -308,49 +310,31 @@ export default function Documents() {
         <h1>📄 Document Tracking & Management</h1>
         <p>Manage incoming/outgoing documents, memos, bills, reports, and minutes with full workflow tracking.</p>
 
-        <div className="module-actions" style={{ marginBottom: '2rem' }}>
-          <button onClick={() => setShowCreateForm(true)}>➕ Create New Document</button>
-          <button onClick={() => {
+        <div className="module-actions mb-1">
+          <Button onClick={() => setShowCreateForm(true)}>➕ Create New Document</Button>
+          <Button onClick={() => {
             if (activeTab === 'all') fetchDocuments();
             else fetchInboxDocuments(inboxDepartment);
-          }}>🔄 Refresh</button>
+          }} style={{ marginLeft: '0.75rem' }}>🔄 Refresh</Button>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <button
-            onClick={() => setActiveTab('all')}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: activeTab === 'all' ? '2px solid #3b82f6' : '1px solid #d1d5db',
-              background: activeTab === 'all' ? '#eff6ff' : 'white'
-            }}
-          >All Documents</button>
-          <button
-            onClick={() => setActiveTab('inbox')}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: activeTab === 'inbox' ? '2px solid #3b82f6' : '1px solid #d1d5db',
-              background: activeTab === 'inbox' ? '#eff6ff' : 'white'
-            }}
-          >Department Inbox</button>
+          <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>All Documents</button>
+          <button className={`tab-btn ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')}>Department Inbox</button>
         </div>
 
         {/* Search and Filters */}
         {activeTab === 'all' && (
-          <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+          <FormGrid>
             <input
               type="text"
               placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             />
             <select
               value={filters.department}
               onChange={(e) => setFilters({...filters, department: e.target.value})}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             >
               <option value="">All Departments</option>
               {departments.map((dept) => (
@@ -360,7 +344,6 @@ export default function Documents() {
             <select
               value={filters.type}
               onChange={(e) => setFilters({...filters, type: e.target.value})}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             >
               <option value="">All Types</option>
               <option value="incoming">Incoming</option>
@@ -375,7 +358,6 @@ export default function Documents() {
             <select
               value={filters.status}
               onChange={(e) => setFilters({...filters, status: e.target.value})}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             >
               <option value="">All Status</option>
               <option value="draft">Draft</option>
@@ -388,7 +370,6 @@ export default function Documents() {
             <select
               value={filters.category}
               onChange={(e) => setFilters({...filters, category: e.target.value})}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             >
               <option value="">All Categories</option>
               <option value="administrative">Administrative</option>
@@ -401,7 +382,6 @@ export default function Documents() {
             <select
               value={filters.priority}
               onChange={(e) => setFilters({...filters, priority: e.target.value})}
-              style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
             >
               <option value="">All Priorities</option>
               <option value="low">Low</option>
@@ -409,7 +389,7 @@ export default function Documents() {
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
-          </div>
+          </FormGrid>
         )}
 
         {/* Documents Table */}
@@ -424,8 +404,8 @@ export default function Documents() {
           {requestMessage && <div className="message success-message">{requestMessage}</div>}
           {requestError && <div className="message error-message">{requestError}</div>}
 
-          <form onSubmit={handleSubmitRequisitionRequest} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+          <form onSubmit={handleSubmitRequisitionRequest} style={{ marginTop: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Title
                 <input name="title" value={requisitionRequestForm.title} onChange={handleRequestFormChange} required />
@@ -451,18 +431,18 @@ export default function Documents() {
                   ))}
                 </select>
               </label>
-            </div>
+            </FormGrid>
             <label>
               Description
               <textarea name="description" rows="3" value={requisitionRequestForm.description} onChange={handleRequestFormChange} required />
             </label>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Submit request</button>
-              <button type="button" className="secondary" onClick={() => {
+              <Button type="submit">Submit request</Button>
+              <Button type="button" className="secondary" onClick={() => {
                 setRequisitionRequestForm({ title: '', department: '', amount: '', priority: 'Medium', description: '' });
                 setRequestMessage('');
                 setRequestError('');
-              }}>Clear</button>
+              }}>Clear</Button>
             </div>
           </form>
         </div>

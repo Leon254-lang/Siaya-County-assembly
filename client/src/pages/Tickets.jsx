@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 const defaultForm = {
   title: '',
@@ -201,7 +203,7 @@ export default function Tickets() {
         <section className="ticket-panel">
           <h2>Submit a New Issue</h2>
           <form className="ticket-form" onSubmit={handleCreateTicket}>
-            <div className="form-grid">
+            <FormGrid>
               <label>
                 Title
                 <input name="title" value={form.title} onChange={handleFormChange} required />
@@ -230,18 +232,18 @@ export default function Tickets() {
                 Description
                 <textarea name="description" value={form.description} onChange={handleFormChange} rows="5" />
               </label>
-            </div>
+            </FormGrid>
             <div className="form-actions">
-              <button type="submit">Submit Issue</button>
+              <Button type="submit">Submit Issue</Button>
             </div>
           </form>
         </section>
 
         <section className="ticket-panel">
           <h2>Issue Queue</h2>
-          <div className="ticket-list">
+            <div className="ticket-list">
             {tickets.map((ticket) => (
-              <button
+              <Button
                 key={ticket._id}
                 type="button"
                 className={`ticket-item ${selectedTicket?._id === ticket._id ? 'selected' : ''}`}
@@ -252,7 +254,7 @@ export default function Tickets() {
                 <span className="ticket-meta">Status: {ticket.status.replace('_', ' ')}</span>
                 <span className="ticket-meta">Department: {ticket.department?.name || 'General'}</span>
                 <span className="ticket-meta">Requested by: {ticket.requester?.name || 'Unknown'}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -307,7 +309,7 @@ export default function Tickets() {
                 <textarea name="resolutionNotes" value={updateForm.resolutionNotes} onChange={handleUpdateChange} rows="4" />
               </label>
               <div className="form-actions">
-                <button type="submit">Save Update</button>
+                <Button type="submit">Save Update</Button>
               </div>
             </form>
 
@@ -333,7 +335,7 @@ export default function Tickets() {
                   <textarea name="message" value={commentForm.message} onChange={handleCommentChange} rows="3" required />
                 </label>
                 <div className="form-actions">
-                  <button type="submit">Post Comment</button>
+                  <Button type="submit">Post Comment</Button>
                 </div>
               </form>
             </div>

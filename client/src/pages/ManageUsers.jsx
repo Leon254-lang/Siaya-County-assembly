@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 const roleOptions = [
   'Super Admin',
@@ -165,92 +167,98 @@ export default function ManageUsers() {
 
       {message && <div className="message">{message}</div>}
 
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        <button type="button" onClick={() => setShowCreateForm((prev) => !prev)}>
+      <div className="button-group" style={{ marginBottom: '1.25rem' }}>
+        <Button type="button" variant="secondary" onClick={() => setShowCreateForm((prev) => !prev)}>
           {showCreateForm ? 'Cancel' : 'Add New User'}
-        </button>
+        </Button>
       </div>
 
       {showCreateForm && (
-        <form onSubmit={handleCreate} style={{ marginBottom: '1.5rem' }}>
-          <label>
-            Full Name
-            <input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} required />
-          </label>
-          <label>
-            Email
-            <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} required />
-          </label>
-          <label>
-            Phone
-            <input value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
-          </label>
-          <label>
-            Role
-            <select value={createForm.roleName} onChange={(e) => setCreateForm({ ...createForm, roleName: e.target.value })}>
-              {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-            </select>
-          </label>
-          <label>
-            Department
-            <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })}>
-              <option value="">No department</option>
-              {departments.map((department) => (
-                <option key={department._id} value={department._id}>{department.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Temporary Password
-            <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
-          </label>
-          <button type="submit">Create User</button>
+        <form onSubmit={handleCreate} className="form-section">
+          <FormGrid>
+            <label>
+              Full Name
+              <input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} required />
+            </label>
+            <label>
+              Email
+              <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} required />
+            </label>
+            <label>
+              Phone
+              <input value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} />
+            </label>
+            <label>
+              Role
+              <select value={createForm.roleName} onChange={(e) => setCreateForm({ ...createForm, roleName: e.target.value })}>
+                {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </label>
+            <label>
+              Department
+              <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })}>
+                <option value="">No department</option>
+                {departments.map((department) => (
+                  <option key={department._id} value={department._id}>{department.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Temporary Password
+              <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} required />
+            </label>
+          </FormGrid>
+          <div className="form-actions">
+            <Button type="submit">Create User</Button>
+          </div>
         </form>
       )}
 
       {editingUserId ? (
-        <form onSubmit={handleSave} style={{ marginBottom: '1.5rem' }}>
-          <label>
-            Full Name
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          </label>
-          <label>
-            Email
-            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          </label>
-          <label>
-            Phone
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </label>
-          <label>
-            Role
-            <select value={form.roleName} onChange={(e) => setForm({ ...form, roleName: e.target.value })}>
-              {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-            </select>
-          </label>
-          <label>
-            Department
-            <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-              <option value="">No department</option>
-              {departments.map((department) => (
-                <option key={department._id} value={department._id}>{department.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Status
-            <select value={form.isActive ? 'active' : 'inactive'} onChange={(e) => setForm({ ...form, isActive: e.target.value === 'active' })}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </label>
-          <label>
-            New Password (optional)
-            <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Leave blank to keep current password" />
-          </label>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <button type="submit">Save Changes</button>
-            <button type="button" onClick={() => setEditingUserId('')} className="button secondary">Cancel</button>
+        <form onSubmit={handleSave} className="form-section">
+          <FormGrid>
+            <label>
+              Full Name
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            </label>
+            <label>
+              Email
+              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+            </label>
+            <label>
+              Phone
+              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </label>
+            <label>
+              Role
+              <select value={form.roleName} onChange={(e) => setForm({ ...form, roleName: e.target.value })}>
+                {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </label>
+            <label>
+              Department
+              <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
+                <option value="">No department</option>
+                {departments.map((department) => (
+                  <option key={department._id} value={department._id}>{department.name}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Status
+              <select value={form.isActive ? 'active' : 'inactive'} onChange={(e) => setForm({ ...form, isActive: e.target.value === 'active' })}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <label>
+              New Password (optional)
+              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Leave blank to keep current password" />
+            </label>
+          </FormGrid>
+          <div className="button-group">
+            <Button type="submit">Save Changes</Button>
+            <Button type="button" variant="secondary" onClick={() => setEditingUserId('')}>Cancel</Button>
           </div>
         </form>
       ) : null}
@@ -279,12 +287,12 @@ export default function ManageUsers() {
                   <td>{user.role?.name || 'Unknown'}</td>
                   <td>{user.isActive === false ? 'Inactive' : 'Active'}</td>
                   <td>
-                    <button type="button" onClick={() => startEdit(user)} style={{ marginRight: '0.5rem' }}>
+                    <Button type="button" variant="tertiary" onClick={() => startEdit(user)} style={{ marginRight: '0.5rem' }}>
                       Edit
-                    </button>
-                    <button type="button" onClick={() => handleDelete(user._id)} className="button secondary">
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => handleDelete(user._id)}>
                       Remove
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

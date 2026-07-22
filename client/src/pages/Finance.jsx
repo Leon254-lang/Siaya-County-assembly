@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 const categories = ['Budget', 'Expenditure', 'Payment', 'Procurement'];
 const approvalStatuses = ['Pending', 'Approved', 'Rejected'];
@@ -583,7 +585,7 @@ export default function Finance() {
               <option value="pdf">PDF</option>
             </select>
           </label>
-          <button type="button" onClick={handleExportRecords} className="button secondary">Export</button>
+          <Button type="button" variant="secondary" onClick={handleExportRecords}>Export</Button>
           <span style={{ color: '#475569' }}>Showing records page {pagination.currentPage} of {pagination.totalPages} ({pagination.totalRecords} total).</span>
         </div>
         {exportError && <div className="message error-message" style={{ marginTop: '1rem' }}>{exportError}</div>}
@@ -621,25 +623,25 @@ export default function Finance() {
               </table>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-              <button
+              <Button
                 type="button"
-                className="button secondary"
+                variant="secondary"
                 disabled={auditPagination.currentPage <= 1}
                 onClick={() => setAuditPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }))}
               >
                 Previous
-              </button>
+              </Button>
               <span style={{ color: '#475569' }}>
                 Page {auditPagination.currentPage} of {auditPagination.totalPages} ({auditPagination.totalLogs} logs)
               </span>
-              <button
+              <Button
                 type="button"
-                className="button secondary"
+                variant="secondary"
                 disabled={auditPagination.currentPage >= auditPagination.totalPages}
                 onClick={() => setAuditPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }))}
               >
                 Next
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -653,7 +655,7 @@ export default function Finance() {
 
         {canEdit ? (
           <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid>
               <label>
                 Title
                 <input name="title" value={form.title} onChange={handleInputChange} required />
@@ -675,7 +677,7 @@ export default function Finance() {
                   ))}
                 </select>
               </label>
-            </div>
+            </FormGrid>
 
             <div className="grid-columns" style={{ gap: '1rem' }}>
               <label>
@@ -726,7 +728,7 @@ export default function Finance() {
               </label>
             </div>
 
-            <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Finance Record'}</button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Finance Record'}</Button>
             {message && <div className="message success-message">{message}</div>}
             {errorMessage && <div className="message error-message">{errorMessage}</div>}
           </form>
@@ -805,9 +807,9 @@ export default function Finance() {
                     <td>{formatDate(record.createdAt)}</td>
                     <td className="text-right">
                       {canEdit && (
-                        <button onClick={() => handleDelete(record._id)} className="button small-button" style={{ backgroundColor: '#dc3545', color: '#fff' }}>
+                        <Button type="button" variant="danger" onClick={() => handleDelete(record._id)} className="small-button">
                           Delete
-                        </button>
+                        </Button>
                       )}
                     </td>
                   </tr>

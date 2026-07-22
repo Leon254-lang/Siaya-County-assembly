@@ -64,6 +64,7 @@ export default function Attendance() {
     reliefDuties: ''
   });
   const [leaveError, setLeaveError] = useState('');
+  const [leaveSubmitting, setLeaveSubmitting] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -299,6 +300,7 @@ export default function Attendance() {
   const handleLeaveRequest = async (e) => {
     e.preventDefault();
     setLeaveError('');
+    setLeaveSubmitting(true);
     try {
       const { startDate, endDate, reason, type, reliefStaffName, reliefDuties } = leaveForm;
       if (!startDate || !endDate) {
@@ -356,7 +358,6 @@ export default function Attendance() {
         reliefStaffName: trimmedReliefStaffName,
         reliefDuties: trimmedReliefDuties
       });
-
       setLeaveError('');
       setShowLeaveForm(false);
       setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '', reliefStaffName: '', reliefDuties: '' });
@@ -369,6 +370,9 @@ export default function Attendance() {
       const status = error.response?.status;
       const message = serverData?.message || serverData || error.message || 'Leave request failed';
       setLeaveError(typeof message === 'string' ? `(${status || '??'}) ${message}` : JSON.stringify(message));
+    }
+    finally {
+      setLeaveSubmitting(false);
     }
   };
 
@@ -968,7 +972,9 @@ export default function Attendance() {
                     setShowLeaveForm(false);
                     setLeaveError('');
                   }}>Cancel</button>
-                  <button type="submit">Submit Request</button>
+                  <button type="submit" disabled={leaveSubmitting} style={{ opacity: leaveSubmitting ? 0.6 : 1 }}>
+                    {leaveSubmitting ? 'Submitting...' : 'Submit Request'}
+                  </button>
                 </div>
                 {leaveError && (
                   <div style={{ marginTop: '0.5rem', color: '#b91c1c', background: '#fee2e2', padding: '0.5rem', borderRadius: '6px' }}>

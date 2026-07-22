@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Button from '../components/UI/Button';
 import api from '../services/api';
 import {
   getHRDashboard,
@@ -128,9 +129,9 @@ export default function HRPage() {
             <p>Manage employees, recruitment, leave, performance, attendance, training, welfare, discipline, and exit processing in one place.</p>
           </div>
           <div className="hr-hero-actions">
-            <Link to="/manage-users" className="btn btn-primary">Add Employee</Link>
-            <Link to="/hr-appraisals" className="btn btn-secondary">Start Appraisal</Link>
-            <Link to="/leave-summary" className="btn btn-secondary">Review Leaves</Link>
+            <Link to="/manage-users"><Button variant="primary">Add Employee</Button></Link>
+            <Link to="/hr-appraisals"><Button variant="secondary">Start Appraisal</Button></Link>
+            <Link to="/leave-summary"><Button variant="secondary">Review Leaves</Button></Link>
           </div>
         </section>
 
@@ -170,12 +171,12 @@ export default function HRPage() {
         </section>
 
         <section className="hr-section">
-          <div className="section-header">
-            <div>
-              <h2>Employee Management</h2>
-              <p>Manage employees, transfers, promotions, suspensions, exits and employee profile documents.</p>
-            </div>
-            <Link to="/manage-users" className="btn btn-secondary">Open employees</Link>
+            <div className="section-header">
+              <div>
+                <h2>Employee Management</h2>
+                <p>Manage employees, transfers, promotions, suspensions, exits and employee profile documents.</p>
+              </div>
+            <Link to="/manage-users"><Button variant="secondary">Open employees</Button></Link>
           </div>
 
           <div className="hr-card-grid">

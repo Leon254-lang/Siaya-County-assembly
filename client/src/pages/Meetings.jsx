@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import Button from '../components/UI/Button';
 
 const formatDateTime = (dateString) => {
   if (!dateString) return '';
@@ -427,9 +428,9 @@ export default function Meetings() {
                   onChange={(e) => setAttendeeQuery(e.target.value)}
                   placeholder="Search attendee by name or email"
                 />
-                <button type="button" className="secondary-button" onClick={handleAddAttendee}>
+                <Button type="button" variant="secondary" onClick={handleAddAttendee}>
                   Add
-                </button>
+                </Button>
               </div>
               <datalist id="attendee-options">
                 {users.map((user) => (
@@ -468,9 +469,9 @@ export default function Meetings() {
               Notes
               <textarea name="notes" value={form.notes} onChange={handleFormChange} rows="3" />
             </label>
-            <button type="submit" className="primary-button" disabled={form.room && busyRooms.includes(form.room)}>
+            <Button type="submit" disabled={form.room && busyRooms.includes(form.room)}>
               Schedule Meeting
-            </button>
+            </Button>
             {form.room && busyRooms.includes(form.room) && (
               <p className="form-warning">The selected room is already booked for this time. Please choose another boardroom or time slot.</p>
             )}
@@ -513,9 +514,9 @@ export default function Meetings() {
               {selectedMeeting.reminderSent ? 'Sent' : 'Pending'}
             </div>
             <div>
-              <button type="button" className="secondary-button" onClick={handleSendReminder}>
+              <Button type="button" variant="secondary" onClick={handleSendReminder}>
                 Send Reminder Now
-              </button>
+              </Button>
             </div>
           </div>
           <div className="details-row">
@@ -563,9 +564,9 @@ export default function Meetings() {
             ) : (
               <p>No attendees assigned to this meeting yet.</p>
             )}
-            <button type="button" className="secondary-button" onClick={handleSaveAttendance}>
+            <Button type="button" variant="secondary" onClick={handleSaveAttendance}>
               Save Attendance
-            </button>
+            </Button>
           </div>
         </section>
       )}

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 const formatCurrency = (value) => {
   const amount = Number(value || 0);
@@ -349,9 +351,9 @@ export default function Procurement() {
     switch (activeForm) {
       case 'requisition':
         return (
-          <form onSubmit={handleRequisitionSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleRequisitionSave}>
             <h3>Create Purchase Requisition</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Title
                 <input name="title" value={requisitionForm.title} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -376,22 +378,22 @@ export default function Procurement() {
                 Requested By
                 <input name="requestedBy" value={requisitionForm.requestedBy} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
               </label>
-            </div>
+            </FormGrid>
             <label>
               Description
               <textarea name="description" rows="3" value={requisitionForm.description} onChange={(e) => setRequisitionForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
             </label>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save requisition</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save requisition</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'supplier':
         return (
-          <form onSubmit={handleSupplierSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleSupplierSave}>
             <h3>Register Supplier</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Supplier Name
                 <input name="title" value={supplierForm.title} onChange={(e) => setSupplierForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -421,18 +423,18 @@ export default function Procurement() {
                   <option>Suspended</option>
                 </select>
               </label>
-            </div>
+            </FormGrid>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save supplier</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save supplier</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'tender':
         return (
-          <form onSubmit={handleTenderSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleTenderSave}>
             <h3>Create Tender / RFQ</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Title
                 <input name="title" value={tenderForm.title} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -454,22 +456,22 @@ export default function Procurement() {
                 Bids Received
                 <input name="bids" type="number" min="0" value={tenderForm.bids} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
               </label>
-            </div>
+            </FormGrid>
             <label>
               Recommendation
               <textarea name="recommendation" rows="2" value={tenderForm.recommendation} onChange={(e) => setTenderForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
             </label>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save tender</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save tender</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'contract':
         return (
-          <form onSubmit={handleContractSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleContractSave}>
             <h3>Record Contract</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Contract Title
                 <input name="title" value={contractForm.title} onChange={(e) => setContractForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -498,18 +500,18 @@ export default function Procurement() {
                   <option>Signed</option>
                 </select>
               </label>
-            </div>
+            </FormGrid>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save contract</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save contract</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'plan':
         return (
-          <form onSubmit={handlePlanSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handlePlanSave}>
             <h3>Create Procurement Plan</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Plan Title
                 <input name="title" value={planForm.title} onChange={(e) => setPlanForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -534,18 +536,18 @@ export default function Procurement() {
                   <option>Completed</option>
                 </select>
               </label>
-            </div>
+            </FormGrid>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save plan</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save plan</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'inventory':
         return (
-          <form onSubmit={handleInventorySave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleInventorySave}>
             <h3>Record Delivery / Inventory</h3>
-            <div className="grid-columns" style={{ gap: '1rem' }}>
+            <FormGrid className="grid-columns">
               <label>
                 Item Name
                 <input name="title" value={inventoryForm.title} onChange={(e) => setInventoryForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
@@ -571,36 +573,38 @@ export default function Procurement() {
                   <option>Awaiting Inspection</option>
                 </select>
               </label>
-            </div>
+            </FormGrid>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save inventory</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save inventory</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
       case 'report':
         return (
-          <form onSubmit={handleReportSave} className="form-card" style={{ gap: '0.75rem' }}>
+          <form onSubmit={handleReportSave}>
             <h3>Generate Report Record</h3>
-            <label>
-              Title
-              <input name="title" value={reportForm.title} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
-            </label>
-            <label>
-              Summary
-              <textarea name="summary" rows="3" value={reportForm.summary} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
-            </label>
-            <label>
-              Status
-              <select name="status" value={reportForm.status} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
-                <option>Ready</option>
-                <option>Draft</option>
-                <option>Under Review</option>
-              </select>
-            </label>
+            <FormGrid>
+              <label>
+                Title
+                <input name="title" value={reportForm.title} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} required />
+              </label>
+              <label>
+                Summary
+                <textarea name="summary" rows="3" value={reportForm.summary} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))} />
+              </label>
+              <label>
+                Status
+                <select name="status" value={reportForm.status} onChange={(e) => setReportForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}>
+                  <option>Ready</option>
+                  <option>Draft</option>
+                  <option>Under Review</option>
+                </select>
+              </label>
+            </FormGrid>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit">Save report</button>
-              <button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</button>
+              <Button type="submit">Save report</Button>
+              <Button type="button" className="secondary" onClick={() => setActiveForm('')}>Cancel</Button>
             </div>
           </form>
         );
@@ -677,14 +681,14 @@ export default function Procurement() {
         <div className="card" style={{ padding: '1.25rem' }}>
           <h2>Quick Actions</h2>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <button type="button" onClick={() => setActiveForm('requisition')}>New Purchase Requisition</button>
-            <button type="button" onClick={() => setActiveForm('supplier')}>Register Supplier</button>
-            <button type="button" onClick={() => setActiveForm('tender')}>Create RFQ / Tender</button>
-            <button type="button" onClick={() => setActiveForm('contract')}>Log Contract</button>
-            <button type="button" onClick={() => setActiveForm('plan')}>Create Procurement Plan</button>
-            <button type="button" onClick={() => setActiveForm('inventory')}>Record Delivery / Inventory</button>
-            <button type="button" onClick={() => setActiveForm('document')}>Register Document</button>
-            <button type="button" onClick={() => setActiveForm('report')}>Generate Report Record</button>
+            <Button type="button" onClick={() => setActiveForm('requisition')}>New Purchase Requisition</Button>
+            <Button type="button" onClick={() => setActiveForm('supplier')}>Register Supplier</Button>
+            <Button type="button" onClick={() => setActiveForm('tender')}>Create RFQ / Tender</Button>
+            <Button type="button" onClick={() => setActiveForm('contract')}>Log Contract</Button>
+            <Button type="button" onClick={() => setActiveForm('plan')}>Create Procurement Plan</Button>
+            <Button type="button" onClick={() => setActiveForm('inventory')}>Record Delivery / Inventory</Button>
+            <Button type="button" onClick={() => setActiveForm('document')}>Register Document</Button>
+            <Button type="button" onClick={() => setActiveForm('report')}>Generate Report Record</Button>
           </div>
         </div>
 

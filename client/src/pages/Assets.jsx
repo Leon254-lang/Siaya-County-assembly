@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import FormGrid from '../components/UI/FormGrid';
+import Button from '../components/UI/Button';
 
 const defaultForm = {
   assetTag: '',
@@ -341,7 +343,7 @@ export default function Assets() {
               </label>
             </div>
             <div className="form-actions">
-              <button type="submit">Register Asset</button>
+              <Button type="submit">Register Asset</Button>
             </div>
           </form>
         </section>
@@ -384,7 +386,7 @@ export default function Assets() {
               </div>
             </div>
             <div className="form-actions">
-              <button type="submit">Create Department</button>
+              <Button type="submit">Create Department</Button>
             </div>
           </form>
           <div className="department-list">
@@ -502,7 +504,7 @@ export default function Assets() {
               </label>
             </div>
             <div className="form-actions">
-              <button type="button" onClick={handleUpdateAssignment}>Update Assignment</button>
+              <Button type="button" variant="secondary" onClick={handleUpdateAssignment}>Update Assignment</Button>
             </div>
             <div className="asset-subpanels">
               <div className="asset-subpanel">
@@ -537,7 +539,7 @@ export default function Assets() {
                     <input name="notes" value={maintenanceForm.notes} onChange={handleMaintenanceChange} />
                   </label>
                   <div className="form-actions">
-                    <button type="submit">Add Maintenance</button>
+                    <Button type="submit">Add Maintenance</Button>
                   </div>
                 </form>
               </div>
@@ -578,7 +580,7 @@ export default function Assets() {
                     <input name="notes" value={disposalForm.notes} onChange={handleDisposalChange} />
                   </label>
                   <div className="form-actions">
-                    <button type="submit">Record Disposal</button>
+                    <Button type="submit">Record Disposal</Button>
                   </div>
                 </form>
               </div>
