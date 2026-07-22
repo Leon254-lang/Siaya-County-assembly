@@ -36,6 +36,56 @@ const resolveIntern = async (id, user) => {
   return null;
 };
 
+router.get('/me', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.user._id, req.user);
+  if (!intern) {
+    return res.status(404).json({ message: 'Intern profile not linked to your account' });
+  }
+  res.json(intern);
+});
+
+router.put('/me', verifyToken, async (req, res) => {
+  const intern = await resolveIntern(req.user._id, req.user);
+  if (!intern) return res.status(404).json({ message: 'Intern profile not linked to your account' });
+
+  const userRole = req.user.role?.name;
+  const isAdminOrHr = ['Super Admin', 'HR Officer'].includes(userRole);
+  const isSelf = (intern.user && intern.user._id && intern.user._id.toString() === req.user._id.toString()) || (intern.email && req.user.email && intern.email === req.user.email);
+
+  if (!isAdminOrHr && !isSelf) {
+    return res.status(403).json({ message: 'Not authorized to update this intern' });
+  }
+
+  const updates = {
+    name: req.body.name ?? intern.name,
+    email: req.body.email ?? intern.email,
+    phone: req.body.phone ?? intern.phone,
+    firstName: req.body.firstName ?? intern.firstName,
+    lastName: req.body.lastName ?? intern.lastName,
+    institution: req.body.institution ?? intern.institution,
+    course: req.body.course ?? intern.course,
+    department: req.body.department ?? intern.department,
+    supervisor: req.body.supervisor ?? intern.supervisor,
+    placement: req.body.placement ?? intern.placement,
+    startDate: req.body.startDate ?? intern.startDate,
+    endDate: req.body.endDate ?? intern.endDate,
+    status: req.body.status ?? intern.status,
+    user: req.body.user ?? intern.user,
+  };
+
+  const updated = await Intern.findByIdAndUpdate(intern._id, updates, { new: true, runValidators: true }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
+
+  await recordAudit({
+    req,
+    action: 'Updated intern',
+    entity: 'Intern',
+    entityId: updated._id,
+    details: updates,
+  });
+
+  res.json(updated);
+});
+
 router.get('/:id', verifyToken, async (req, res) => {
   const intern = await resolveIntern(req.params.id, req.user);
   if (!intern) {

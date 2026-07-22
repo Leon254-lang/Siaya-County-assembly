@@ -72,7 +72,7 @@ export default function InternDashboard() {
       }
 
       // Load intern profile
-      const internRes = await api.get(`/interns/${userId}`);
+      const internRes = await api.get('/interns/me');
       setInternData(internRes.data);
       setProfileForm({
         firstName: internRes.data.firstName || internRes.data.name?.split(' ')[0] || '',
@@ -111,8 +111,12 @@ export default function InternDashboard() {
       setLoading(false);
     } catch (err) {
       console.error('Failed to load intern data:', err, err.response?.data);
-      const serverMessage = err.response?.data?.message || err.message || 'Unknown error';
-      setMessage(`Failed to load dashboard data: ${serverMessage}`);
+      if (err.response?.status === 404) {
+        setMessage('Cannot load your intern dashboard because your account is not linked to an intern profile. Please contact HR or your supervisor.');
+      } else {
+        const serverMessage = err.response?.data?.message || err.message || 'Unknown error';
+        setMessage(`Failed to load dashboard data: ${serverMessage}`);
+      }
       setLoading(false);
     }
   };
@@ -244,7 +248,7 @@ export default function InternDashboard() {
         course: profileForm.course,
       };
 
-      await api.put(`/interns/${userId}`, internPayload);
+      await api.put('/interns/me', internPayload);
       await api.put(`/users/${userId}`, {
         name,
         email: profileForm.email,
@@ -269,6 +273,24 @@ export default function InternDashboard() {
           <h1>🎓 Intern Dashboard</h1>
         </div>
         <div className="loading">Loading your dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!internData) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1>🎓 Intern Dashboard</h1>
+        </div>
+        <div className="dashboard-section help-card">
+          <h2>Intern profile not linked</h2>
+          <p>{message || 'Your account does not appear to be linked to an intern profile.'}</p>
+          <p>Please contact HR or your supervisor so they can link your account to your intern record.</p>
+          <button type="button" className="btn-primary" onClick={loadInternData}>
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
