@@ -151,10 +151,7 @@ router.post('/', verifyToken, async (req, res) => {
     // Prevent submitting a new request if user has an active pending or approved leave overlapping
     const overlapping = await Leave.findOne({
       user: req.user._id,
-      $or: [
-        { status: 'pending' },
-        { status: 'approved' }
-      ],
+      status: { $in: ['pending', 'approved'] },
       $or: [
         { startDate: { $lte: end, $gte: start } },
         { endDate: { $lte: end, $gte: start } },

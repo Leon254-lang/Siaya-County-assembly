@@ -35,12 +35,19 @@ const isWithinPremises = (latitude, longitude) => {
 
 const router = express.Router();
 
+async function getUserIdsByDepartment(departmentId) {
+  if (!departmentId) return [];
+  const users = await User.find({ department: departmentId }).select('_id');
+  return users.map((user) => user._id);
+}
+
 // Get attendance records with filtering
 router.get('/', verifyToken, async (req, res) => {
   try {
     const {
       user,
       userId,
+      department,
       userType,
       date,
       month,
@@ -60,6 +67,10 @@ router.get('/', verifyToken, async (req, res) => {
     if (month && year) {
       query.month = parseInt(month);
       query.year = parseInt(year);
+    }
+    if (department) {
+      const departmentUserIds = await getUserIdsByDepartment(department);
+      query.user = { $in: departmentUserIds };
     }
 
     const skip = (page - 1) * limit;
@@ -351,19 +362,54 @@ router.get('/report', verifyToken, async (req, res) => {
     if (startDate && endDate) {
       query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
     }
-    if (department) query['user.department'] = department;
     if (userType) query.userType = userType;
+
+    if (department) {
+      const departmentUserIds = await getUserIdsByDepartment(department);
+      query.user = { $in: departmentUserIds };
+      if (departmentUserIds.length === 0) {
+        return res.json({ departments: [] });
+      }
+    }
 
     const records = await Attendance.find(query)
       .populate('user', 'name email department role')
       .sort({ date: 1, 'user.name': 1 });
 
-    // Group by user
-    const report = {};
-    records.forEach(record => {
-      const userId = record.user._id.toString();
-      if (!report[userId]) {
-        report[userId] = {
+    const departmentGroups = {};
+    records.forEach((record) => {
+      const dept = record.user?.department || { _id: null, name: 'Unassigned' };
+      const deptId = dept._id ? dept._id.toString() : 'unassigned';
+
+      if (!departmentGroups[deptId]) {
+        departmentGroups[deptId] = {
+          department: {
+            _id: dept._id || null,
+            name: dept.name || 'Unassigned'
+          },
+          summary: {
+            totalRecords: 0,
+            present: 0,
+            absent: 0,
+            leave: 0,
+            remote: 0,
+            late: 0,
+            partial: 0,
+            totalHours: 0
+          },
+          users: {}
+        };
+      }
+
+      const deptReport = departmentGroups[deptId];
+      const status = record.status || 'present';
+      deptReport.summary[status] = (deptReport.summary[status] || 0) + 1;
+      deptReport.summary.totalRecords += 1;
+      deptReport.summary.totalHours += record.workingHours || 0;
+
+      const userId = record.user?._id?.toString() || 'unknown';
+      if (!deptReport.users[userId]) {
+        deptReport.users[userId] = {
           user: record.user,
           records: [],
           summary: {
@@ -378,12 +424,18 @@ router.get('/report', verifyToken, async (req, res) => {
         };
       }
 
-      report[userId].records.push(record);
-      report[userId].summary[record.status]++;
-      report[userId].summary.totalHours += record.workingHours || 0;
+      const userReport = deptReport.users[userId];
+      userReport.records.push(record);
+      userReport.summary[status]++;
+      userReport.summary.totalHours += record.workingHours || 0;
     });
 
-    res.json(Object.values(report));
+    const departments = Object.values(departmentGroups).map((department) => ({
+      ...department,
+      users: Object.values(department.users)
+    }));
+
+    res.json({ departments });
   } catch (error) {
     res.status(500).json({ message: 'Error generating report', error: error.message });
   }

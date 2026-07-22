@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 export default function Attendance() {
@@ -9,8 +10,11 @@ export default function Attendance() {
   const [showCheckInOut, setShowCheckInOut] = useState(false);
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const [departments, setDepartments] = useState([]);
   const [qrCode, setQrCode] = useState(null);
   const [currentAttendance, setCurrentAttendance] = useState(null);
+  const navigate = useNavigate();
 
   const normalizeRole = (value) => {
     if (typeof value === 'string') return value.trim();
@@ -22,6 +26,7 @@ export default function Attendance() {
 
   // Filters and pagination
   const [filters, setFilters] = useState({
+    department: '',
     userType: '',
     status: '',
     month: new Date().getMonth() + 1,
@@ -161,6 +166,19 @@ export default function Attendance() {
     checkCurrentAttendance();
     checkActiveLeave();
   }, [activeTab, filters, pagination.currentPage]);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await api.get('/departments');
+        setDepartments(response.data || []);
+      } catch (error) {
+        console.error('Failed to load departments for report filter', error);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   const fetchAttendanceRecords = async () => {
     try {
@@ -343,6 +361,7 @@ export default function Attendance() {
       setShowLeaveForm(false);
       setLeaveForm({ type: 'annual', startDate: '', endDate: '', reason: '', reliefStaffName: '', reliefDuties: '' });
       fetchLeaveRequests();
+      checkActiveLeave();
       alert('Leave request submitted.');
     } catch (error) {
       console.error('Leave submission error', error);
@@ -396,11 +415,18 @@ export default function Attendance() {
     try {
       const startDate = `${filters.year}-${String(filters.month).padStart(2, '0')}-01`;
       const endDate = new Date(filters.year, filters.month, 0).toISOString().split('T')[0];
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+      });
+      if (filters.department) params.append('department', filters.department);
+      if (filters.userType) params.append('userType', filters.userType);
 
-      const response = await api.get(`/attendance/report?startDate=${startDate}&endDate=${endDate}`);
-      setShowReport(response.data);
+      const response = await api.get(`/attendance/report?${params.toString()}`);
+      setReportData(response.data);
+      setShowReport(true);
     } catch (error) {
-      alert('Could not generate report');
+      alert(error.response?.data?.message || 'Could not generate report');
     }
   };
 
@@ -431,13 +457,15 @@ export default function Attendance() {
   }
 
   return (
-    <div>
+    <div className="page">
       <div className="card">
-        <h1>⏰ Attendance Management System</h1>
-        <p>Track daily attendance, manage leave requests, and generate comprehensive reports for staff, interns, and MCAs.</p>
+        <div className="section-header">
+          <h1>⏰ Attendance Management System</h1>
+          <p>Track daily attendance, manage leave requests, and generate comprehensive reports for staff, interns, and MCAs.</p>
+        </div>
 
         {/* Current Status */}
-        <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
+        <div className="department-summary">
           <h3>Today's Status</h3>
           {currentAttendance ? (
             <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
@@ -475,65 +503,64 @@ export default function Attendance() {
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #e5e7eb' }}>
+        <div className="dashboard-tabs">
           <button
+            type="button"
+            className={`tab-btn ${activeTab === 'attendance' ? 'active' : ''}`}
             onClick={() => setActiveTab('attendance')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              background: activeTab === 'attendance' ? '#3b82f6' : 'transparent',
-              color: activeTab === 'attendance' ? 'white' : '#374151',
-              borderRadius: '8px 8px 0 0',
-              cursor: 'pointer',
-              fontWeight: '600'
-            }}
           >
             📊 Attendance
           </button>
           <button
+            type="button"
+            className={`tab-btn ${activeTab === 'leave' ? 'active' : ''}`}
             onClick={() => setActiveTab('leave')}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              background: activeTab === 'leave' ? '#3b82f6' : 'transparent',
-              color: activeTab === 'leave' ? 'white' : '#374151',
-              borderRadius: '8px 8px 0 0',
-              cursor: 'pointer',
-              fontWeight: '600'
-            }}
           >
             📅 Leave Management
           </button>
         </div>
 
         {/* Action Buttons */}
-        <div className="module-actions" style={{ marginBottom: '2rem' }}>
+        <div className="action-group">
           {activeTab === 'attendance' && (
             <>
               <button onClick={() => setShowCheckInOut(true)}>
                 {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? '🚪 Check Out' : '🚪 Check In/Out'}
               </button>
               <button onClick={handleGenerateQR}>📱 Generate QR Code</button>
-              {canViewFullAttendance && <button onClick={generateReport}>📈 Generate Report</button>}
+              {canViewFullAttendance && <button onClick={() => navigate('/attendance-reports')}>📈 Open Reports</button>}
             </>
           )}
           {activeTab === 'leave' && (
             <>
               <button id="request-leave-btn" onClick={() => {
-        setShowLeaveForm(true);
-        setLeaveError('');
-      }}>📝 Request Leave</button>
+                setShowLeaveForm(true);
+                setLeaveError('');
+              }}>📝 Request Leave</button>
               <button onClick={fetchLeaveRequests}>🔄 Refresh</button>
             </>
           )}
         </div>
 
         {/* Filters */}
-        <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
+        <div className="filter-grid">
           <select
+            className="select-control"
+            value={filters.department}
+            onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+          >
+            <option value="">All Departments</option>
+            {departments.map((dept) => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="select-control"
             value={filters.userType}
             onChange={(e) => setFilters({...filters, userType: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
           >
             <option value="">All User Types</option>
             <option value="staff">Staff</option>
@@ -543,9 +570,9 @@ export default function Attendance() {
           </select>
 
           <select
+            className="select-control"
             value={filters.status}
             onChange={(e) => setFilters({...filters, status: e.target.value})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
           >
             <option value="">All Status</option>
             <option value="present">Present</option>
@@ -557,9 +584,9 @@ export default function Attendance() {
           </select>
 
           <select
+            className="select-control"
             value={filters.month}
             onChange={(e) => setFilters({...filters, month: parseInt(e.target.value)})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
           >
             {Array.from({length: 12}, (_, i) => (
               <option key={i+1} value={i+1}>
@@ -569,9 +596,9 @@ export default function Attendance() {
           </select>
 
           <select
+            className="select-control"
             value={filters.year}
             onChange={(e) => setFilters({...filters, year: parseInt(e.target.value)})}
-            style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
           >
             {Array.from({length: 5}, (_, i) => (
               <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -587,7 +614,7 @@ export default function Attendance() {
             {attendanceRecords.length === 0 ? (
               <p>No attendance records found.</p>
             ) : (
-              <table>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>User</th>
@@ -607,13 +634,7 @@ export default function Attendance() {
                       <td style={{ textTransform: 'capitalize' }}>{record.userType}</td>
                       <td>{new Date(record.date).toLocaleDateString()}</td>
                       <td>
-                        <span style={{
-                          background: getStatusColor(record.status),
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.875rem'
-                        }}>
+                        <span className={`status-pill ${record.status}`}>
                           {record.status.replace('_', ' ')}
                         </span>
                       </td>
@@ -654,7 +675,7 @@ export default function Attendance() {
             {leaveRequests.length === 0 ? (
               <p>No leave requests found.</p>
             ) : (
-              <table>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>User</th>
@@ -677,13 +698,7 @@ export default function Attendance() {
                       <td>{new Date(request.endDate).toLocaleDateString()}</td>
                       <td>{request.daysRequested}</td>
                       <td>
-                        <span style={{
-                          background: getLeaveStatusColor(request.status),
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.875rem'
-                        }}>
+                        <span className={`status-pill ${request.status}`}>
                           {request.status}
                         </span>
                       </td>
@@ -783,28 +798,13 @@ export default function Attendance() {
 
       {/* Check In/Out Modal */}
       {showCheckInOut && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            maxWidth: '400px',
-            width: '90%'
-          }}>
-            <h2>
-              {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? 'Check Out' : 'Check In'}
-            </h2>
+        <div className="modal-backdrop">
+          <div className="modal-box sm">
+            <div className="modal-header">
+              <h2>
+                {currentAttendance?.checkIn?.time && !currentAttendance?.checkOut?.time ? 'Check Out' : 'Check In'}
+              </h2>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <select
                 value={checkInOutForm.method}
@@ -888,26 +888,12 @@ export default function Attendance() {
 
       {/* Leave Request Modal */}
       {showLeaveForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            maxWidth: '500px',
-            width: '90%'
-          }}>
-            <h2>Request Leave</h2>
+        <div className="modal-backdrop">
+          <div className="modal-box">
+            <div className="modal-header">
+              <h2>Request Leave</h2>
+              <button type="button" onClick={() => { setShowLeaveForm(false); setLeaveError(''); }} style={{ background: 'transparent', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
+            </div>
             <form onSubmit={handleLeaveRequest}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <select
@@ -997,27 +983,12 @@ export default function Attendance() {
 
       {/* QR Code Modal */}
       {qrCode && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            maxWidth: '400px',
-            width: '90%',
-            textAlign: 'center'
-          }}>
-            <h2>QR Code Generated</h2>
+        <div className="modal-backdrop">
+          <div className="modal-box sm" style={{ textAlign: 'center' }}>
+            <div className="modal-header">
+              <h2>QR Code Generated</h2>
+              <button type="button" onClick={() => setQrCode(null)} style={{ background: 'transparent', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
+            </div>
             <div style={{
               background: '#f8fafc',
               padding: '1rem',
@@ -1037,51 +1008,57 @@ export default function Attendance() {
       )}
 
       {/* Report Modal */}
-      {showReport && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            maxWidth: '800px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      {showReport && reportData && (
+        <div className="modal-backdrop">
+          <div className="modal-box lg">
+            <div className="modal-header">
               <h2>Attendance Report - {filters.month}/{filters.year}</h2>
-              <button onClick={() => setShowReport(false)}>✕</button>
+              <button type="button" onClick={() => setShowReport(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {showReport.map((userReport, index) => (
-                <div key={index} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '1rem'
-                }}>
-                  <h3>{userReport.user.name}</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-                    <div><strong>Present:</strong> {userReport.summary.present}</div>
-                    <div><strong>Absent:</strong> {userReport.summary.absent}</div>
-                    <div><strong>Leave:</strong> {userReport.summary.leave}</div>
-                    <div><strong>Late:</strong> {userReport.summary.late}</div>
-                    <div><strong>Total Hours:</strong> {userReport.summary.totalHours.toFixed(2)}h</div>
+            {reportData.departments?.length === 0 ? (
+              <p>No attendance report data found for the selected filters.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {reportData.departments.map((department) => (
+                  <div key={department.department._id || department.department.name} style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '1rem'
+                  }}>
+                    <h3>{department.department.name}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                      <div><strong>Total Records:</strong> {department.summary.totalRecords}</div>
+                      <div><strong>Present:</strong> {department.summary.present}</div>
+                      <div><strong>Absent:</strong> {department.summary.absent}</div>
+                      <div><strong>Leave:</strong> {department.summary.leave}</div>
+                      <div><strong>Remote:</strong> {department.summary.remote}</div>
+                      <div><strong>Late:</strong> {department.summary.late}</div>
+                      <div><strong>Total Hours:</strong> {department.summary.totalHours.toFixed(2)}h</div>
+                    </div>
+
+                    {department.users?.length > 0 && (
+                      <div style={{ marginTop: '1rem' }}>
+                        <h4>User Breakdown</h4>
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                          {department.users.map((userReport) => (
+                            <div key={userReport.user._id} style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                              <div style={{ fontWeight: 600 }}>{userReport.user.name}</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <div><strong>Present:</strong> {userReport.summary.present}</div>
+                                <div><strong>Absent:</strong> {userReport.summary.absent}</div>
+                                <div><strong>Leave:</strong> {userReport.summary.leave}</div>
+                                <div><strong>Total Hours:</strong> {userReport.summary.totalHours.toFixed(2)}h</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
