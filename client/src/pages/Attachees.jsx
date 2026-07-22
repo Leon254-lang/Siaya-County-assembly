@@ -13,6 +13,7 @@ export default function AttacheeDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
   const [toast, setToast] = useState(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
   const [checkOutTime, setCheckOutTime] = useState(null);
