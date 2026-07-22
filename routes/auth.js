@@ -57,6 +57,9 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin',
     if (roleName === 'MCA' && !userRole?.includes('Admin')) {
       return res.status(403).json({ message: 'Only admins can create MCA accounts.' });
     }
+    if (roleName === 'Intern' && !['Super Admin', 'HR Officer'].includes(userRole)) {
+      return res.status(403).json({ message: 'Only Super Admin and HR Officer can create Intern accounts.' });
+    }
 
     if (!password || typeof password !== 'string' || !password.trim()) {
       return res.status(400).json({ message: 'Password required.' });
@@ -74,6 +77,7 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin',
 
     const hashed = await bcrypt.hash(password, 10);
     const verificationToken = createVerificationToken();
+    const isInternAutoVerified = roleName === 'Intern' && ['Super Admin', 'HR Officer'].includes(userRole);
     const user = new User({
       name,
       email: normalizedEmail,
@@ -81,20 +85,28 @@ router.post('/register', verifyToken, authorizeRoles('Super Admin', 'ICT Admin',
       role: role._id,
       phone,
       department,
-      isEmailVerified: false,
-      emailVerificationToken: verificationToken,
-      emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      isEmailVerified: isInternAutoVerified,
+      verifiedAt: isInternAutoVerified ? new Date() : undefined,
+      emailVerificationToken: isInternAutoVerified ? null : verificationToken,
+      emailVerificationExpiresAt: isInternAutoVerified ? null : new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
     await user.save();
 
     const created = await User.findById(user._id).populate('role department');
-    const verification = await sendVerificationEmail(created, verificationToken, req);
 
-    res.status(201).json({
-      message: 'User created. A verification email has been sent. The user will not be able to log in until the email is verified.',
-      user: created,
-      verificationUrl: verification.verificationUrl,
-    });
+    if (isInternAutoVerified) {
+      res.status(201).json({
+        message: 'Intern user created and verified. The intern can log in immediately.',
+        user: created,
+      });
+    } else {
+      const verification = await sendVerificationEmail(created, verificationToken, req);
+      res.status(201).json({
+        message: 'User created. A verification email has been sent. The user will not be able to log in until the email is verified.',
+        user: created,
+        verificationUrl: verification.verificationUrl,
+      });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Registration failed.', error: error.message });
   }

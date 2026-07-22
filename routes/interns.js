@@ -1,6 +1,8 @@
 const express = require('express');
 const Intern = require('../models/Intern');
 const mongoose = require('mongoose');
+const User = require('../models/User');
+const Role = require('../models/Role');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 
@@ -11,26 +13,47 @@ router.get('/', verifyToken, async (req, res) => {
   res.json(interns);
 });
 
+router.get('/available-users', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
+  const internRole = await Role.findOne({ name: 'Intern' });
+  if (!internRole) {
+    return res.json([]);
+  }
+
+  const linkedUserIds = await Intern.find({ user: { $exists: true, $ne: null } }).distinct('user');
+  const users = await User.find({
+    role: internRole._id,
+    isActive: true,
+    _id: { $nin: linkedUserIds },
+  }).select('name email phone department').populate('department');
+
+  res.json(users);
+});
+
+const escapeRegExp = (string) => String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const resolveIntern = async (id, user) => {
   let intern = null;
-  // Try by intern _id
+
   if (mongoose.Types.ObjectId.isValid(id)) {
     intern = await Intern.findById(id).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
     if (intern) return intern;
 
-    // if id is a user id, find intern linked to that user
     intern = await Intern.findOne({ user: id }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
     if (intern) return intern;
   }
 
-  // If not found by id, try to find by user email when available
-  if (user && user.email) {
-    intern = await Intern.findOne({ email: user.email }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
-    if (intern) return intern;
+  if (user) {
+    const userId = user._id || user.id || user;
+    if (mongoose.Types.ObjectId.isValid(String(userId))) {
+      intern = await Intern.findOne({ user: userId }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
+      if (intern) return intern;
+    }
 
-    // try finding by user id
-    intern = await Intern.findOne({ user: user._id }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
-    if (intern) return intern;
+    if (user.email) {
+      const normalizedEmail = String(user.email).trim();
+      intern = await Intern.findOne({ email: { $regex: `^${escapeRegExp(normalizedEmail)}$`, $options: 'i' } }).populate('department supervisor completionReports.supervisor evaluations.reviewer user');
+      if (intern) return intern;
+    }
   }
 
   return null;

@@ -3,8 +3,10 @@ import api from '../services/api';
 
 export default function ManageInterns() {
   const [interns, setInterns] = useState([]);
+  const [availableInternUsers, setAvailableInternUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', createAccount: false, password: '', roleName: 'Intern' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', institution: '', course: '', placement: '', startDate: '', endDate: '', status: 'active', password: '' });
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('');
 
@@ -13,6 +15,8 @@ export default function ManageInterns() {
       setLoading(true);
       const res = await api.get('/interns');
       setInterns(res.data || []);
+      const availableRes = await api.get('/interns/available-users');
+      setAvailableInternUsers(availableRes.data || []);
     } catch (err) {
       console.error('Failed loading interns', err);
       setMessage('Failed to load interns');
@@ -28,16 +32,15 @@ export default function ManageInterns() {
     try {
       const name = `${form.firstName || ''} ${form.lastName || ''}`.trim();
       let createdUserId = null;
-      if (form.createAccount && !editing) {
+      if (!editing && !selectedUserId) {
         if (!form.password) {
           throw new Error('Please provide a password to create the intern user account.');
         }
-        // create user account via auth.register
         const regPayload = {
           name,
-          email: form.email,
+          email: String(form.email || '').trim().toLowerCase(),
           password: form.password,
-          roleName: form.roleName,
+          roleName: 'Intern',
           phone: form.phone,
         };
         const regRes = await api.post('/auth/register', regPayload);
@@ -46,12 +49,19 @@ export default function ManageInterns() {
 
       const payload = {
         name,
-        email: form.email,
+        email: String(form.email || '').trim().toLowerCase(),
         phone: form.phone,
         department: form.department,
         supervisor: form.supervisor,
+        institution: form.institution,
+        course: form.course,
+        placement: form.placement,
+        startDate: form.startDate || undefined,
+        endDate: form.endDate || undefined,
+        status: form.status,
       };
-      if (createdUserId) payload.user = createdUserId;
+      if (selectedUserId) payload.user = selectedUserId;
+      else if (createdUserId) payload.user = createdUserId;
 
       if (editing) {
         await api.put(`/interns/${editing}`, payload);
@@ -60,7 +70,8 @@ export default function ManageInterns() {
         await api.post('/interns', payload);
         setMessage('Intern created');
       }
-      setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', createAccount: false, password: '', roleName: 'Intern' });
+      setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', institution: '', course: '', placement: '', startDate: '', endDate: '', status: 'active', password: '' });
+      setSelectedUserId(null);
       setEditing(null);
       load();
     } catch (err) {
@@ -80,10 +91,15 @@ export default function ManageInterns() {
       phone: intern.phone || '',
       department: intern.department || '',
       supervisor: intern.supervisor?._id || intern.supervisor || '',
-      createAccount: false,
+      institution: intern.institution || '',
+      course: intern.course || '',
+      placement: intern.placement || '',
+      startDate: intern.startDate ? new Date(intern.startDate).toISOString().slice(0, 10) : '',
+      endDate: intern.endDate ? new Date(intern.endDate).toISOString().slice(0, 10) : '',
+      status: intern.status || 'active',
       password: '',
-      roleName: 'Intern',
     });
+    setSelectedUserId(intern.user?._id || null);
   };
 
   return (
@@ -124,25 +140,76 @@ export default function ManageInterns() {
                 <label>Supervisor (id)</label>
                 <input value={form.supervisor} onChange={(e) => setForm({...form, supervisor: e.target.value})} />
               </div>
-
-              {!editing && (
-                <div className="form-group">
-                  <label><input type="checkbox" checked={form.createAccount} onChange={(e) => setForm({...form, createAccount: e.target.checked})} /> Create user account for intern</label>
-                </div>
-              )}
-
-              {!editing && form.createAccount && (
+              <div className="form-group">
+                <label>Select existing intern user (optional)</label>
+                <select
+                  value={selectedUserId || ''}
+                  onChange={(e) => {
+                    const uid = e.target.value || null;
+                    setSelectedUserId(uid);
+                    if (uid) {
+                      const user = availableInternUsers.find((u) => u._id === uid);
+                      if (user) {
+                        const [first = '', last = ''] = (user.name || '').split(/\s+/, 2);
+                        setForm((prev) => ({ ...prev, email: user.email || '', firstName: first, lastName: last, phone: user.phone || '' }));
+                      }
+                    } else {
+                      setForm((prev) => ({ ...prev, email: '', firstName: '', lastName: '', phone: '' }));
+                    }
+                  }}
+                >
+                  <option value="">-- Create new user or choose existing --</option>
+                  {availableInternUsers.map((u) => (
+                    <option key={u._id} value={u._1d ? u._id : u._id}>{u.name} — {u.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Institution</label>
+                <input value={form.institution} onChange={(e) => setForm({...form, institution: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Course</label>
+                <input value={form.course} onChange={(e) => setForm({...form, course: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Placement</label>
+                <input value={form.placement} onChange={(e) => setForm({...form, placement: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Start date</label>
+                <input type="date" value={form.startDate} onChange={(e) => setForm({...form, startDate: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>End date</label>
+                <input type="date" value={form.endDate} onChange={(e) => setForm({...form, endDate: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select value={form.status} onChange={(e) => setForm({...form, status: e.target.value})}>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              {!editing && !selectedUserId && (
                 <>
                   <div className="form-group">
                     <label>Password</label>
                     <input type="password" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} />
                   </div>
-                  <div className="form-group">
-                    <label>Role</label>
-                    <input value={form.roleName} onChange={(e) => setForm({...form, roleName: e.target.value})} />
-                  </div>
                 </>
               )}
+              {!editing && selectedUserId && (
+                <div className="form-group info-box">
+                  <label>Selected existing user</label>
+                  <div className="info-value">{form.email} — profile will be linked to this user</div>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Role</label>
+                <input value="Intern" readOnly />
+              </div>
 
               <button className="btn-primary" type="submit">{editing ? 'Save' : 'Create'}</button>
               {editing && <button type="button" className="btn-secondary" style={{marginLeft: '0.5rem'}} onClick={() => { setEditing(null); setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '' }); }}>Cancel</button>}
