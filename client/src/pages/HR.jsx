@@ -130,6 +130,7 @@ export default function HRPage() {
           </div>
           <div className="hr-hero-actions">
             <Link to="/manage-users"><Button variant="primary">Add Employee</Button></Link>
+            <Link to="/manage-interns"><Button variant="primary">Link Interns</Button></Link>
             <Link to="/hr-appraisals"><Button variant="secondary">Start Appraisal</Button></Link>
             <Link to="/leave-summary"><Button variant="secondary">Review Leaves</Button></Link>
           </div>
@@ -168,6 +169,31 @@ export default function HRPage() {
             <span>Birthdays</span>
             <h2>{upcomingBirthdays.length || 'None'}</h2>
           </article>
+        </section>
+
+        <section className="hr-section">
+          <div className="section-header">
+            <div>
+              <h2>Internships & Attachments</h2>
+              <p>Link intern records to user profiles and manage active intern pages in one place.</p>
+            </div>
+            <Link to="/manage-interns" className="btn btn-primary">Link Interns</Link>
+          </div>
+
+          <div className="hr-card-grid">
+            <article className="hr-card">
+              <h3>Link intern profiles</h3>
+              <p>Assign existing intern users to their internship records and ensure profile visibility.</p>
+            </article>
+            <article className="hr-card">
+              <h3>Review attachments</h3>
+              <p>Track placement details, status, supervisor assignments and internship dates.</p>
+            </article>
+            <article className="hr-card">
+              <h3>Open intern page</h3>
+              <p>Navigate to the intern management page for profile updates and linking actions.</p>
+            </article>
+          </div>
         </section>
 
         <section className="hr-section">
