@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import Toast from '../components/UI/Toast';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -9,6 +10,7 @@ export default function Register() {
   const [roleName, setRoleName] = useState('Clerk');
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState('');
+  const [toast, setToast] = useState(null);
   const [isAllowed, setIsAllowed] = useState(false);
   const navigate = useNavigate();
 
@@ -34,12 +36,14 @@ export default function Register() {
     try {
       await api.post('/auth/register', { name, email, password, roleName });
       setSuccess('User created. A verification email has been sent.');
+      setToast({ message: 'User created. A verification email has been sent.', type: 'success' });
       setName('');
       setEmail('');
       setPassword('');
       setRoleName('Clerk');
     } catch (error) {
       setMessage(error.response?.data?.message || 'Could not create user.');
+      setToast({ message: error.response?.data?.message || 'Could not create user.', type: 'error' });
     }
   };
 
@@ -89,6 +93,13 @@ export default function Register() {
       </form>
       {success && <div className="success-message">{success}</div>}
       {message && <div className="message">{message}</div>}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

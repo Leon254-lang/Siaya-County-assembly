@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import Toast from '../components/UI/Toast';
 
 export default function AttacheeDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -12,7 +13,7 @@ export default function AttacheeDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const [toast, setToast] = useState(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
   const [checkOutTime, setCheckOutTime] = useState(null);
 
@@ -24,42 +25,39 @@ export default function AttacheeDashboard() {
   const loadAttacheeData = async () => {
     try {
       setLoading(true);
-      const userId = JSON.parse(localStorage.getItem('user'))?._id;
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = currentUser?._id;
+      if (!userId) {
+        throw new Error('No user found in local storage. Please log in again.');
+      }
 
-      // Load attachee profile
-      const attacheeRes = await api.get(`/interns/${userId}`);
-      setAttacheeData(attacheeRes.data);
+      const attacheeRes = await api.get('/interns/me');
+      const intern = attacheeRes.data;
+      setAttacheeData(intern);
+      const internId = intern._id;
 
-      // Load attendance
       const attendanceRes = await api.get(`/attendance?userId=${userId}`);
       const attendanceRecords = attendanceRes.data.records || attendanceRes.data || [];
       setAttendance(attendanceRecords);
 
-      // Load duties
-      const dutiesRes = await api.get(`/interns/${userId}/duties`);
+      const dutiesRes = await api.get(`/interns/${internId}/duties`);
       setDuties(dutiesRes.data || []);
 
-      // Load logbook
-      const logbookRes = await api.get(`/interns/${userId}/logbook`);
+      const logbookRes = await api.get(`/interns/${internId}/logbook`);
       setLogbook(logbookRes.data || []);
 
-      // Load reports
-      const reportsRes = await api.get(`/interns/${userId}/reports`);
+      const reportsRes = await api.get(`/interns/${internId}/reports`);
       setReports(reportsRes.data || []);
 
-      // Load leaves/permissions
-      const leavesRes = await api.get(`/interns/${userId}/leaves`);
+      const leavesRes = await api.get(`/interns/${internId}/leaves`);
       setLeaves(leavesRes.data || []);
 
-      // Load notifications
       const notifRes = await api.get('/communications/announcements', { params: { limit: 5 } });
       setNotifications(notifRes.data.slice(0, 5) || []);
 
-      // Load evaluation
-      const evaluationRes = await api.get(`/interns/${userId}/evaluation`);
+      const evaluationRes = await api.get(`/interns/${internId}/evaluation`);
       setEvaluation(evaluationRes.data || null);
 
-      // Check if checked in today
       const today = new Date().toDateString();
       const todayAttendance = attendanceRecords.find(a => new Date(a.date).toDateString() === today);
       setCheckedInToday(!!todayAttendance?.checkIn);
@@ -68,7 +66,11 @@ export default function AttacheeDashboard() {
       setLoading(false);
     } catch (err) {
       console.error('Failed to load attachee data:', err);
-      setMessage('Failed to load dashboard data.');
+      if (err.response?.status === 404) {
+        setToast({ message: 'Intern profile not linked to your account. Please ask HR to link your profile.', type: 'error' });
+      } else {
+        setToast({ message: err.message || 'Failed to load dashboard data.', type: 'error' });
+      }
       setLoading(false);
     }
   };
@@ -89,7 +91,6 @@ export default function AttacheeDashboard() {
       });
       const { latitude, longitude } = position.coords;
       await api.post('/attendance/check-in', {
-        userId,
         method: 'manual',
         location: 'Attachee dashboard',
         deviceId: 'browser',
@@ -97,27 +98,25 @@ export default function AttacheeDashboard() {
         longitude,
         address: 'Browser geolocation'
       });
-      setMessage('Checked in successfully');
+      setToast({ message: 'Checked in successfully', type: 'success' });
       setCheckedInToday(true);
       loadAttacheeData();
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Failed to check in');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to check in';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
   const handleCheckOut = async () => {
     try {
-      const userId = JSON.parse(localStorage.getItem('user'))?._id;
       if (!navigator.geolocation) {
-        setMessage('Geolocation is required to check out. Please use the Attendance page.');
-        return;
+        throw new Error('Geolocation is required to check out. Please enable location access.');
       }
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
       });
       const { latitude, longitude } = position.coords;
       await api.post('/attendance/check-out', {
-        userId,
         method: 'manual',
         location: 'Attachee dashboard',
         deviceId: 'browser',
@@ -125,11 +124,12 @@ export default function AttacheeDashboard() {
         longitude,
         address: 'Browser geolocation'
       });
-      setMessage('Checked out successfully');
+      setToast({ message: 'Checked out successfully', type: 'success' });
       setCheckOutTime(new Date().toLocaleTimeString());
       loadAttacheeData();
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Failed to check out');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to check out';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
@@ -145,37 +145,40 @@ export default function AttacheeDashboard() {
 
   const submitLogEntry = async () => {
     try {
-      const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post(`/interns/${userId}/logbook`, newLogEntry);
-      setMessage('Daily logbook entry submitted');
+      if (!attacheeData?._id) throw new Error('Intern profile not loaded.');
+      await api.post(`/interns/${attacheeData._id}/logbook`, newLogEntry);
+      setToast({ message: 'Daily logbook entry submitted', type: 'success' });
       setNewLogEntry({ date: '', activities: '', hours: '' });
       loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to submit logbook entry');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to submit logbook entry';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
   const submitReport = async () => {
     try {
-      const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post(`/interns/${userId}/reports`, { ...newReport, userId });
-      setMessage('Report submitted successfully');
+      if (!attacheeData?._id) throw new Error('Intern profile not loaded.');
+      await api.post(`/interns/${attacheeData._id}/reports`, { ...newReport });
+      setToast({ message: 'Report submitted successfully', type: 'success' });
       setNewReport({ type: '', content: '', weekEnding: '' });
       loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to submit report');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to submit report';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
   const requestPermission = async () => {
     try {
-      const userId = JSON.parse(localStorage.getItem('user'))?._id;
-      await api.post(`/interns/${userId}/leaves`, { ...leaveForm, userId });
-      setMessage('Permission/Leave request submitted');
+      if (!attacheeData?._id) throw new Error('Intern profile not loaded.');
+      await api.post(`/interns/${attacheeData._id}/leaves`, { ...leaveForm });
+      setToast({ message: 'Permission/Leave request submitted', type: 'success' });
       setLeaveForm({ startDate: '', endDate: '', reason: '', type: 'Leave' });
       loadAttacheeData();
     } catch (err) {
-      setMessage('Failed to submit request');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to submit request';
+      setToast({ message: errorMessage, type: 'error' });
     }
   };
 
@@ -211,6 +214,14 @@ export default function AttacheeDashboard() {
           {message}
           <button onClick={() => setMessage('')} style={{ marginLeft: '1rem' }}>×</button>
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <div className="dashboard-tabs">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import Toast from '../components/UI/Toast';
 
 export default function ManageInterns() {
   const [interns, setInterns] = useState([]);
@@ -9,6 +10,7 @@ export default function ManageInterns() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', institution: '', course: '', placement: '', startDate: '', endDate: '', status: 'active', password: '' });
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('');
+  const [toast, setToast] = useState(null);
 
   const load = async () => {
     try {
@@ -65,10 +67,10 @@ export default function ManageInterns() {
 
       if (editing) {
         await api.put(`/interns/${editing}`, payload);
-        setMessage('Intern updated');
+        setToast({ message: 'Intern updated', type: 'success' });
       } else {
         await api.post('/interns', payload);
-        setMessage('Intern created');
+        setToast({ message: 'Intern created', type: 'success' });
       }
       setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', supervisor: '', institution: '', course: '', placement: '', startDate: '', endDate: '', status: 'active', password: '' });
       setSelectedUserId(null);
@@ -77,7 +79,7 @@ export default function ManageInterns() {
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.message || 'Save failed';
-      setMessage(msg);
+      setToast({ message: msg, type: 'error' });
     }
   };
 
@@ -108,6 +110,17 @@ export default function ManageInterns() {
         <h1>Manage Interns</h1>
         <p>Create and update intern profiles (HR only)</p>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => {
+            setToast(null);
+            load();
+          }}
+        />
+      )}
 
       {message && <div className="notification">{message}</div>}
 

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import FormGrid from '../components/UI/FormGrid';
 import Button from '../components/UI/Button';
+import Toast from '../components/UI/Toast';
 
 const roleOptions = [
   'Super Admin',
@@ -24,6 +25,7 @@ export default function ManageUsers() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [toast, setToast] = useState(null);
   const [editingUserId, setEditingUserId] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [form, setForm] = useState({
@@ -101,7 +103,7 @@ export default function ManageUsers() {
         department: createForm.departmentId || undefined,
         password: createForm.password,
       });
-      setMessage('User created successfully.');
+      setToast({ message: 'User created successfully.', type: 'success' });
       setShowCreateForm(false);
       setCreateForm({
         name: '',
@@ -131,7 +133,7 @@ export default function ManageUsers() {
         isActive: form.isActive,
         password: form.password || undefined,
       });
-      setMessage('User updated successfully.');
+      setToast({ message: 'User updated successfully.', type: 'success' });
       setEditingUserId('');
       setForm({
         name: '',
@@ -153,10 +155,10 @@ export default function ManageUsers() {
 
     try {
       await api.delete(`/users/${userId}`);
-      setMessage('User deleted successfully.');
+      setToast({ message: 'User deleted successfully.', type: 'success' });
       await fetchUsers();
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Delete failed.');
+      setToast({ message: error.response?.data?.message || 'Delete failed.', type: 'error' });
     }
   };
 
@@ -166,6 +168,16 @@ export default function ManageUsers() {
       <p>Create accounts, update staff details, reset passwords, and manage access here.</p>
 
       {message && <div className="message">{message}</div>}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => {
+            setToast(null);
+            fetchUsers();
+          }}
+        />
+      )}
 
       <div className="button-group" style={{ marginBottom: '1.25rem' }}>
         <Button type="button" variant="secondary" onClick={() => setShowCreateForm((prev) => !prev)}>

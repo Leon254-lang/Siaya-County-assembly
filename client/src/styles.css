@@ -349,6 +349,33 @@ button:hover {
   font-weight: 500;
 }
 
+/* Toast notifications */
+.toast {
+  position: fixed;
+  right: 1.25rem;
+  top: 1.25rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  color: white;
+  box-shadow: 0 8px 30px rgba(15,23,42,0.12);
+  font-weight: 600;
+  min-width: 200px;
+  display: inline-block;
+  animation: toastIn 0.18s ease-out;
+}
+.toast-success {
+  background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+}
+.toast-error {
+  background: linear-gradient(90deg, #ef4444, #b91c1c);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .dashboard {
   display: flex;
   flex-direction: column;
