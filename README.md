@@ -16,12 +16,17 @@ A centralized web-based platform for managing internal county assembly operation
 
 ## Getting Started
 
-1. Copy `.env.example` to `.env` and configure `MONGO_URI` and `JWT_SECRET`.
+1. Copy `.env.example` to `.env` and configure the required environment variables, especially:
+   - `MONGO_URI`
+   - `JWT_SECRET`
+   - `SEED_ADMIN_EMAIL`
+   - `SEED_ADMIN_PASSWORD`
+   - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Seed roles and initial admin user:
+3. Seed roles and the initial admin user:
    ```bash
    npm run seed
    ```
@@ -29,6 +34,19 @@ A centralized web-based platform for managing internal county assembly operation
    ```bash
    npm run dev
    ```
+
+## Deployment
+
+This project is configured for Render with `render.yaml`.
+
+Required production environment values include:
+- MongoDB connection via `MONGO_URI`
+- `JWT_SECRET`
+- `SEED_ADMIN_EMAIL`
+- `SEED_ADMIN_PASSWORD`
+- SMTP email settings for reminder emails
+
+After deploying, run the seed command once in the app shell or a one-off job to create the default roles and admin account.
 
 ## Frontend scaffold
 

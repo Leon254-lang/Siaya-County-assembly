@@ -8,6 +8,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: MONGO_URI
         fromDatabase:
           name: siaya-assembly-db
@@ -16,6 +18,22 @@ services:
         generateValue: true
       - key: SEED_ADMIN_EMAIL
         value: admin@siaya.local
+      - key: SEED_ADMIN_PASSWORD
+        value: Admin123!
+      - key: SEED_ADMIN_NAME
+        value: System Administrator
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        value: your_email@gmail.com
+      - key: EMAIL_PASS
+        value: your_app_password
+      - key: EMAIL_FROM
+        value: your_email@gmail.com
+      - key: EMAIL_SECURE
+        value: "false"
 
 databases:
   - name: siaya-assembly-db
