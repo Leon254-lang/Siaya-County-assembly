@@ -2,6 +2,8 @@ const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const { sendReminder } = require('./utils/mailer');
@@ -11,8 +13,15 @@ dotenv.config();
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+app.use(helmet());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+}));
+app.use(express.json({ limit: '256kb' }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -22,6 +31,25 @@ app.use(express.static(path.join(__dirname, 'client/dist')));
 app.get('/api', (req, res) => {
   res.json({ message: 'ICAMS API is running' });
 });
+
+const publicApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many public requests. Please try again later.' },
+});
+
+const publicSubmissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many submissions. Please try again later.' },
+});
+
+app.use('/api/public/submissions', publicSubmissionLimiter);
+app.use('/api/public', publicApiLimiter, require('./routes/publicPortal'));
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -43,6 +71,9 @@ app.use('/api/bills', require('./routes/bills'));
 app.use('/api/mcas', require('./routes/mcas'));
 app.use('/api/communications', require('./routes/communications'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
+app.use('/api/order-papers', require('./routes/orderPapers'));
+app.use('/api/hansard', require('./routes/hansard'));
+app.use('/api/sitting-allowances', require('./routes/sittingAllowances'));
 app.use('/api/hr', require('./routes/hr'));
 
 // Serve React app for all other routes

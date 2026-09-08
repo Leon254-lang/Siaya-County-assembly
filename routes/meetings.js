@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const Meeting = require('../models/Meeting');
+const Attendance = require('../models/Attendance');
 const Committee = require('../models/Committee');
 const Department = require('../models/Department');
 const Document = require('../models/Document');
@@ -111,7 +112,7 @@ router.get('/', verifyToken, async (req, res) => {
 
   const meetings = await Meeting.find(query)
     .sort({ startTime: 1 })
-    .populate('committee attendees attendance.user department');
+    .populate('committee attendees attendance.user department orderPaper hansard documents');
   res.json(meetings);
 });
 
@@ -152,7 +153,7 @@ router.get('/availability', verifyToken, async (req, res) => {
 });
 
 router.get('/:id', verifyToken, async (req, res) => {
-  const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user department');
+  const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user department orderPaper hansard documents');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
   res.json(meeting);
 });
@@ -230,7 +231,7 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
 
   const meeting = new Meeting(meetingData);
   await meeting.save();
-  await meeting.populate('committee attendees attendance.user department');
+  await meeting.populate('committee attendees attendance.user department orderPaper hansard documents');
 
   try {
     const document = await buildMeetingDocument(meeting, committee, req.user._id);
@@ -239,6 +240,9 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
       committee.reports.push(document._id);
       await committee.save();
     }
+
+    meeting.documents = [document._id];
+    await meeting.save();
 
     if (meetingData.attendees && meetingData.attendees.length > 0) {
       const message = new Message({
@@ -348,6 +352,16 @@ router.post('/:id/attendance', verifyToken, async (req, res) => {
   }));
 
   await meeting.save();
+  const sittingDate = meeting.startTime || meeting.date || new Date();
+  const statusMap = { Pending: 'Absent', Confirmed: 'Present', Present: 'Present', Absent: 'Absent', Excused: 'Excused', Late: 'Late' };
+  await Promise.all(meeting.attendance.map((entry) => Attendance.findOneAndUpdate(
+    { member: entry.user, sitting: meeting._id },
+    {
+      $set: { user: entry.user, member: entry.user, sitting: meeting._id, date: sittingDate, status: statusMap[entry.status] || 'Absent', updatedAt: new Date() },
+      $setOnInsert: { month: sittingDate.getMonth() + 1, year: sittingDate.getFullYear() },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  )));
   await meeting.populate('committee attendees attendance.user');
   res.json(meeting);
 });

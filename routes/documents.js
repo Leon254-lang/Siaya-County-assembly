@@ -40,6 +40,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     // Filters
     if (type) query.type = type;
+    if (req.query.document_type) query.document_type = req.query.document_type;
     if (status) query.status = status;
     if (category) query.category = category;
     if (priority) query.priority = priority;
@@ -51,6 +52,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     const documents = await Document.find(query)
       .populate('owner', 'name email')
+      .populate('uploaded_by', 'name email')
       .populate('assignedTo', 'name email')
       .populate('department', 'name')
       .populate('approvalHistory.by', 'name')
@@ -80,6 +82,7 @@ router.post('/', verifyToken, async (req, res) => {
     const {
       title,
       description,
+      document_type,
       type,
       category,
       priority,
@@ -102,6 +105,7 @@ router.post('/', verifyToken, async (req, res) => {
       docNumber,
       title,
       description,
+      document_type: document_type || 'Other',
       type: type || 'incoming',
       category: category || 'administrative',
       priority: priority || 'medium',
@@ -112,6 +116,7 @@ router.post('/', verifyToken, async (req, res) => {
       sender,
       recipient,
       owner: req.user._id,
+      uploaded_by: req.user._id,
       department,
       tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
       dueDate,
@@ -140,6 +145,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
+      .populate('uploaded_by', 'name email')
       .populate('assignedTo', 'name email')
       .populate('department', 'name');
 
@@ -153,6 +159,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id)
       .populate('owner', 'name email')
+      .populate('uploaded_by', 'name email')
       .populate('assignedTo', 'name email')
       .populate('department', 'name')
       .populate('approvalHistory.by', 'name')
@@ -170,7 +177,7 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
     const document = await Document.findById(req.params.id);
     if (!document) return res.status(404).json({ message: 'Document not found' });
 
-    document.status = 'pending';
+    document.status = 'submitted';
     document.approvalHistory.push({
       action: 'submitted',
       by: req.user._id,
@@ -189,6 +196,7 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
+      .populate('uploaded_by', 'name email')
       .populate('assignedTo', 'name email')
       .populate('department', 'name')
       .populate('approvalHistory.by', 'name')
@@ -201,13 +209,17 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
 });
 
 router.put('/:id', verifyToken, async (req, res) => {
-  const document = await Document.findByIdAndUpdate(
-    req.params.id,
-    { ...req.body, updatedAt: Date.now() },
-    { new: true }
-  ).populate('owner assignedTo approvalHistory.by');
-
+  const document = await Document.findById(req.params.id);
   if (!document) return res.status(404).json({ message: 'Document not found' });
+  if (document.status === 'published' || document.status === 'archived') {
+    return res.status(400).json({ message: 'Published or archived documents cannot be edited' });
+  }
+
+  const { version, updatedAt, createdAt, created_at, updated_at, ...updates } = req.body;
+  Object.assign(document, updates);
+  document.version += 1;
+  document.updatedAt = Date.now();
+  await document.save();
 
   await recordAudit({
     req,
@@ -217,7 +229,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     details: { updates: req.body },
   });
 
-  res.json(document);
+  res.json(await Document.findById(document._id).populate('owner uploaded_by assignedTo approvalHistory.by'));
 });
 
 router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) => {
@@ -233,6 +245,7 @@ router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) 
       size: req.file.size,
       mimeType: req.file.mimetype,
     });
+    document.version += 1;
     document.updatedAt = Date.now();
     await document.save();
 
@@ -246,6 +259,7 @@ router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) 
 
     const populatedDoc = await Document.findById(document._id)
       .populate('owner', 'name email')
+      .populate('uploaded_by', 'name email')
       .populate('assignedTo', 'name email')
       .populate('department', 'name');
 
@@ -260,6 +274,7 @@ const workflowRoles = ['Super Admin', 'ICT Admin', 'HR Officer', 'Finance Office
 router.post('/:id/approve', verifyToken, authorizeRoles(...workflowRoles), async (req, res) => {
   const document = await Document.findById(req.params.id);
   if (!document) return res.status(404).json({ message: 'Document not found' });
+  if (document.status !== 'reviewed') return res.status(400).json({ message: 'Only reviewed documents can be approved' });
 
   document.status = 'approved';
   document.approvalHistory.push({ action: 'approved', by: req.user._id, comment: req.body.comment });
@@ -274,6 +289,30 @@ router.post('/:id/approve', verifyToken, authorizeRoles(...workflowRoles), async
     details: { comment: req.body.comment },
   });
 
+  res.json(document);
+});
+
+router.post('/:id/review', verifyToken, authorizeRoles(...workflowRoles), async (req, res) => {
+  const document = await Document.findById(req.params.id);
+  if (!document) return res.status(404).json({ message: 'Document not found' });
+  if (!['submitted', 'pending', 'under_review'].includes(document.status)) {
+    return res.status(400).json({ message: 'Only submitted documents can be reviewed' });
+  }
+  document.status = 'reviewed';
+  document.approvalHistory.push({ action: 'submitted', by: req.user._id, comment: req.body.comment || 'Document reviewed' });
+  document.updatedAt = Date.now();
+  await document.save();
+  res.json(document);
+});
+
+router.post('/:id/publish', verifyToken, authorizeRoles(...workflowRoles), async (req, res) => {
+  const document = await Document.findById(req.params.id);
+  if (!document) return res.status(404).json({ message: 'Document not found' });
+  if (document.status !== 'approved') return res.status(400).json({ message: 'Only approved documents can be published' });
+  document.status = 'published';
+  document.approvalHistory.push({ action: 'approved', by: req.user._id, comment: req.body.comment || 'Document published' });
+  document.updatedAt = Date.now();
+  await document.save();
   res.json(document);
 });
 

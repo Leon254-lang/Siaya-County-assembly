@@ -6,6 +6,7 @@ const Committee = require('../models/Committee');
 const Attendance = require('../models/Attendance');
 const Meeting = require('../models/Meeting');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { buildMemberQuery } = require('../utils/memberFilters');
 
 const router = express.Router();
 
@@ -20,7 +21,20 @@ const getMcaRole = async () => {
 router.get('/', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Committee Officer', 'Clerk'), async (req, res) => {
   try {
     const role = await getMcaRole();
-    const mcas = await User.find({ role: role._id })
+    const filters = {
+      search: req.query.search || '',
+      ward: req.query.ward || '',
+      party: req.query.party || '',
+      committee: req.query.committee || '',
+      includeInactive: req.query.includeInactive === 'true',
+    };
+
+    const query = {
+      ...buildMemberQuery(filters),
+      role: role._id,
+    };
+
+    const mcas = await User.find(query)
       .populate('role department committeeMemberships')
       .sort({ name: 1 });
     res.json(mcas);
@@ -49,16 +63,23 @@ router.post('/', verifyToken, async (req, res) => {
 
     const {
       name,
+      member_id,
+      full_name,
       email,
       password,
       ward,
+      constituency,
+      position,
       party,
       phone,
       address,
+      photo,
+      status = 'active',
       committeeMemberships = [],
+      isActive = true,
     } = req.body;
 
-    if (!name || !email || !password) {
+    if (!(name || full_name) || !email || !password) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
 
@@ -71,13 +92,21 @@ router.post('/', verifyToken, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const mca = new User({
-      name,
+      member_id,
+      name: name || full_name,
+      full_name: full_name || name,
       email,
       password: hashedPassword,
       role: role._id,
       ward,
+      constituency,
+      position,
       party,
       phone,
+      photo,
+      profilePic: photo,
+      status,
+      isActive,
       contactDetails: {
         address,
       },
@@ -96,12 +125,19 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Cle
   try {
     const {
       name,
+      member_id,
+      full_name,
       ward,
+      constituency,
+      position,
       party,
       phone,
       address,
+      photo,
+      status,
       committeeMemberships,
       password,
+      isActive,
     } = req.body;
 
     const mca = await User.findById(req.params.id);
@@ -114,10 +150,18 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Cle
       }
     }
 
-    mca.name = name ?? mca.name;
+    mca.member_id = member_id ?? mca.member_id;
+    mca.name = name ?? full_name ?? mca.name;
+    mca.full_name = full_name ?? name ?? mca.full_name;
     mca.ward = ward ?? mca.ward;
+    mca.constituency = constituency ?? mca.constituency;
+    mca.position = position ?? mca.position;
     mca.party = party ?? mca.party;
     mca.phone = phone ?? mca.phone;
+    mca.photo = photo ?? mca.photo;
+    mca.profilePic = photo ?? mca.profilePic;
+    mca.isActive = typeof isActive === 'boolean' ? isActive : status ? status === 'active' : mca.isActive;
+    mca.status = status ?? (mca.isActive ? 'active' : 'inactive');
     mca.contactDetails = mca.contactDetails || {};
     mca.contactDetails.address = address ?? mca.contactDetails.address;
     mca.committeeMemberships = Array.isArray(committeeMemberships)
@@ -133,6 +177,20 @@ router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'HR Officer', 'Cle
     res.json(mca);
   } catch (error) {
     res.status(500).json({ message: 'Error updating MCA profile', error: error.message });
+  }
+});
+
+router.patch('/:id/deactivate', verifyToken, authorizeRoles('Super Admin', 'Clerk'), async (req, res) => {
+  try {
+    const mca = await User.findById(req.params.id);
+    if (!mca) return res.status(404).json({ message: 'MCA not found' });
+
+    mca.isActive = false;
+    mca.status = 'inactive';
+    await mca.save();
+    res.json({ message: 'Member deactivated successfully.', member: mca });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deactivating member', error: error.message });
   }
 });
 

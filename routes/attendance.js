@@ -41,6 +41,18 @@ async function getUserIdsByDepartment(departmentId) {
   return users.map((user) => user._id);
 }
 
+router.get('/sitting/:sittingId', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), async (req, res) => {
+  try {
+    const records = await Attendance.find({ sitting: req.params.sittingId })
+      .populate('member user', 'name email ward party')
+      .populate('sitting', 'title startTime endTime sittingType status')
+      .sort({ date: 1, 'member.name': 1 });
+    res.json({ sitting: req.params.sittingId, records });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching sitting attendance', error: error.message });
+  }
+});
+
 // Get attendance records with filtering
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -49,6 +61,8 @@ router.get('/', verifyToken, async (req, res) => {
       userId,
       department,
       userType,
+      sitting,
+      member,
       date,
       month,
       year,
@@ -62,6 +76,8 @@ router.get('/', verifyToken, async (req, res) => {
     if (userId) query.user = userId;
     else if (user) query.user = user;
     if (userType) query.userType = userType;
+    if (sitting) query.sitting = sitting;
+    if (member) query.member = member;
     if (status) query.status = status;
     if (date) query.date = new Date(date);
     if (month && year) {

@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+  member_id: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+  },
   name: {
     type: String,
     required: true,
@@ -35,6 +41,23 @@ const UserSchema = new mongoose.Schema({
     trim: true,
   },
   party: {
+    type: String,
+    trim: true,
+  },
+  full_name: {
+    type: String,
+    trim: true,
+  },
+  constituency: {
+    type: String,
+    trim: true,
+  },
+  position: {
+    type: String,
+    trim: true,
+    default: 'Member of County Assembly',
+  },
+  photo: {
     type: String,
     trim: true,
   },
@@ -82,10 +105,34 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active',
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  created_at: {
+    type: Date,
+    default: Date.now,
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+UserSchema.pre('save', function syncMemberFields(next) {
+  if (this.isModified('name') || !this.full_name) this.full_name = this.name;
+  if (this.isModified('full_name') && this.full_name) this.name = this.full_name;
+  if (this.isModified('isActive')) this.status = this.isActive ? 'active' : 'inactive';
+  if (this.isModified('status')) this.isActive = this.status === 'active';
+  if (this.isModified('profilePic') && !this.photo) this.photo = this.profilePic;
+  if (this.isModified('photo')) this.profilePic = this.photo;
+  this.updated_at = new Date();
+  next();
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -6,6 +6,14 @@ const AttendanceSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  member: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  sitting: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meeting',
+  },
   userType: {
     type: String,
     enum: ['staff', 'intern', 'mca', 'visitor'],
@@ -25,7 +33,7 @@ const AttendanceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['present', 'absent', 'leave', 'remote', 'partial', 'late'],
+    enum: ['present', 'absent', 'leave', 'remote', 'partial', 'late', 'excused', 'Present', 'Absent', 'Excused', 'Late'],
     default: 'present',
   },
   checkIn: {
@@ -108,6 +116,7 @@ const AttendanceSchema = new mongoose.Schema({
 
 // Indexes for better performance
 AttendanceSchema.index({ user: 1, date: 1 }, { unique: true });
+AttendanceSchema.index({ member: 1, sitting: 1 }, { unique: true, sparse: true });
 AttendanceSchema.index({ user: 1, month: 1, year: 1 });
 AttendanceSchema.index({ date: 1 });
 AttendanceSchema.index({ 'qrCode.code': 1 });

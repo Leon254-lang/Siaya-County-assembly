@@ -8,6 +8,13 @@ const router = express.Router();
 const sanitizeAssetPayload = (payload = {}) => {
   const sanitized = { ...payload };
 
+  if (sanitized.assetNumber && !sanitized.assetTag) sanitized.assetTag = sanitized.assetNumber;
+  if (sanitized.assetTag && !sanitized.assetNumber) sanitized.assetNumber = sanitized.assetTag;
+  if (sanitized.assignedUser && !sanitized.assignedTo) sanitized.assignedTo = sanitized.assignedUser;
+  if (sanitized.assignedTo && !sanitized.assignedUser) sanitized.assignedUser = sanitized.assignedTo;
+  if (sanitized.department && !sanitized.assignedDepartment) sanitized.assignedDepartment = sanitized.department;
+  if (sanitized.assignedDepartment && !sanitized.department) sanitized.department = sanitized.assignedDepartment;
+
   if (typeof sanitized.assetTag === 'string') {
     sanitized.assetTag = sanitized.assetTag.trim();
   }

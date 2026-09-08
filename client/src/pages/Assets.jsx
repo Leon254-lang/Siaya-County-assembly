@@ -5,10 +5,14 @@ import FormGrid from '../components/UI/FormGrid';
 import Button from '../components/UI/Button';
 
 const defaultForm = {
+  assetNumber: '',
   assetTag: '',
   name: '',
+  type: '',
+  serialNumber: '',
   category: 'other',
   location: '',
+  condition: 'Good',
   purchaseDate: '',
   value: '',
   assignedTo: '',
@@ -178,10 +182,14 @@ export default function Assets() {
 
     try {
       const payload = {
+        assetNumber: form.assetNumber.trim() || form.assetTag.trim(),
         assetTag: form.assetTag.trim(),
         name: form.name.trim(),
+        type: form.type.trim(),
+        serialNumber: form.serialNumber.trim(),
         category: form.category,
         location: form.location.trim(),
+        condition: form.condition,
         purchaseDate: form.purchaseDate ? new Date(form.purchaseDate).toISOString() : undefined,
         value: form.value ? Number(form.value) : undefined,
         assignedTo: form.assignedTo || undefined,
@@ -281,13 +289,16 @@ export default function Assets() {
           <form className="asset-form" onSubmit={handleCreateAsset}>
             <div className="form-grid">
               <label>
-                Asset Tag
-                <input name="assetTag" value={form.assetTag} onChange={handleInputChange} required />
+                Asset Number
+                <input name="assetNumber" value={form.assetNumber} onChange={handleInputChange} required />
               </label>
+              <label>Asset Tag<input name="assetTag" value={form.assetTag} onChange={handleInputChange} placeholder="Optional legacy tag" /></label>
               <label>
                 Asset Name
                 <input name="name" value={form.name} onChange={handleInputChange} required />
               </label>
+              <label>Type<input name="type" value={form.type} onChange={handleInputChange} placeholder="Laptop, desktop, router" /></label>
+              <label>Serial Number<input name="serialNumber" value={form.serialNumber} onChange={handleInputChange} /></label>
               <label>
                 Category
                 <select name="category" value={form.category} onChange={handleInputChange}>
@@ -302,6 +313,7 @@ export default function Assets() {
                 Location
                 <input name="location" value={form.location} onChange={handleInputChange} />
               </label>
+              <label>Condition<select name="condition" value={form.condition} onChange={handleInputChange}><option>New</option><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></label>
               <label>
                 Purchase Date
                 <input type="date" name="purchaseDate" value={form.purchaseDate} onChange={handleInputChange} />
@@ -438,9 +450,9 @@ export default function Assets() {
                 className={`asset-item ${selectedAsset?._id === asset._id ? 'selected' : ''}`}
                 onClick={() => handleSelectAsset(asset)}
               >
-                <strong>{asset.assetTag}</strong>
+                <strong>{asset.assetNumber || asset.assetTag}</strong>
                 <div className="asset-meta">{asset.name}</div>
-                <div className="asset-meta">{asset.category.replace('_', ' ')}</div>
+                <div className="asset-meta">{asset.type || asset.category.replace('_', ' ')} · {asset.serialNumber || 'No serial number'}</div>
                 <div className="asset-meta">Status: {asset.status.replace('_', ' ')}</div>
                 <div className="asset-meta">Assigned to: {asset.assignedTo?.name || asset.assignedDepartment?.name || 'None'}</div>
               </button>
@@ -454,8 +466,10 @@ export default function Assets() {
           <div className="asset-details">
             <div className="form-grid">
               <div>
-                <p><strong>Asset Tag:</strong> {selectedAsset.assetTag}</p>
+                <p><strong>Asset Number:</strong> {selectedAsset.assetNumber || selectedAsset.assetTag}</p>
                 <p><strong>Name:</strong> {selectedAsset.name}</p>
+                <p><strong>Type:</strong> {selectedAsset.type || 'Not recorded'}</p>
+                <p><strong>Serial Number:</strong> {selectedAsset.serialNumber || 'Not recorded'}</p>
                 <p><strong>Category:</strong> {selectedAsset.category.replace('_', ' ')}</p>
                 <p><strong>Status:</strong> {selectedAsset.status.replace('_', ' ')}</p>
                 <p><strong>Location:</strong> {selectedAsset.location || 'Not set'}</p>
@@ -464,6 +478,7 @@ export default function Assets() {
                 <p><strong>Assigned Staff:</strong> {selectedAsset.assignedTo?.name || 'None'}</p>
                 <p><strong>Assigned Department:</strong> {selectedAsset.assignedDepartment?.name || 'None'}</p>
                 <p><strong>Purchase Date:</strong> {selectedAsset.purchaseDate ? new Date(selectedAsset.purchaseDate).toLocaleDateString() : 'Unknown'}</p>
+                <p><strong>Condition:</strong> {selectedAsset.condition || 'Not recorded'}</p>
                 <p><strong>Value:</strong> {selectedAsset.value ? `KES ${selectedAsset.value.toLocaleString()}` : 'Not recorded'}</p>
               </div>
             </div>

@@ -43,7 +43,7 @@ const defaultCommittees = [
 const handleAsync = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const loadCommittee = async (req, res, next, id) => {
-  const committee = await Committee.findById(id).populate('members reports recommendations.by');
+  const committee = await Committee.findById(id).populate('members chairperson viceChairperson reports recommendations.by');
   if (!committee) {
     return res.status(404).json({ message: 'Committee not found' });
   }
@@ -63,7 +63,11 @@ router.get('/', verifyToken, handleAsync(async (req, res) => {
 }));
 
 router.get('/:id', verifyToken, (req, res) => {
-  res.json(req.committee);
+  Meeting.find({ committee: req.committee._id })
+    .populate('attendees attendance.user')
+    .sort({ startTime: 1, date: 1 })
+    .then((meetings) => res.json({ ...req.committee.toObject(), meetings }))
+    .catch((error) => res.status(500).json({ message: 'Error loading committee meetings', error: error.message }));
 });
 
 router.post('/', verifyToken, handleAsync(async (req, res) => {
@@ -75,7 +79,7 @@ router.post('/', verifyToken, handleAsync(async (req, res) => {
 router.put('/:id', verifyToken, authorizeRoles('Super Admin', 'Clerk', 'Committee Officer', 'HR Officer'), handleAsync(async (req, res) => {
   Object.assign(req.committee, req.body);
   await req.committee.save();
-  await req.committee.populate('members reports recommendations.by');
+  await req.committee.populate('members chairperson viceChairperson reports recommendations.by');
   res.json(req.committee);
 }));
 
@@ -91,7 +95,7 @@ router.put('/:id/members', verifyToken, authorizeRoles('Super Admin', 'Clerk', '
   }
   req.committee.members = members;
   await req.committee.save();
-  await req.committee.populate('members');
+  await req.committee.populate('members chairperson viceChairperson');
   res.json(req.committee);
 }));
 

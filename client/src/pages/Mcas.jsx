@@ -41,6 +41,26 @@ export default function Mcas() {
   const userId = currentUser._id || '';
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [memberList, setMemberList] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberWard, setMemberWard] = useState('');
+  const [memberParty, setMemberParty] = useState('');
+  const [memberCommittee, setMemberCommittee] = useState('');
+  const [memberForm, setMemberForm] = useState({
+    member_id: '',
+    name: '',
+    email: '',
+    phone: '',
+    ward: '',
+    constituency: '',
+    position: 'Member of County Assembly',
+    party: '',
+    photo: '',
+    address: '',
+    committeeMemberships: [],
+    password: '',
+  });
+  const [selectedMemberId, setSelectedMemberId] = useState('');
   const [userProfile, setUserProfile] = useState(currentUser);
   const [bills, setBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
@@ -71,7 +91,7 @@ export default function Mcas() {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [billsRes, committeesRes, meetingsRes, attendanceRes, announcementsRes, messagesRes, feedbackRes, documentsRes] = await Promise.all([
+      const [billsRes, committeesRes, meetingsRes, attendanceRes, announcementsRes, messagesRes, feedbackRes, documentsRes, membersRes] = await Promise.all([
         api.get('/bills'),
         api.get('/committees'),
         api.get('/meetings?upcoming=true'),
@@ -80,11 +100,13 @@ export default function Mcas() {
         api.get('/communications/messages?folder=inbox'),
         api.get('/feedback'),
         api.get('/documents?limit=50'),
+        api.get(`/mcas?search=${encodeURIComponent(memberSearch)}&ward=${encodeURIComponent(memberWard)}&party=${encodeURIComponent(memberParty)}&committee=${encodeURIComponent(memberCommittee)}`),
       ]);
 
       setBills(billsRes.data || []);
       setCommittees(committeesRes.data || []);
       setMeetings(meetingsRes.data || []);
+      setMemberList(membersRes.data || []);
       const attendanceList = attendanceRes.data?.records || [];
       setAttendanceRecords(attendanceList);
       setAttendanceSummary(computeAttendanceSummary(attendanceList));
@@ -108,7 +130,7 @@ export default function Mcas() {
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [memberSearch, memberWard, memberParty, memberCommittee]);
 
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
@@ -139,6 +161,97 @@ export default function Mcas() {
       console.error('Profile save failed:', error);
       setMessage('Profile update failed. Please ask your administrator to update your MCA profile.');
     }
+  };
+
+  const handleMemberFormChange = (event) => {
+    const { name, value, options } = event.target;
+    if (name === 'committeeMemberships') {
+      const selected = Array.from(options).filter((option) => option.selected).map((option) => option.value);
+      setMemberForm((prev) => ({ ...prev, committeeMemberships: selected }));
+      return;
+    }
+    setMemberForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCreateMember = async (event) => {
+    event.preventDefault();
+    try {
+      await api.post('/mcas', {
+        member_id: memberForm.member_id,
+        name: memberForm.name,
+        email: memberForm.email,
+        password: memberForm.password || 'Member123!',
+        phone: memberForm.phone,
+        ward: memberForm.ward,
+        constituency: memberForm.constituency,
+        position: memberForm.position,
+        party: memberForm.party,
+        address: memberForm.address,
+        photo: memberForm.photo,
+        committeeMemberships: memberForm.committeeMemberships,
+      });
+      setMessage('Member added successfully.');
+      setMemberForm({ member_id: '', name: '', email: '', phone: '', ward: '', constituency: '', position: 'Member of County Assembly', party: '', photo: '', address: '', committeeMemberships: [], password: '' });
+      setSelectedMemberId('');
+      loadDashboard();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to add member.');
+    }
+  };
+
+  const handleUpdateMember = async (event) => {
+    event.preventDefault();
+    if (!selectedMemberId) return;
+
+    try {
+      await api.put(`/mcas/${selectedMemberId}`, {
+        member_id: memberForm.member_id,
+        name: memberForm.name,
+        ward: memberForm.ward,
+        constituency: memberForm.constituency,
+        position: memberForm.position,
+        party: memberForm.party,
+        phone: memberForm.phone,
+        address: memberForm.address,
+        photo: memberForm.photo,
+        committeeMemberships: memberForm.committeeMemberships,
+        password: memberForm.password || undefined,
+      });
+      setMessage('Member updated successfully.');
+      setSelectedMemberId('');
+      setMemberForm({ member_id: '', name: '', email: '', phone: '', ward: '', constituency: '', position: 'Member of County Assembly', party: '', photo: '', address: '', committeeMemberships: [], password: '' });
+      loadDashboard();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to update member.');
+    }
+  };
+
+  const handleDeactivateMember = async (memberId) => {
+    try {
+      await api.patch(`/mcas/${memberId}/deactivate`);
+      setMessage('Member deactivated successfully.');
+      loadDashboard();
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Failed to deactivate member.');
+    }
+  };
+
+  const handleMemberSelect = (member) => {
+    setSelectedMemberId(member._id);
+    setMemberForm({
+      member_id: member.member_id || '',
+      name: member.name || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      ward: member.ward || '',
+      constituency: member.constituency || '',
+      position: member.position || 'Member of County Assembly',
+      party: member.party || '',
+      photo: member.photo || member.profilePic || '',
+      address: member.contactDetails?.address || '',
+      committeeMemberships: Array.isArray(member.committeeMemberships) ? member.committeeMemberships.map((item) => item._id || item) : [],
+      password: '',
+    });
   };
 
   const handleBillChange = (event) => {
@@ -377,6 +490,78 @@ export default function Mcas() {
           </button>
         </div>
       )}
+
+      <section className="card" style={{ marginBottom: '1rem' }}>
+        <h2>Members</h2>
+        <div className="form-grid">
+          <label>
+            Search Member
+            <input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Name, ID, email, ward, or party" />
+          </label>
+          <label>
+            Filter by Ward
+            <input value={memberWard} onChange={(event) => setMemberWard(event.target.value)} placeholder="Ward" />
+          </label>
+          <label>
+            Filter by Political Party
+            <input value={memberParty} onChange={(event) => setMemberParty(event.target.value)} placeholder="Party" />
+          </label>
+          <label>
+            Filter by Committee
+            <select value={memberCommittee} onChange={(event) => setMemberCommittee(event.target.value)}>
+              <option value="">All committees</option>
+              {committees.map((committee) => <option key={committee._id} value={committee._id}>{committee.name}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="dashboard-grid two-column" style={{ marginTop: '1rem' }}>
+          <form className="card" onSubmit={selectedMemberId ? handleUpdateMember : handleCreateMember}>
+            <h3>{selectedMemberId ? 'Edit Member' : 'Add Member'}</h3>
+            <div className="form-grid">
+              <label>Member ID<input name="member_id" value={memberForm.member_id} onChange={handleMemberFormChange} placeholder="e.g. MCA-001" /></label>
+              <label>Full Name<input name="name" value={memberForm.name} onChange={handleMemberFormChange} required /></label>
+              <label>Ward<input name="ward" value={memberForm.ward} onChange={handleMemberFormChange} /></label>
+              <label>Constituency<input name="constituency" value={memberForm.constituency} onChange={handleMemberFormChange} /></label>
+              <label>Position<input name="position" value={memberForm.position} onChange={handleMemberFormChange} /></label>
+              <label>Political Party<input name="party" value={memberForm.party} onChange={handleMemberFormChange} /></label>
+              <label>Phone<input name="phone" value={memberForm.phone} onChange={handleMemberFormChange} /></label>
+              <label>Email<input name="email" type="email" value={memberForm.email} onChange={handleMemberFormChange} required={!selectedMemberId} disabled={!!selectedMemberId} /></label>
+              <label>Photo URL<input name="photo" value={memberForm.photo} onChange={handleMemberFormChange} placeholder="https://..." /></label>
+              <label>Address<input name="address" value={memberForm.address} onChange={handleMemberFormChange} /></label>
+              <label style={{ gridColumn: '1 / -1' }}>Committees
+                <select name="committeeMemberships" multiple value={memberForm.committeeMemberships} onChange={handleMemberFormChange}>
+                  {committees.map((committee) => <option key={committee._id} value={committee._id}>{committee.name}</option>)}
+                </select>
+              </label>
+              {!selectedMemberId && <label style={{ gridColumn: '1 / -1' }}>Password<input name="password" type="password" value={memberForm.password} onChange={handleMemberFormChange} placeholder="Optional default: Member123!" /></label>}
+            </div>
+            <div className="button-group">
+              <button type="submit" className="primary-button">{selectedMemberId ? 'Save Changes' : 'Add Member'}</button>
+              {selectedMemberId && <button type="button" className="secondary-button" onClick={() => { setSelectedMemberId(''); setMemberForm({ member_id: '', name: '', email: '', phone: '', ward: '', constituency: '', position: 'Member of County Assembly', party: '', photo: '', address: '', committeeMemberships: [], password: '' }); }}>Cancel</button>}
+            </div>
+          </form>
+
+          <div className="card">
+            <h3>Member Directory</h3>
+            {memberList.length === 0 ? <p>No members found.</p> : (
+              <div className="list-panel">
+                {memberList.map((member) => (
+                  <div key={member._id} className="list-item">
+                    <button type="button" onClick={() => handleMemberSelect(member)} style={{ background: 'transparent', border: 0, color: 'inherit', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                      <strong>{member.full_name || member.name}</strong>
+                      <div>{member.member_id || 'No member ID'} · {member.position || 'Member'} · {member.ward || 'No ward'}</div>
+                      <div>{member.constituency || 'No constituency'} · {member.party || 'No party'}</div>
+                      <small>Status: {member.status || (member.isActive === false ? 'inactive' : 'active')}</small>
+                    </button>
+                    <button type="button" className="secondary-button" onClick={() => handleDeactivateMember(member._id)} disabled={member.status === 'inactive' || member.isActive === false}>Deactivate</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="dashboard-tabs">
         {[

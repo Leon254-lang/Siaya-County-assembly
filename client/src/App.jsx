@@ -15,6 +15,7 @@ import LeaveSummaryPage from './pages/LeaveSummaryPage';
 import AttendanceReports from './pages/AttendanceReports';
 import ManageInterns from './pages/ManageInterns';
 import Sessions from './pages/Sessions';
+import LegislativeCore from './pages/LegislativeCore';
 import Mcas from './pages/Mcas';
 import Bills from './pages/Bills';
 import Assets from './pages/Assets';
@@ -42,6 +43,7 @@ import HR from './pages/HR';
 import Registry from './pages/Registry';
 import Stores from './pages/Stores';
 import Forbidden from './pages/Forbidden';
+import PublicPortal from './pages/PublicPortal';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -89,6 +91,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
+          <Route path="/public" element={<PublicPortal />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
@@ -97,6 +100,7 @@ function App() {
           <Route path="/visitors" element={<ProtectedRoute><Visitors /></ProtectedRoute>} />
           <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
           <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+          <Route path="/legislative-core" element={<ProtectedRoute><LegislativeCore /></ProtectedRoute>} />
           <Route path="/committees" element={<ProtectedRoute><Committees /></ProtectedRoute>} />
           <Route path="/mcas" element={<ProtectedRoute><Mcas /></ProtectedRoute>} />
           <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />

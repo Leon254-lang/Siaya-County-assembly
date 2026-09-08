@@ -7,7 +7,7 @@ const AttendanceEntrySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Confirmed', 'Present', 'Absent'],
+    enum: ['Pending', 'Confirmed', 'Present', 'Absent', 'Excused', 'Late'],
     default: 'Pending',
   },
   checkedInAt: Date,
@@ -51,6 +51,20 @@ const MeetingSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  orderPaper: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OrderPaper',
+  },
+  hansard: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hansard',
+  },
+  documents: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Document',
+    },
+  ],
   startTime: Date,
   endTime: Date,
   attendees: [
@@ -63,6 +77,11 @@ const MeetingSchema = new mongoose.Schema({
     type: String,
     enum: ['committee', 'session'],
     default: 'committee',
+  },
+  sittingType: {
+    type: String,
+    enum: ['Plenary', 'Special Sitting', 'Committee'],
+    default: 'Plenary',
   },
   votingItems: [
     new mongoose.Schema({

@@ -9,12 +9,16 @@ const formatDateTime = (value) => {
 
 const initialForm = {
   title: '',
+  sittingType: 'Plenary',
+  status: 'Scheduled',
   room: '',
   startTime: '',
   endTime: '',
   agenda: '',
   notes: '',
   attendees: [],
+  orderPaper: '',
+  hansard: '',
   agendaFile: null,
   minutesFile: null,
   votingItems: [],
@@ -27,6 +31,8 @@ export default function Sessions() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [users, setUsers] = useState([]);
+  const [orderPapers, setOrderPapers] = useState([]);
+  const [hansards, setHansards] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [message, setMessage] = useState('');
@@ -36,12 +42,16 @@ export default function Sessions() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sessionsRes, usersRes] = await Promise.all([
+      const [sessionsRes, usersRes, orderPapersRes, hansardsRes] = await Promise.all([
         api.get('/meetings?type=session&upcoming=true'),
         api.get('/users'),
+        api.get('/order-papers'),
+        api.get('/hansard'),
       ]);
       setSessions(sessionsRes.data);
       setUsers(usersRes.data);
+      setOrderPapers(orderPapersRes.data || []);
+      setHansards(hansardsRes.data || []);
     } catch (error) {
       console.error('Failed to load sessions data:', error);
       if (error.response?.status === 401) {
@@ -107,12 +117,16 @@ export default function Sessions() {
     try {
       const payload = {
         title: form.title,
+        sittingType: form.sittingType,
+        status: form.status,
         room: form.room,
         startTime: new Date(form.startTime).toISOString(),
         endTime: new Date(form.endTime).toISOString(),
         agenda: form.agenda,
         notes: form.notes,
         attendees: form.attendees,
+        orderPaper: form.orderPaper || undefined,
+        hansard: form.hansard || undefined,
         meetingType: 'session',
         votingItems: form.votingItems,
       };
@@ -240,7 +254,24 @@ export default function Sessions() {
               <input name="title" value={form.title} onChange={handleFormChange} required />
             </label>
             <label>
-              Room
+              Sitting type
+              <select name="sittingType" value={form.sittingType} onChange={handleFormChange}>
+                <option value="Plenary">Plenary</option>
+                <option value="Special Sitting">Special Sitting</option>
+                <option value="Committee">Committee</option>
+              </select>
+            </label>
+            <label>
+              Status
+              <select name="status" value={form.status} onChange={handleFormChange}>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Draft">Draft</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </label>
+            <label>
+              Venue
               <input name="room" value={form.room} onChange={handleFormChange} placeholder="Assembly hall" />
             </label>
             <label>
@@ -264,6 +295,20 @@ export default function Sessions() {
             <label>
               Agenda notes
               <textarea name="agenda" value={form.agenda} onChange={handleFormChange} rows="4" />
+            </label>
+            <label>
+              Order Paper
+              <select name="orderPaper" value={form.orderPaper} onChange={handleFormChange}>
+                <option value="">Not linked</option>
+                {orderPapers.map((paper) => <option key={paper._id} value={paper._id}>{paper.title} ({formatDateTime(paper.sessionDate)})</option>)}
+              </select>
+            </label>
+            <label>
+              Hansard
+              <select name="hansard" value={form.hansard} onChange={handleFormChange}>
+                <option value="">Not linked</option>
+                {hansards.map((record) => <option key={record._id} value={record._id}>{record.title} ({formatDateTime(record.sessionDate)})</option>)}
+              </select>
             </label>
             <label>
               Agenda file
@@ -322,7 +367,7 @@ export default function Sessions() {
           <h2>{selectedSession.title}</h2>
           <div className="details-row">
             <div>
-              <strong>Room:</strong> {selectedSession.room || 'Not assigned'}
+              <strong>Venue:</strong> {selectedSession.room || 'Not assigned'}
             </div>
             <div>
               <strong>Start:</strong> {formatDateTime(selectedSession.startTime)}
@@ -333,7 +378,10 @@ export default function Sessions() {
               <strong>End:</strong> {formatDateTime(selectedSession.endTime)}
             </div>
             <div>
-              <strong>Type:</strong> Assembly session
+              <strong>Type:</strong> {selectedSession.sittingType || 'Plenary'}
+            </div>
+            <div>
+              <strong>Status:</strong> {selectedSession.status || 'Scheduled'}
             </div>
           </div>
           <div className="details-row">
@@ -365,6 +413,24 @@ export default function Sessions() {
             </div>
           </div>
 
+          <div className="details-row">
+            <div>
+              <strong>Order Paper:</strong>
+              <p>{selectedSession.orderPaper?.title || 'Not linked'}</p>
+              {selectedSession.orderPaper?.status && <small>Status: {selectedSession.orderPaper.status}</small>}
+            </div>
+            <div>
+              <strong>Hansard:</strong>
+              <p>{selectedSession.hansard?.title || 'Not linked'}</p>
+              {selectedSession.hansard?.status && <small>Status: {selectedSession.hansard.status} · {selectedSession.hansard.entries?.length || 0} entries</small>}
+            </div>
+            <div>
+              <strong>Documents:</strong>
+              <p>{selectedSession.documents?.length || 0} linked document(s)</p>
+              {selectedSession.documents?.map((document) => <a key={document._id} href={document.files?.[0]?.path ? `/${document.files[0].path}` : '#'} target="_blank" rel="noreferrer">{document.title}</a>)}
+            </div>
+          </div>
+
           <div className="attendance-section">
             <h3>Attendance</h3>
             {selectedSession.attendance?.length > 0 ? (
@@ -382,6 +448,8 @@ export default function Sessions() {
                         <option value="Confirmed">Confirmed</option>
                         <option value="Present">Present</option>
                         <option value="Absent">Absent</option>
+                        <option value="Excused">Excused</option>
+                        <option value="Late">Late</option>
                       </select>
                     </div>
                   );

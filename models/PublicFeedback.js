@@ -19,6 +19,17 @@ const PublicFeedbackSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  trackingCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+  },
+  publicEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+  },
   status: {
     type: String,
     enum: ['draft', 'published', 'reviewed', 'archived'],

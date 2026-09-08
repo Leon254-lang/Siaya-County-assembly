@@ -10,6 +10,14 @@ const CommitteeSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  chairperson: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  viceChairperson: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   members: [
     {
       type: mongoose.Schema.Types.ObjectId,

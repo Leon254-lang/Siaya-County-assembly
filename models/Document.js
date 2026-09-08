@@ -21,6 +21,11 @@ const DocumentSchema = new mongoose.Schema({
     enum: ['incoming', 'outgoing', 'memo', 'bill', 'report', 'minutes', 'letter', 'contract'],
     default: 'incoming',
   },
+  document_type: {
+    type: String,
+    enum: ['Bills', 'Motions', 'Committee Reports', 'Order Papers', 'Hansard', 'Notices', 'Minutes', 'Other'],
+    default: 'Other',
+  },
   category: {
     type: String,
     enum: ['administrative', 'financial', 'legal', 'technical', 'personnel', 'public'],
@@ -33,9 +38,10 @@ const DocumentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'pending', 'under_review', 'approved', 'rejected', 'archived'],
+    enum: ['draft', 'submitted', 'reviewed', 'approved', 'published', 'archived', 'pending', 'under_review', 'rejected'],
     default: 'draft',
   },
+  version: { type: Number, default: 1, min: 1 },
   origin: {
     type: String,
     trim: true,
@@ -59,6 +65,10 @@ const DocumentSchema = new mongoose.Schema({
     contact: String,
   },
   owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  uploaded_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
@@ -92,6 +102,8 @@ const DocumentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
   dueDate: {
     type: Date,
   },
@@ -140,6 +152,14 @@ const DocumentSchema = new mongoose.Schema({
       },
     },
   ],
+});
+
+DocumentSchema.pre('save', function syncDocumentMetadata(next) {
+  this.uploaded_by = this.uploaded_by || this.owner;
+  this.created_at = this.created_at || this.createdAt;
+  this.updated_at = new Date();
+  this.updatedAt = this.updated_at;
+  next();
 });
 
 module.exports = mongoose.model('Document', DocumentSchema);

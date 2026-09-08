@@ -30,6 +30,8 @@ export default function Documents() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    document_type: 'Other',
+    file: null,
     type: 'incoming',
     category: 'administrative',
     priority: 'medium',
@@ -165,19 +167,23 @@ export default function Documents() {
     e.preventDefault();
     try {
       const selectedDept = departments.find((dept) => dept._id === formData.department);
+      const { file, ...documentFields } = formData;
       const payload = {
-        ...formData,
+        ...documentFields,
         currentDepartment: formData.currentDepartment || selectedDept?.name || '',
         department: formData.department,
         responseStatus: formData.responseStatus,
         responseNotes: formData.responseNotes,
       };
 
-      await api.post('/documents', payload);
+      const response = await api.post('/documents', payload);
+      if (file) await handleFileUpload(response.data._id, file);
       setShowCreateForm(false);
       setFormData({
         title: '',
         description: '',
+        document_type: 'Other',
+        file: null,
         type: 'incoming',
         category: 'administrative',
         priority: 'medium',
@@ -291,9 +297,12 @@ export default function Documents() {
   const getStatusColor = (status) => {
     const colors = {
       draft: '#6b7280',
+      submitted: '#f59e0b',
+      reviewed: '#3b82f6',
       pending: '#f59e0b',
       under_review: '#3b82f6',
       approved: '#10b981',
+      published: '#006a4e',
       rejected: '#ef4444',
       archived: '#6b7280'
     };
@@ -356,15 +365,29 @@ export default function Documents() {
               <option value="contract">Contract</option>
             </select>
             <select
+              value={filters.document_type || ''}
+              onChange={(e) => setFilters({...filters, document_type: e.target.value})}
+            >
+              <option value="">All Document Groups</option>
+              <option value="Bills">Bills</option>
+              <option value="Motions">Motions</option>
+              <option value="Committee Reports">Committee Reports</option>
+              <option value="Order Papers">Order Papers</option>
+              <option value="Hansard">Hansard</option>
+              <option value="Notices">Notices</option>
+              <option value="Minutes">Minutes</option>
+              <option value="Other">Other</option>
+            </select>
+            <select
               value={filters.status}
               onChange={(e) => setFilters({...filters, status: e.target.value})}
             >
               <option value="">All Status</option>
               <option value="draft">Draft</option>
-              <option value="pending">Pending</option>
-              <option value="under_review">Under Review</option>
+              <option value="submitted">Submitted</option>
+              <option value="reviewed">Reviewed</option>
               <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
+              <option value="published">Published</option>
               <option value="archived">Archived</option>
             </select>
             <select
@@ -714,6 +737,20 @@ export default function Documents() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <select
+                    value={formData.document_type}
+                    onChange={(e) => setFormData({...formData, document_type: e.target.value})}
+                    style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
+                  >
+                    <option value="Bills">Bills</option>
+                    <option value="Motions">Motions</option>
+                    <option value="Committee Reports">Committee Reports</option>
+                    <option value="Order Papers">Order Papers</option>
+                    <option value="Hansard">Hansard</option>
+                    <option value="Notices">Notices</option>
+                    <option value="Minutes">Minutes</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <select
                     value={formData.type}
                     onChange={(e) => setFormData({...formData, type: e.target.value})}
                     style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db' }}
@@ -741,6 +778,11 @@ export default function Documents() {
                     <option value="public">Public</option>
                   </select>
                 </div>
+
+                <label>
+                  File
+                  <input type="file" onChange={(e) => setFormData({...formData, file: e.target.files[0] || null})} />
+                </label>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <select
@@ -869,6 +911,12 @@ export default function Documents() {
                 <strong>Type:</strong> {showDetails.type}
               </div>
               <div>
+                <strong>Document Group:</strong> {showDetails.document_type || 'Other'}
+              </div>
+              <div>
+                <strong>Version:</strong> {showDetails.version || 1}
+              </div>
+              <div>
                 <strong>Status:</strong>
                 <span style={{
                   background: getStatusColor(showDetails.status),
@@ -891,6 +939,12 @@ export default function Documents() {
               </div>
               <div>
                 <strong>Created:</strong> {new Date(showDetails.createdAt).toLocaleString()}
+              </div>
+              <div>
+                <strong>Uploaded By:</strong> {showDetails.uploaded_by?.name || showDetails.owner?.name || 'N/A'}
+              </div>
+              <div>
+                <strong>Updated:</strong> {new Date(showDetails.updatedAt || showDetails.updated_at || showDetails.createdAt).toLocaleString()}
               </div>
               <div>
                 <strong>Response Status:</strong> {showDetails.responseStatus ? showDetails.responseStatus.replace('_', ' ') : 'Not requested'}
@@ -967,15 +1021,23 @@ export default function Documents() {
                     📤 Submit
                   </button>
                 )}
-                {(showDetails.status === 'pending' || showDetails.status === 'under_review') && (
+                {(showDetails.status === 'submitted' || showDetails.status === 'pending' || showDetails.status === 'under_review') && (
+                  <>
+                    <button onClick={() => handleStatusChange(showDetails._id, 'review', 'Reviewed')}>🔎 Review</button>
+                  </>
+                )}
+                {showDetails.status === 'reviewed' && (
                   <>
                     <button onClick={() => handleStatusChange(showDetails._id, 'approve', 'Approved')}>
                       ✅ Approve
                     </button>
-                    <button onClick={() => handleStatusChange(showDetails._id, 'reject', 'Rejected')}>
-                      ❌ Reject
-                    </button>
                   </>
+                )}
+                {showDetails.status === 'approved' && (
+                  <button onClick={() => handleStatusChange(showDetails._id, 'publish', 'Published')}>🌐 Publish</button>
+                )}
+                {showDetails.status !== 'published' && showDetails.status !== 'archived' && (
+                  <button onClick={() => handleStatusChange(showDetails._id, 'reject', 'Rejected')}>❌ Reject</button>
                 )}
                 {showDetails.status !== 'archived' && (
                   <button onClick={() => handleStatusChange(showDetails._id, 'archive', 'Archived')}>
