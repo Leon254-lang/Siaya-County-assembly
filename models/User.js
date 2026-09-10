@@ -110,6 +110,33 @@ const UserSchema = new mongoose.Schema({
     enum: ['active', 'inactive'],
     default: 'active',
   },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  failedLoginHistory: [{
+    type: Date,
+    default: Date.now,
+  }],
+  lastLoginAt: {
+    type: Date,
+    default: null,
+  },
+  lastLoginIp: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  lastLoginDevice: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  lastLoginLocation: {
+    type: String,
+    trim: true,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -119,3 +119,167 @@ test('AI training center helpers provide the expected knowledge management summa
   assert.equal(summary.questionsToday, 342);
   assert.equal(summary.unansweredQuestions, 12);
 });
+
+test('AI security center calculates risk scores and flags serious threats', () => {
+  const security = require('./security');
+  const risk = security.scoreRisk({
+    failedLogins: 7,
+    novelDevice: true,
+    suspiciousDownload: true,
+    ipMismatch: true,
+    unusualAccess: true,
+    geolocationMismatch: true,
+  });
+
+  assert.equal(risk.score >= 85, true);
+  assert.equal(risk.severity, 'critical');
+  assert.equal(risk.lockdown, true);
+  assert.ok(Array.isArray(risk.reasons));
+});
+
+test('login security events classify suspicious behavior with a risk score and threat level', () => {
+  const security = require('./security');
+  const event = security.buildLoginSecurityEvent({
+    user: {
+      name: 'mca_023',
+      lastLoginLocation: 'Nairobi',
+      lastLoginDevice: 'Chrome / Windows',
+      lastLoginIp: '10.0.0.12',
+      failedLoginAttempts: 4,
+    },
+    currentIp: '192.168.1.45',
+    device: 'Chrome / Ubuntu',
+    location: 'Kisumu',
+    previousLogin: 'Nairobi',
+    currentLogin: 'Kisumu',
+    failedAttempts: 4,
+  });
+
+  assert.equal(event.user, 'mca_023');
+  assert.equal(event.riskScore >= 85, true);
+  assert.equal(event.threatLevel, 'HIGH');
+  assert.match(event.message, /Suspicious login behavior detected/i);
+  assert.equal(event.failedAttempts, 4);
+});
+
+test('failed login detection creates a security incident for brute-force activity over 10 minutes', () => {
+  const security = require('./security');
+  const now = Date.now();
+  const incident = security.buildFailedLoginSecurityEvent({
+    user: 'mca_023',
+    recentFailureTimestamps: [
+      new Date(now - 9 * 60 * 1000),
+      new Date(now - 8 * 60 * 1000),
+      new Date(now - 7 * 60 * 1000),
+      new Date(now - 6 * 60 * 1000),
+      new Date(now - 5 * 60 * 1000),
+      new Date(now - 4 * 60 * 1000),
+    ],
+  });
+
+  assert.equal(incident.incidentCreated, true);
+  assert.equal(incident.threatLevel, 'HIGH');
+  assert.equal(incident.count, 6);
+  assert.ok(incident.message.includes('High-risk') || incident.message.includes('Suspicious'));
+});
+
+test('document access anomaly detection flags unusual finance downloads by a staff member', () => {
+  const security = require('./security');
+  const event = security.buildDocumentAccessAnomalyEvent({
+    user: 'mca_023',
+    role: 'Clerk',
+    normalAccess: ['HR', 'Meetings', 'General Documents'],
+    accessedDocuments: [
+      { title: 'Finance/Budget_2026.pdf', category: 'Finance', sensitivity: 'high' },
+      { title: 'Procurement/Tender_Information.pdf', category: 'Procurement', sensitivity: 'high' },
+      { title: 'Budget Summary.xlsx', category: 'Finance', sensitivity: 'high' },
+    ],
+    totalCount: 50,
+    timeWindowMinutes: 2,
+    ip: '192.168.1.45',
+    device: 'Chrome / Ubuntu',
+    previousBehavior: 'HR, Meetings, General Documents',
+    downloadFrequency: '50 files in 2 minutes',
+  });
+
+  assert.equal(event.flagged, true);
+  assert.equal(event.threatLevel, 'HIGH');
+  assert.equal(event.anomalyScore >= 75, true);
+  assert.match(event.message, /Abnormal document access detected/i);
+});
+
+test('dynamic user risk score aggregates recent events and decays with age', () => {
+  const security = require('./security');
+  const now = new Date('2026-09-10T10:42:00.000Z');
+  const profile = security.buildUserRiskProfile({
+    user: 'mca_023',
+    loginRisk: 30,
+    accessRisk: 25,
+    deviceRisk: 17,
+    events: [
+      { type: 'device', score: 10, timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() },
+      { type: 'login', score: 5, timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString() },
+      { type: 'location', score: 20, timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString() },
+      { type: 'access', score: 20, timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() },
+      { type: 'download', score: 15, timestamp: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString() },
+      { type: 'login', score: 30, timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString() },
+    ],
+    now,
+  });
+
+  assert.equal(profile.user, 'mca_023');
+  assert.equal(profile.components.loginRisk, 30);
+  assert.equal(profile.components.accessRisk, 25);
+  assert.equal(profile.components.deviceRisk, 17);
+  assert.ok(profile.score >= 60);
+  assert.ok(profile.score <= 100);
+  assert.ok(profile.decayed); 
+  assert.ok(Array.isArray(profile.recentEvents));
+});
+
+test('critical risk triggers an automatic incident and requires authorization before high-impact lockdown', () => {
+  const security = require('./security');
+  const action = security.buildCriticalSecurityResponse({
+    user: 'Staff-023',
+    riskScore: 94,
+    reasons: ['Multiple failed logins', 'unusual device', 'mass document downloads'],
+    autoLockdownEnabled: true,
+    riskThreshold: 90,
+    authorized: true,
+    device: 'Chrome / Ubuntu',
+    ip: '192.168.1.45',
+  });
+
+  assert.equal(action.incidentCreated, true);
+  assert.equal(action.riskScore, 94);
+  assert.equal(action.lockdownApplied, true);
+  assert.equal(action.authorizationRequired, true);
+  assert.match(action.message, /CRITICAL SECURITY INCIDENT/i);
+  assert.match(action.action, /Session terminated and account temporarily locked/i);
+});
+
+test('incident action payload records the audit intent and captures the user action', () => {
+  const security = require('./security');
+  const incident = security.buildSecurityIncident({
+    id: 'SEC-2026-0042',
+    user: 'Staff-023',
+    severity: 'CRITICAL',
+    status: 'INVESTIGATING',
+    detectedAt: '2026-09-10T10:42:00.000Z',
+    indicators: ['Failed authentication', 'New device', 'Abnormal document access', 'Mass download'],
+    score: 94,
+  });
+
+  const action = security.buildIncidentAction({
+    incidentId: incident.id,
+    action: 'Terminate Sessions',
+    user: 'ICT Admin',
+    actorRole: 'ICT Admin',
+  });
+
+  assert.equal(incident.id, 'SEC-2026-0042');
+  assert.equal(incident.score, 94);
+  assert.equal(action.action, 'Terminate Sessions');
+  assert.equal(action.auditEvent, 'Security incident action performed');
+  assert.match(action.summary, /Terminate Sessions/i);
+});

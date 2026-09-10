@@ -44,6 +44,8 @@ import Registry from './pages/Registry';
 import Stores from './pages/Stores';
 import AssemblyAssistant from './pages/AssemblyAssistant';
 import AiTrainingCenter from './pages/AiTrainingCenter';
+import SecurityCenter from './pages/SecurityCenter';
+import IncidentDetails from './pages/IncidentDetails';
 import Forbidden from './pages/Forbidden';
 import PublicPortal from './pages/PublicPortal';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -147,6 +149,8 @@ function App() {
           <Route path="/manage-users" element={<ProtectedRoute><ManageUsers /></ProtectedRoute>} />
           <Route path="/assistant" element={<ProtectedRoute><AssemblyAssistant /></ProtectedRoute>} />
           <Route path="/ai-training-center" element={<ProtectedRoute allowedRoles={['Super Admin', 'ICT Admin']}><AiTrainingCenter /></ProtectedRoute>} />
+          <Route path="/security-center" element={<ProtectedRoute allowedRoles={['Super Admin', 'ICT Admin', 'Security Officer']}><SecurityCenter /></ProtectedRoute>} />
+          <Route path="/incident/:id" element={<ProtectedRoute allowedRoles={['Super Admin', 'ICT Admin', 'Security Officer']}><IncidentDetails /></ProtectedRoute>} />
           <Route path="/faq" element={<ProtectedRoute><FAQ /></ProtectedRoute>} />
           <Route path="/media" element={<ProtectedRoute><MediaCenter /></ProtectedRoute>} />
           <Route path="/media/:slug" element={<ProtectedRoute><MediaPost /></ProtectedRoute>} />

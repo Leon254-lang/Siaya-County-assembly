@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Role = require('../models/Role');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
+const { buildLoginSecurityEvent, buildFailedLoginSecurityEvent } = require('./security');
 const { sendReminder } = require('../utils/mailer');
 
 const router = express.Router();
@@ -32,6 +34,26 @@ const getAppBaseUrl = (req = null) => {
 const buildVerificationUrl = (token, req = null) => `${getAppBaseUrl(req)}/verify-email?token=${encodeURIComponent(token)}`;
 
 const createVerificationToken = () => crypto.randomBytes(32).toString('hex');
+
+const getClientIp = (req = null) => {
+  const forwarded = req?.headers?.['x-forwarded-for'];
+  if (forwarded) {
+    return String(forwarded).split(',')[0].trim();
+  }
+
+  return req?.ip || 'Unknown';
+};
+
+const getDeviceName = (req = null) => {
+  const userAgent = String(req?.headers?.['user-agent'] || '').toLowerCase();
+
+  if (userAgent.includes('chrome')) return 'Chrome';
+  if (userAgent.includes('firefox')) return 'Firefox';
+  if (userAgent.includes('safari')) return 'Safari';
+  if (userAgent.includes('edge')) return 'Edge';
+  if (userAgent.includes('mobile')) return 'Mobile Browser';
+  return 'Unknown device';
+};
 
 const sendVerificationEmail = async (user, token, req = null) => {
   const verificationUrl = buildVerificationUrl(token, req);
@@ -123,7 +145,39 @@ router.post('/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      const now = new Date();
+      const history = Array.isArray(user.failedLoginHistory) ? user.failedLoginHistory : [];
+      const recentFailures = history.filter((stamp) => now - new Date(stamp) <= 10 * 60 * 1000);
+      recentFailures.push(now);
+      user.failedLoginHistory = recentFailures;
+      user.failedLoginAttempts = recentFailures.length;
+      await user.save();
+
+      const securityIncident = buildFailedLoginSecurityEvent({
+        user: user.name,
+        recentFailureTimestamps: recentFailures,
+      });
+
+      await recordAudit({
+        req,
+        user,
+        action: 'Failed login attempt',
+        entity: 'SecurityEvent',
+        entityId: user._id,
+        details: {
+          eventType: securityIncident.eventType,
+          incidentCreated: securityIncident.incidentCreated,
+          riskScore: securityIncident.riskScore,
+          threatLevel: securityIncident.threatLevel,
+          count: securityIncident.count,
+          timeWindowMinutes: securityIncident.timeWindowMinutes,
+        },
+      });
+
+      return res.status(401).json({
+        message: 'Invalid credentials.',
+        securityIncident,
+      });
     }
 
     if (user.isEmailVerified === false) {
@@ -146,7 +200,51 @@ router.post('/login', async (req, res) => {
       expiresIn: '8h',
     });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role.name } });
+    const clientIp = getClientIp(req);
+    const device = getDeviceName(req);
+    const currentLocation = 'Unknown';
+    const securityEvent = buildLoginSecurityEvent({
+      user: {
+        name: user.name,
+        lastLoginLocation: user.lastLoginLocation,
+        lastLoginDevice: user.lastLoginDevice,
+        lastLoginIp: user.lastLoginIp,
+        failedLoginAttempts: user.failedLoginAttempts,
+      },
+      currentIp: clientIp,
+      device,
+      location: currentLocation,
+      previousLogin: user.lastLoginLocation || 'Unknown',
+      currentLogin: currentLocation,
+      failedAttempts: Number(user.failedLoginAttempts || 0),
+    });
+
+    user.lastLoginAt = new Date();
+    user.lastLoginIp = clientIp;
+    user.lastLoginDevice = device;
+    user.lastLoginLocation = currentLocation;
+    user.failedLoginAttempts = 0;
+    await user.save();
+
+    await recordAudit({
+      req,
+      user,
+      action: 'User login',
+      entity: 'User',
+      entityId: user._id,
+      details: {
+        loginTime: new Date().toISOString(),
+        ip: clientIp,
+        device,
+        securityEvent,
+      },
+    });
+
+    res.json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role.name },
+      securityEvent,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Login failed.', error: error.message });
   }
