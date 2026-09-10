@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import Dashboard from './pages/Dashboard';
@@ -77,6 +77,9 @@ function App() {
     setInstallPrompt(null);
   };
 
+  const isLoggedIn = !!localStorage.getItem('icamsToken');
+  const showAssistantLauncher = isLoggedIn && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/public') && !window.location.pathname.startsWith('/register') && !window.location.pathname.startsWith('/verify-email');
+
   return (
     <div className="app-shell">
       {installPrompt && (
@@ -88,6 +91,12 @@ function App() {
         </div>
       )}
       <NavBar />
+      {showAssistantLauncher && (
+        <Link to="/assistant" className="global-assistant-launcher" title="Ask ICAMS" aria-label="Ask ICAMS">
+          <span className="fab-icon">🎤</span>
+          <span className="fab-label">Ask ICAMS</span>
+        </Link>
+      )}
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" />} />
