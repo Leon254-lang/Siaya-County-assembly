@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 const express = require('express');
 const multer = require('multer');
 const Bill = require('../models/Bill');
@@ -990,7 +991,20 @@ const parseNaturalLanguageRequest = (question, knownCommittees = []) => {
   return plan;
 };
 
+const isDatabaseReady = () => mongoose.connection && mongoose.connection.readyState === 1;
+
 const executeNaturalLanguageQuery = async (question) => {
+  if (!isDatabaseReady()) {
+    return {
+      answer: 'I could not access the Assembly records because the database connection is currently unavailable. Please check the MongoDB configuration and try again.',
+      intent: 'system',
+      category: 'Database unavailable',
+      results: [],
+      queryPlan: parseNaturalLanguageRequest(question),
+      sourceCitations: []
+    };
+  }
+
   const knownCommittees = await Committee.find({}).lean();
   const plan = parseNaturalLanguageRequest(question, knownCommittees);
 
@@ -1593,6 +1607,21 @@ router.post('/query', verifyToken, async (req, res) => {
     const allowedKnowledge = getRoleKnowledgeAccess(userRole);
     const confirmAction = Boolean(req.body?.confirmAction === true);
     const systemPrompt = buildAssistantSystemPrompt(userRole);
+
+    if (!isDatabaseReady()) {
+      return res.json({
+        answer: 'I could not access the Assembly records because the database connection is currently unavailable. Please check the MongoDB configuration and try again.',
+        intent: 'system',
+        category: 'Database unavailable',
+        results: [],
+        evidence: [],
+        queryPlan: parseNaturalLanguageRequest(question),
+        allowedKnowledge: [...allowedKnowledge],
+        accessDenied: false,
+        sourceSnippets: [],
+        systemPrompt
+      });
+    }
 
     const actionResult = await executeAssistantAction(question, req.user, { confirmAction });
     if (actionResult) {
