@@ -75,6 +75,8 @@ app.use('/api/order-papers', require('./routes/orderPapers'));
 app.use('/api/hansard', require('./routes/hansard'));
 app.use('/api/sitting-allowances', require('./routes/sittingAllowances'));
 app.use('/api/hr', require('./routes/hr'));
+app.use('/api/assistant', require('./routes/assistant'));
+app.use('/api/ai-knowledge', require('./routes/aiKnowledge'));
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {

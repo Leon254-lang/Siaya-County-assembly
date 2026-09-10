@@ -109,6 +109,8 @@ export default function NavBar() {
       { to: '/dashboard', label: 'Dashboard', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'Registry', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/manage-users', label: 'Users', roles: ['Super Admin', 'ICT Admin', 'HR Officer', 'Clerk'] },
       { to: '/hr', label: 'HR', roles: ['Super Admin', 'HR Officer'] },
+      { to: '/assistant', label: 'AI Assistant', roles: ['Super Admin', 'Clerk', 'Committee Officer', 'MCA', 'HR Officer', 'Finance Officer', 'ICT Admin', 'Procurement Officer', 'Registry', 'Intern', 'Security Officer'] },
+      { to: '/ai-training-center', label: 'AI Training Center', roles: ['Super Admin', 'ICT Admin'] },
       { to: '/leave-summary', label: 'Leave Summary', roles: ['HR Officer', 'Super Admin'] },
       { to: '/attendance-reports', label: 'Attendance Reports', roles: ['HR Officer', 'Super Admin'] },
       { to: '/hr-appraisals', label: 'Appraisals', roles: ['Super Admin', 'HR Officer'] },
