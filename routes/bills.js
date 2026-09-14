@@ -131,6 +131,12 @@ router.post('/:id/vote', verifyToken, authorizeRoles('MCA', 'Clerk', 'Super Admi
 
     const item = bill.voting.items.id(itemId);
     if (!item) return res.status(404).json({ message: 'Voting item not found' });
+    if (!item.options.includes(option)) {
+      return res.status(400).json({ message: 'Vote option is not available for this item.' });
+    }
+    if (item.voteRecords.some((record) => record.voter.toString() === req.user._id.toString())) {
+      return res.status(409).json({ message: 'A vote has already been recorded for this item.' });
+    }
 
     const result = item.results.find((r) => r.option === option);
     if (result) result.votes += 1;

@@ -11,6 +11,12 @@ const AttendanceEntrySchema = new mongoose.Schema({
     default: 'Pending',
   },
   checkedInAt: Date,
+  method: {
+    type: String,
+    enum: ['clerk', 'qr_code', 'biometric', 'pin'],
+    default: 'clerk',
+  },
+  deviceId: String,
 });
 
 const MeetingSchema = new mongoose.Schema({
@@ -132,6 +138,30 @@ const MeetingSchema = new mongoose.Schema({
     }),
   ],
   attendance: [AttendanceEntrySchema],
+  attendancePolicy: {
+    type: String,
+    enum: ['clerk', 'qr_code', 'biometric', 'pin'],
+    default: 'clerk',
+  },
+  attendanceQr: {
+    codeHash: String,
+    expiresAt: Date,
+    generatedAt: Date,
+  },
+  quorumRequired: {
+    type: Number,
+    min: 0,
+    default: 0,
+  },
+  quorumType: {
+    type: String,
+    enum: ['members', 'percentage'],
+    default: 'members',
+  },
+  publishMemberVotingRecord: {
+    type: Boolean,
+    default: true,
+  },
   actionItems: [
     new mongoose.Schema({
       title: { type: String, required: true, trim: true },

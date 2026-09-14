@@ -46,11 +46,43 @@ export default function Meetings() {
     agenda: '',
     notes: '',
     attendees: [],
+    attendancePolicy: 'clerk',
+    quorumRequired: 0,
+    quorumType: 'members',
+    publishMemberVotingRecord: true,
     agendaFile: null,
     minutesFile: null,
   });
   const [attendeeQuery, setAttendeeQuery] = useState('');
   const [attendanceStatus, setAttendanceStatus] = useState({});
+  const [attendanceQr, setAttendanceQr] = useState(null);
+
+  const downloadReport = async (kind) => {
+    if (!selectedMeeting) return;
+    try {
+      const response = await api.get(`/meetings/${selectedMeeting._id}/${kind}-report.csv`, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${selectedMeeting.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${kind}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Failed to download ${kind} report:`, error);
+      setMessage(`Unable to download the ${kind} report.`);
+    }
+  };
+
+  const generateAttendanceQr = async () => {
+    if (!selectedMeeting) return;
+    try {
+      const response = await api.post(`/meetings/${selectedMeeting._id}/attendance/qr`, { expiresInMinutes: 30 });
+      setAttendanceQr(response.data);
+      setMessage('Sitting attendance QR generated. Share it only with assigned attendees.');
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Unable to generate attendance QR.');
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -114,6 +146,10 @@ export default function Meetings() {
       agenda: '',
       notes: '',
       attendees: [],
+      attendancePolicy: 'clerk',
+      quorumRequired: 0,
+      quorumType: 'members',
+      publishMemberVotingRecord: true,
       agendaFile: null,
       minutesFile: null,
     });
@@ -224,6 +260,10 @@ export default function Meetings() {
         agenda: form.agenda,
         notes: form.notes,
         attendees: form.attendees,
+        attendancePolicy: form.attendancePolicy,
+        quorumRequired: Number(form.quorumRequired) || 0,
+        quorumType: form.quorumType,
+        publishMemberVotingRecord: form.publishMemberVotingRecord,
         status: 'Scheduled',
       };
 
@@ -454,6 +494,32 @@ export default function Meetings() {
               </div>
             )}
             <label>
+              Attendance method
+              <select name="attendancePolicy" value={form.attendancePolicy} onChange={handleFormChange}>
+                <option value="clerk">Clerk confirmed</option>
+                <option value="qr_code">QR code</option>
+                <option value="biometric">Biometric</option>
+                <option value="pin">PIN</option>
+              </select>
+            </label>
+            <div className="form-grid">
+              <label>
+                Quorum required
+                <input name="quorumRequired" type="number" min="0" value={form.quorumRequired} onChange={handleFormChange} />
+              </label>
+              <label>
+                Quorum type
+                <select name="quorumType" value={form.quorumType} onChange={handleFormChange}>
+                  <option value="members">Members present</option>
+                  <option value="percentage">Percentage of attendees</option>
+                </select>
+              </label>
+            </div>
+            <label className="checkbox-label">
+              <input name="publishMemberVotingRecord" type="checkbox" checked={form.publishMemberVotingRecord} onChange={(e) => setForm((prev) => ({ ...prev, publishMemberVotingRecord: e.target.checked }))} />
+              Publish member-by-member voting records where policy permits
+            </label>
+            <label>
               Agenda notes
               <textarea name="agenda" value={form.agenda} onChange={handleFormChange} rows="4" />
             </label>
@@ -482,6 +548,26 @@ export default function Meetings() {
       {selectedMeeting && (
         <section className="meeting-details card">
           <h2>{selectedMeeting.title}</h2>
+          <div className="details-row">
+            <div>
+              <strong>Quorum:</strong>{' '}
+              {(() => {
+                const present = (selectedMeeting.attendance || []).filter((entry) => ['Present', 'Late'].includes(entry.status)).length;
+                const required = selectedMeeting.quorumType === 'percentage'
+                  ? Math.ceil((selectedMeeting.attendance?.length || 0) * ((selectedMeeting.quorumRequired || 0) / 100))
+                  : selectedMeeting.quorumRequired || 0;
+                return `${present}/${required || 'any'} ${required === 0 ? (present > 0 ? '(met)' : '(not met)') : (present >= required ? '(met)' : '(not met)')}`;
+              })()}
+            </div>
+            <Button type="button" variant="secondary" onClick={generateAttendanceQr}>
+              Generate attendance QR
+            </Button>
+          </div>
+          {attendanceQr && (
+            <div className="notification">
+              QR token: <code>{attendanceQr.code}</code> (expires {formatDateTime(attendanceQr.expiresAt)})
+            </div>
+          )}
           <div className="details-row">
             <div>
               <strong>Committee:</strong> {selectedMeeting.committee?.name || 'General'}
@@ -556,6 +642,8 @@ export default function Meetings() {
                         <option value="Confirmed">Confirmed</option>
                         <option value="Present">Present</option>
                         <option value="Absent">Absent</option>
+                        <option value="Excused">Excused</option>
+                        <option value="Late">Late</option>
                       </select>
                     </div>
                   );
@@ -567,6 +655,14 @@ export default function Meetings() {
             <Button type="button" variant="secondary" onClick={handleSaveAttendance}>
               Save Attendance
             </Button>
+            <div className="action-group">
+              <Button type="button" variant="secondary" onClick={() => downloadReport('attendance')}>
+                Download attendance report
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => downloadReport('voting')}>
+                Download voting report
+              </Button>
+            </div>
           </div>
         </section>
       )}

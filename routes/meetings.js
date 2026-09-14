@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -46,6 +47,25 @@ const computeDecision = (results) => {
   if (yes === no) return yes > 0 ? 'Tie' : 'No clear decision';
   return yes > no ? 'Approved' : 'Rejected';
 };
+
+const attendanceSummary = (meeting) => {
+  const totalMembers = meeting.attendance?.length || 0;
+  const present = (meeting.attendance || []).filter((entry) => ['Present', 'Late'].includes(entry.status)).length;
+  const required = meeting.quorumType === 'percentage'
+    ? Math.ceil(totalMembers * ((meeting.quorumRequired || 0) / 100))
+    : meeting.quorumRequired || 0;
+  return {
+    totalMembers,
+    present,
+    absent: (meeting.attendance || []).filter((entry) => entry.status === 'Absent').length,
+    excused: (meeting.attendance || []).filter((entry) => entry.status === 'Excused').length,
+    late: (meeting.attendance || []).filter((entry) => entry.status === 'Late').length,
+    required,
+    quorumMet: required === 0 ? present > 0 : present >= required,
+  };
+};
+
+const safeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -345,10 +365,16 @@ router.post('/:id/attendance', verifyToken, async (req, res) => {
     return res.status(400).json({ message: 'Attendance array is required' });
   }
 
+  if (!['Clerk', 'Committee Officer', 'Super Admin'].includes(req.user.role?.name)) {
+    return res.status(403).json({ message: 'Only an authorized clerk or committee officer can confirm sitting attendance.' });
+  }
+
   meeting.attendance = req.body.attendance.map((entry) => ({
     user: entry.user,
     status: entry.status || 'Pending',
     checkedInAt: entry.checkedInAt ? new Date(entry.checkedInAt) : undefined,
+    method: entry.method || 'clerk',
+    deviceId: entry.deviceId,
   }));
 
   await meeting.save();
@@ -370,18 +396,78 @@ router.post('/:id/checkin', verifyToken, async (req, res) => {
   const meeting = await Meeting.findById(req.params.id);
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
-  const { userId } = req.body;
+  const { userId = req.user._id, method = meeting.attendancePolicy, deviceId } = req.body;
   const userEntry = meeting.attendance.find((entry) => entry.user.toString() === userId);
+  if (!userEntry && !['Clerk', 'Committee Officer', 'Super Admin'].includes(req.user.role?.name)) {
+    return res.status(403).json({ message: 'Only an assigned attendee or authorized clerk may record attendance.' });
+  }
+  if (userEntry && ['Present', 'Late'].includes(userEntry.status)) {
+    return res.status(409).json({ message: 'Attendance has already been recorded for this sitting.' });
+  }
   if (userEntry) {
     userEntry.status = 'Present';
     userEntry.checkedInAt = new Date();
+    userEntry.method = method;
+    userEntry.deviceId = deviceId;
   } else {
-    meeting.attendance.push({ user: userId, status: 'Present', checkedInAt: new Date() });
+    meeting.attendance.push({ user: userId, status: 'Present', checkedInAt: new Date(), method, deviceId });
   }
 
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
   res.json(meeting);
+});
+
+router.post('/:id/attendance/qr', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  const code = crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + Math.min(Number(req.body.expiresInMinutes) || 30, 120) * 60 * 1000);
+  meeting.attendancePolicy = 'qr_code';
+  meeting.attendanceQr = {
+    codeHash: crypto.createHash('sha256').update(code).digest('hex'),
+    expiresAt,
+    generatedAt: new Date(),
+  };
+  await meeting.save();
+  res.json({ code, expiresAt, meetingId: meeting._id });
+});
+
+router.post('/:id/attendance/verify-qr', verifyToken, async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  const codeHash = crypto.createHash('sha256').update(String(req.body.code || '')).digest('hex');
+  if (!meeting.attendanceQr?.codeHash || meeting.attendanceQr.codeHash !== codeHash || meeting.attendanceQr.expiresAt <= new Date()) {
+    return res.status(400).json({ message: 'Invalid or expired sitting attendance QR code.' });
+  }
+  const entry = meeting.attendance.find((item) => item.user.toString() === req.user._id.toString());
+  if (!entry) return res.status(403).json({ message: 'You are not an assigned attendee for this sitting.' });
+  if (['Present', 'Late'].includes(entry.status)) return res.status(409).json({ message: 'Attendance has already been recorded for this sitting.' });
+  entry.status = 'Present';
+  entry.checkedInAt = new Date();
+  entry.method = 'qr_code';
+  await meeting.save();
+  res.json({ message: 'Attendance recorded.', meetingId: meeting._id, checkedInAt: entry.checkedInAt });
+});
+
+router.get('/:id/attendance-summary', verifyToken, async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id).populate('attendance.user', 'name email member_id ward party');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  res.json({ meetingId: meeting._id, title: meeting.title, summary: attendanceSummary(meeting), attendance: meeting.attendance });
+});
+
+router.get('/:id/attendance-report.csv', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin', 'HR Officer'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id).populate('attendance.user', 'name email member_id ward party');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  const lines = [
+    ['Member', 'Member ID', 'Status', 'Method', 'Checked in at'].map(safeCsv).join(','),
+    ...(meeting.attendance || []).map((entry) => [
+      entry.user?.name, entry.user?.member_id, entry.status, entry.method, entry.checkedInAt?.toISOString(),
+    ].map(safeCsv).join(',')),
+  ];
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="meeting-${meeting._id}-attendance.csv"`);
+  res.send(lines.join('\n'));
 });
 
 const appendVotingItem = (meeting, item) => ({
@@ -441,6 +527,16 @@ router.post('/:id/vote', verifyToken, authorizeRoles('Clerk', 'Committee Officer
   if (!item) {
     return res.status(400).json({ message: 'Voting item not found' });
   }
+  if (!item.options.includes(option)) {
+    return res.status(400).json({ message: 'Vote option is not available for this item.' });
+  }
+  const voterEntry = meeting.attendance.find((entry) => entry.user.toString() === req.user._id.toString());
+  if (!voterEntry || !['Present', 'Late'].includes(voterEntry.status)) {
+    return res.status(403).json({ message: 'Only members marked present or late may vote.' });
+  }
+  if (item.voteRecords.some((record) => record.voter.toString() === req.user._id.toString())) {
+    return res.status(409).json({ message: 'A vote has already been recorded for this item.' });
+  }
 
   const existing = item.results.find((result) => result.option === option);
   if (existing) {
@@ -463,7 +559,7 @@ router.post('/:id/vote', verifyToken, authorizeRoles('Clerk', 'Committee Officer
 
 router.get('/:id/voting-summary', verifyToken, async (req, res) => {
   try {
-    const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user');
+    const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user votingItems.voteRecords.voter');
     if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
     const summary = meeting.votingItems.map((item) => ({
@@ -477,12 +573,33 @@ router.get('/:id/voting-summary', verifyToken, async (req, res) => {
       totalVotes: item.results.reduce((sum, result) => sum + (result.votes || 0), 0),
       castCount: item.voteRecords.length,
       talliedAt: item.talliedAt,
+      memberVotes: meeting.publishMemberVotingRecord
+        ? item.voteRecords.map((record) => ({
+          voter: record.voter,
+          option: record.option,
+          castAt: record.castAt,
+        }))
+        : undefined,
     }));
 
-    res.json({ meetingId: meeting._id, title: meeting.title, startTime: meeting.startTime, summary });
+    res.json({ meetingId: meeting._id, title: meeting.title, startTime: meeting.startTime, quorum: attendanceSummary(meeting), summary });
   } catch (error) {
     res.status(500).json({ message: 'Error loading voting summary', error: error.message });
   }
+});
+
+router.get('/:id/voting-report.csv', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin', 'HR Officer'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id).populate('votingItems.voteRecords.voter', 'name member_id');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  const lines = [['Question', 'Member', 'Member ID', 'Vote', 'Cast at'].map(safeCsv).join(',')];
+  if (meeting.publishMemberVotingRecord) {
+    meeting.votingItems.forEach((item) => item.voteRecords.forEach((record) => {
+      lines.push([item.question, record.voter?.name, record.voter?.member_id, record.option, record.castAt?.toISOString()].map(safeCsv).join(','));
+    }));
+  }
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="meeting-${meeting._id}-voting.csv"`);
+  res.send(lines.join('\n'));
 });
 
 router.post('/:id/upload-agenda', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), async (req, res) => {
