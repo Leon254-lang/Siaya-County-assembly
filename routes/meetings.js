@@ -12,6 +12,11 @@ const Announcement = require('../models/Announcement');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { sendReminder } = require('../utils/mailer');
+const { calculateQuorum, PRESENT_STATUSES } = require('../utils/attendanceVoting');
+const { buildWorkflowEvent } = require('../utils/workflow');
+const { safeNotify } = require('../utils/notifications');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, '../uploads/meetings');
@@ -57,7 +62,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 const buildMeetingDocument = async (meeting, committee, userId) => {
   const year = new Date().getFullYear();
@@ -187,6 +192,7 @@ Please arrive on time and confirm attendance through the meeting portal.`;
       text,
       html,
     });
+    await safeNotify({ userIds: meeting.attendees.map((attendee) => attendee._id), type: 'meeting_reminder', title: subject, body: text, link: `/meetings/${meeting._id}` });
     meeting.reminderSent = true;
     await meeting.save();
 
@@ -252,6 +258,7 @@ router.post('/', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Supe
         to: meetingData.attendees,
       });
       await message.save();
+      await safeNotify({ userIds: meetingData.attendees, type: 'meeting_reminder', title: `Meeting scheduled: ${meeting.title}`, body: `Your meeting is scheduled for ${new Date(meeting.startTime).toLocaleString()} in ${meeting.room || 'TBD'}.`, link: `/meetings/${meeting._id}` });
     }
 
     const announcement = new Announcement({
@@ -338,6 +345,9 @@ router.put('/:id', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Su
 });
 
 router.post('/:id/attendance', verifyToken, async (req, res) => {
+  if (!['Clerk', 'Committee Officer', 'Super Admin'].includes(req.user?.role?.name)) {
+    return res.status(403).json({ message: 'Only clerks or authorized committee officers can confirm meeting attendance.' });
+  }
   const meeting = await Meeting.findById(req.params.id);
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
@@ -345,10 +355,18 @@ router.post('/:id/attendance', verifyToken, async (req, res) => {
     return res.status(400).json({ message: 'Attendance array is required' });
   }
 
+  const invitedIds = new Set(meeting.attendees.map((attendee) => String(attendee)));
+  const submittedIds = req.body.attendance.map((entry) => String(entry.user));
+  if (new Set(submittedIds).size !== submittedIds.length || submittedIds.some((userId) => !invitedIds.has(userId))) {
+    return res.status(400).json({ message: 'Attendance must contain each invited member at most once.' });
+  }
+
   meeting.attendance = req.body.attendance.map((entry) => ({
     user: entry.user,
     status: entry.status || 'Pending',
     checkedInAt: entry.checkedInAt ? new Date(entry.checkedInAt) : undefined,
+    method: entry.method || 'clerk_confirmed',
+    confirmedBy: req.user._id,
   }));
 
   await meeting.save();
@@ -362,6 +380,7 @@ router.post('/:id/attendance', verifyToken, async (req, res) => {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   )));
+  await recordAudit({ req, action: 'Updated meeting attendance', entity: 'Meeting', entityId: meeting._id, before: null, after: meeting.attendance.map((entry) => entry.toObject()), details: { attendanceCount: meeting.attendance.length } });
   await meeting.populate('committee attendees attendance.user');
   res.json(meeting);
 });
@@ -371,15 +390,24 @@ router.post('/:id/checkin', verifyToken, async (req, res) => {
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
   const { userId } = req.body;
+  if (req.user?.role?.name === 'MCA' && String(req.user._id) !== String(userId)) {
+    return res.status(403).json({ message: 'You can only check in yourself.' });
+  }
+  if (!meeting.attendees.some((attendee) => String(attendee) === String(userId))) {
+    return res.status(403).json({ message: 'Only invited attendees can check in.' });
+  }
   const userEntry = meeting.attendance.find((entry) => entry.user.toString() === userId);
   if (userEntry) {
     userEntry.status = 'Present';
     userEntry.checkedInAt = new Date();
+    userEntry.method = req.body.method || 'manual';
+    userEntry.confirmedBy = ['Clerk', 'Committee Officer', 'Super Admin'].includes(req.user?.role?.name) ? req.user._id : undefined;
   } else {
-    meeting.attendance.push({ user: userId, status: 'Present', checkedInAt: new Date() });
+    meeting.attendance.push({ user: userId, status: 'Present', checkedInAt: new Date(), method: req.body.method || 'manual' });
   }
 
   await meeting.save();
+  await recordAudit({ req, action: 'Checked in meeting attendee', entity: 'Meeting', entityId: meeting._id, details: { userId, method: req.body.method || 'manual' }, after: meeting.attendance.map((entry) => entry.toObject()) });
   await meeting.populate('committee attendees attendance.user');
   res.json(meeting);
 });
@@ -442,6 +470,30 @@ router.post('/:id/vote', verifyToken, authorizeRoles('Clerk', 'Committee Officer
     return res.status(400).json({ message: 'Voting item not found' });
   }
 
+  if (!item.options.includes(option)) {
+    return res.status(400).json({ message: 'Vote option is not available for this item.' });
+  }
+
+  const role = req.user?.role?.name;
+  const alreadyVoted = item.voteRecords.some((record) => String(record.voter) === String(req.user._id));
+  if (alreadyVoted) {
+    return res.status(409).json({ message: 'You have already voted on this item.' });
+  }
+
+  const quorum = calculateQuorum(meeting.attendees, meeting.attendance);
+  if (!quorum.met) {
+    return res.status(409).json({ message: `Voting requires quorum: ${quorum.present} of ${quorum.required} eligible members present.` });
+  }
+
+  if (role === 'MCA') {
+    const attendance = meeting.attendance.find((entry) => String(entry.user) === String(req.user._id));
+    if (!attendance || !PRESENT_STATUSES.has(attendance.status)) {
+      return res.status(403).json({ message: 'Only present or late attendees may vote.' });
+    }
+  } else if (role !== 'Super Admin') {
+    return res.status(403).json({ message: 'Only eligible members may cast a vote.' });
+  }
+
   const existing = item.results.find((result) => result.option === option);
   if (existing) {
     existing.votes += 1;
@@ -457,13 +509,14 @@ router.post('/:id/vote', verifyToken, authorizeRoles('Clerk', 'Committee Officer
   item.talliedAt = new Date();
 
   await meeting.save();
-  await meeting.populate('committee attendees attendance.user');
+  await recordAudit({ req, action: 'Cast meeting vote', entity: 'Meeting', entityId: meeting._id, details: { itemId, option }, after: item.toObject() });
+  await meeting.populate('committee attendees attendance.user votingItems.voteRecords.voter');
   res.json(item);
 });
 
 router.get('/:id/voting-summary', verifyToken, async (req, res) => {
   try {
-    const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user');
+    const meeting = await Meeting.findById(req.params.id).populate('committee attendees attendance.user votingItems.voteRecords.voter');
     if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
 
     const summary = meeting.votingItems.map((item) => ({
@@ -476,6 +529,14 @@ router.get('/:id/voting-summary', verifyToken, async (req, res) => {
       finalDecision: item.finalDecision || computeDecision(item.results),
       totalVotes: item.results.reduce((sum, result) => sum + (result.votes || 0), 0),
       castCount: item.voteRecords.length,
+      voteRecords: item.voteRecords,
+      quorum: calculateQuorum(meeting.attendees, meeting.attendance),
+      absentMembers: meeting.attendees
+        .filter((attendee) => {
+          const attendance = meeting.attendance.find((entry) => String(entry.user?._id || entry.user) === String(attendee._id || attendee));
+          return !attendance || ['Absent', 'Excused', 'Pending'].includes(attendance.status);
+        })
+        .map((attendee) => ({ _id: attendee._id || attendee, name: attendee.name || 'Member' })),
       talliedAt: item.talliedAt,
     }));
 
@@ -485,7 +546,26 @@ router.get('/:id/voting-summary', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/:id/upload-agenda', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), async (req, res) => {
+router.get('/:id/voting-report', verifyToken, async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id).populate('attendees attendance.user votingItems.voteRecords.voter');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
+  const rows = [['Meeting', 'Voting item', 'Member', 'Vote', 'Cast at']];
+  meeting.votingItems.forEach((item) => item.voteRecords.forEach((record) => {
+    rows.push([
+      meeting.title,
+      item.question,
+      record.voter?.name || record.voter,
+      record.option,
+      record.castAt?.toISOString() || '',
+    ]);
+  }));
+  res.type('text/csv').set('Content-Disposition', `attachment; filename="meeting-${meeting._id}-voting-report.csv"`).send(
+    rows.map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+  );
+});
+
+router.post('/:id/upload-agenda', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), scanUploadedFiles, async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No agenda file uploaded' });
 
   const meeting = await Meeting.findByIdAndUpdate(
@@ -519,7 +599,7 @@ router.post('/:id/upload-agenda', verifyToken, authorizeRoles('Clerk', 'Committe
   res.json(meeting);
 });
 
-router.post('/:id/upload-minutes', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), async (req, res) => {
+router.post('/:id/upload-minutes', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), upload.single('file'), scanUploadedFiles, async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No minutes file uploaded' });
 
   const meeting = await Meeting.findByIdAndUpdate(
@@ -559,7 +639,21 @@ router.post('/:id/action-items', verifyToken, authorizeRoles('Clerk', 'Committee
   if (!title) return res.status(400).json({ message: 'Action item title is required.' });
 
   meeting.actionItems = meeting.actionItems || [];
-  meeting.actionItems.push({ title, assignedTo, deadline, notes, status: 'Pending' });
+  meeting.actionItems.push({
+    title,
+    assignedTo,
+    deadline,
+    notes,
+    status: 'Pending',
+    nextResponsibleOfficer: assignedTo || null,
+    workflowHistory: [buildWorkflowEvent({
+      actor: req.user._id,
+      action: 'submitted',
+      status: 'Pending',
+      comment: notes || 'Action item created',
+      nextResponsibleOfficer: assignedTo || null,
+    })],
+  });
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
 
@@ -579,10 +673,47 @@ router.put('/:id/action-items/:itemId', verifyToken, authorizeRoles('Clerk', 'Co
   if (deadline !== undefined) actionItem.deadline = deadline;
   if (notes !== undefined) actionItem.notes = notes;
   if (status !== undefined) actionItem.status = status;
+  if (assignedTo !== undefined) actionItem.nextResponsibleOfficer = assignedTo;
+  actionItem.workflowHistory.push(buildWorkflowEvent({
+    actor: req.user._id,
+    action: status === 'Completed' ? 'completed' : 'updated',
+    status: actionItem.status,
+    comment: notes || 'Action item updated',
+    nextResponsibleOfficer: actionItem.nextResponsibleOfficer || null,
+  }));
 
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
 
+  res.json(meeting);
+});
+
+router.post('/:id/action-items/:itemId/escalate', verifyToken, authorizeRoles('Clerk', 'Committee Officer', 'Super Admin'), async (req, res) => {
+  const meeting = await Meeting.findById(req.params.id);
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  const actionItem = meeting.actionItems.id(req.params.itemId);
+  if (!actionItem) return res.status(404).json({ message: 'Action item not found' });
+  const nextResponsibleOfficer = req.body.nextResponsibleOfficer || null;
+  actionItem.status = 'Overdue';
+  actionItem.escalatedAt = new Date();
+  actionItem.nextResponsibleOfficer = nextResponsibleOfficer;
+  actionItem.workflowHistory.push(buildWorkflowEvent({
+    actor: req.user._id,
+    action: 'escalated',
+    status: 'Overdue',
+    comment: req.body.comment || 'Action item escalated because it is overdue',
+    nextResponsibleOfficer,
+  }));
+  await meeting.save();
+  await safeNotify({
+    userIds: [actionItem.assignedTo, nextResponsibleOfficer],
+    type: 'deadline',
+    title: 'Action item escalated',
+    body: req.body.comment || `The action item "${actionItem.title}" is overdue and requires attention.`,
+    link: `/meetings/${meeting._id}`,
+    critical: true,
+  });
+  await meeting.populate('committee attendees attendance.user actionItems.assignedTo actionItems.nextResponsibleOfficer');
   res.json(meeting);
 });
 

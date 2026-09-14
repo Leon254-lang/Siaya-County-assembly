@@ -92,6 +92,8 @@ export default function NavBar() {
       { to: '/committees', label: 'Committees' },
       { to: '/documents', label: 'Documents' },
       { to: '/announcements', label: 'Announcements' },
+      { to: '/notifications', label: 'Notifications' },
+      { to: '/reports', label: 'Reports' },
       { to: '/procurement', label: 'Procurement' },
       { to: '/finance', label: 'Finance' },
       { to: '/assets', label: 'Assets' },
@@ -123,6 +125,8 @@ export default function NavBar() {
       { to: '/documents', label: 'Documents', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA'] },
       { to: '/announcements', label: 'Announcements', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
       { to: '/messages', label: 'Messages', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
+      { to: '/notifications', label: 'Notifications', roles: ['Super Admin', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'Procurement Officer', 'MCA', 'Intern', 'Security Officer'] },
+      { to: '/reports', label: 'Reports', roles: ['Super Admin', 'Speaker', 'Clerk', 'ICT Admin', 'HR Officer', 'Finance Officer', 'Committee Officer', 'MCA'] },
       { to: '/procurement', label: 'Procurement', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/procurement/requests', label: 'Requests', roles: ['Super Admin', 'Procurement Officer', 'Clerk'] },
       { to: '/finance', label: 'Finance', roles: ['Super Admin', 'Finance Officer', 'Clerk'] },
@@ -168,7 +172,8 @@ export default function NavBar() {
   }, [userRole]);
   const logoSrc = 'uploads/siaya_logo.png';
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await api.post('/auth/logout'); } catch (error) { console.error('Logout audit failed:', error); }
     localStorage.removeItem('icamsToken');
     localStorage.removeItem('user');
     localStorage.removeItem('userName');

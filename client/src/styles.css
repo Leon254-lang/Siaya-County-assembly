@@ -3390,6 +3390,49 @@ a.module-card p {
   gap: 1.5rem;
 }
 
+.public-portal {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.public-portal .dashboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.public-portal .dashboard-tabs .tab-btn {
+  min-height: 44px;
+}
+
+.public-portal input,
+.public-portal select,
+.public-portal textarea,
+.public-portal button,
+.public-portal a {
+  min-height: 44px;
+}
+
+@media (max-width: 720px) {
+  .public-portal .dashboard-grid.two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .public-portal .dashboard-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .public-portal .dashboard-tabs .tab-btn {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .public-portal .list-item {
+    overflow-wrap: anywhere;
+  }
+}
+
 .media-list {
   display: grid;
   gap: 1.5rem;

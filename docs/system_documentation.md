@@ -156,6 +156,9 @@ The system supports several user roles with varying permissions:
 3. The request is tracked through procurement and registry processes.
 4. Records are stored for accountability.
 
+### 6.5 Approval and Escalation Workflows
+Motion, document, committee report, budget, public participation, leave, and overdue action workflows record a submitter or acting officer, decision status, decision timestamp, comments or reason, and the next responsible officer. Workflow history is stored on the record and returned with the relevant API response. Committee reports enter the document workflow as submitted records and follow review, approval, publication, rejection, or archival transitions. Overdue committee action items can be escalated with a new responsible officer and reason.
+
 ## 7. Technical Architecture
 
 ### 7.1 Frontend
@@ -177,6 +180,20 @@ The system supports several user roles with varying permissions:
 - Token-based access control
 - Role-based permissions for protected routes
 - Audit logging for sensitive actions
+- HTTPS redirect and HSTS in production
+- Bcrypt password hashing and TOTP MFA for privileged accounts
+- Authentication rate limiting and failed-login monitoring
+- Upload extension allowlists and configurable upload-size limits
+- Encrypted MongoDB backups with daily scheduling and isolated restore tests
+
+### 7.5 Security, Backup, and Disaster Recovery Runbook
+- **HTTPS:** Production traffic must terminate at HTTPS. The application redirects forwarded HTTP requests and emits HSTS. Set `NODE_ENV=production` and configure the platform TLS certificate.
+- **MFA:** Privileged users call `/api/auth/mfa/setup`, scan the returned `otpauth` URI in an authenticator application, then call `/api/auth/mfa/enable` with the current six-digit code. Set `REQUIRE_PRIVILEGED_MFA=true` after enrollment; privileged logins then require `mfaCode`.
+- **Backups:** Install MongoDB Database Tools and OpenSSL on the scheduled backup worker. Set `MONGO_URI`, `BACKUP_ENCRYPTION_KEY`, `BACKUP_DIR`, and `BACKUP_RETENTION_DAYS`, then run `scripts/backup_mongodb.sh` daily. The backup is encrypted with AES-256-CBC using PBKDF2 and must be stored separately from production credentials. The scheduled service in `render.yaml` is a deployment template and must run on an image that includes these tools.
+- **Restore testing:** Run `scripts/test_restore_mongodb.sh` against an isolated test database at least monthly and after backup-process changes. Never use the production URI for restore tests.
+- **Recovery:** For an incident, freeze writes, preserve audit logs, identify the last verified backup, restore into a new isolated database, validate application health and counts, then switch the application connection string and rotate credentials. Record the incident and recovery time.
+- **Environments:** Use separate MongoDB databases, JWT secrets, encryption keys, upload buckets, and email/SMS credentials for development, testing, staging, and production. Never copy production data or secrets into lower environments.
+- **Upload scanning:** Install ClamAV and set `CLAMSCAN_PATH` to the `clamscan` executable. Without it, extension and size validation still applies, but production policy should require a configured malware scanner.
 
 ## 8. Main Routes
 The application exposes the following major route groups:

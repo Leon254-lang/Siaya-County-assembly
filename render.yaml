@@ -16,10 +16,12 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: REQUIRE_PRIVILEGED_MFA
+        value: "true"
       - key: SEED_ADMIN_EMAIL
-        value: admin@siaya.local
+        sync: false
       - key: SEED_ADMIN_PASSWORD
-        value: Admin123!
+        sync: false
       - key: SEED_ADMIN_NAME
         value: System Administrator
       - key: EMAIL_HOST
@@ -35,8 +37,26 @@ services:
       - key: EMAIL_SECURE
         value: "false"
 
+  # Provision this as a separate scheduled service. Keep the encryption key in
+  # the platform secret environment store, never in source control.
+  - type: cron
+    name: siaya-assembly-daily-backup
+    env: node
+    plan: starter
+    schedule: "0 2 * * *"
+    buildCommand: npm install
+    startCommand: bash scripts/backup_mongodb.sh
+    envVars:
+      - key: MONGO_URI
+        fromDatabase:
+          name: siaya-assembly-db
+          property: connectionString
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+
 databases:
   - name: siaya-assembly-db
     databaseName: siaya_assembly
     plan: free
     region: oregon
+

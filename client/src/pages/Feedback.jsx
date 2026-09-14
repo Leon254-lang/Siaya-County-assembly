@@ -32,6 +32,7 @@ const categoryLabels = {
   event_notice: 'Event Notice',
   public_comment: 'Public Comment',
   feedback_report: 'Feedback Report',
+  petition: 'Petition',
 };
 
 const statusLabels = {
@@ -104,11 +105,10 @@ export default function Feedback() {
   const handlePublishItem = async () => {
     if (!selectedItem) return;
     try {
-      const payload = {
-        ...selectedItem,
-        status: 'published',
-      };
-      const response = await api.put(`/feedback/${selectedItem._id}`, payload);
+      const response = await api.post(`/feedback/${selectedItem._id}/review`, {
+        decision: 'published',
+        comment: 'Publication approved by an authorized reviewer',
+      });
       setSelectedItem(response.data);
       setItems((prev) => prev.map((item) => (item._id === response.data._id ? response.data : item)));
       setMessage('Item published.');
@@ -167,6 +167,7 @@ export default function Feedback() {
       bill_notice: 0,
       event_notice: 0,
       public_comment: 0,
+      petition: 0,
       feedback_report: 0,
     }
   );
@@ -212,6 +213,7 @@ export default function Feedback() {
                   <option value="bill_notice">Bill / Notice</option>
                   <option value="event_notice">Event Notice</option>
                   <option value="public_comment">Public Comment</option>
+                  <option value="petition">Petition</option>
                   <option value="feedback_report">Feedback Report</option>
                 </select>
               </label>

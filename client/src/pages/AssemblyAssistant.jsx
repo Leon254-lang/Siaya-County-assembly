@@ -142,7 +142,9 @@ export default function AssemblyAssistant() {
                 text: answer.answer,
                 results: [],
                 citations: [],
-                action: answer.action
+                action: answer.action,
+                interactionId: answer.interactionId,
+                contact: answer.contact
               }
             ]
           };
@@ -161,7 +163,9 @@ export default function AssemblyAssistant() {
               role: 'assistant',
               text: answer.answer,
               results: answer.results || [],
-              citations: answer.sourceCitations || answer.results?.map((item) => item.citation).filter(Boolean) || []
+              citations: answer.sourceCitations || answer.results?.map((item) => item.citation).filter(Boolean) || [],
+              interactionId: answer.interactionId,
+              contact: answer.contact
             }
           ]
         };
@@ -183,6 +187,16 @@ export default function AssemblyAssistant() {
       setError(err.response?.data?.message || 'Unable to process the question right now.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sendFeedback = async (interactionId, feedback) => {
+    if (!interactionId) return;
+    try {
+      await api.post('/assistant/feedback', { interactionId, feedback });
+      setError('Feedback recorded. Thank you.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to record feedback.');
     }
   };
 
@@ -422,6 +436,13 @@ export default function AssemblyAssistant() {
                       ))}
                     </div>
                   )}
+                  {message.contact && <p className="assistant-contact-fallback">{message.contact}</p>}
+                  {message.interactionId && <div className="assistant-feedback" aria-label="Assistant answer feedback">
+                    <span>Was this helpful?</span>
+                    <button type="button" onClick={() => sendFeedback(message.interactionId, 'helpful')}>Helpful</button>
+                    <button type="button" onClick={() => sendFeedback(message.interactionId, 'not_helpful')}>Not helpful</button>
+                    <button type="button" onClick={() => sendFeedback(message.interactionId, 'report_incorrect')}>Report incorrect</button>
+                  </div>}
                 </div>
               </div>
             ))}

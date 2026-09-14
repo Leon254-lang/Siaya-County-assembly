@@ -3,6 +3,8 @@ const multer = require('multer');
 const Document = require('../models/Document');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 
 const router = express.Router();
 
@@ -10,7 +12,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -56,6 +58,7 @@ router.get('/', verifyToken, async (req, res) => {
       .populate('assignedTo', 'name email')
       .populate('department', 'name')
       .populate('approvalHistory.by', 'name')
+      .populate('approvalHistory.nextResponsibleOfficer', 'name email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -163,6 +166,7 @@ router.get('/:id', verifyToken, async (req, res) => {
       .populate('assignedTo', 'name email')
       .populate('department', 'name')
       .populate('approvalHistory.by', 'name')
+      .populate('approvalHistory.nextResponsibleOfficer', 'name email')
       .populate('movementHistory.movedBy', 'name');
 
     if (!document) return res.status(404).json({ message: 'Document not found' });
@@ -232,7 +236,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   res.json(await Document.findById(document._id).populate('owner uploaded_by assignedTo approvalHistory.by'));
 });
 
-router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) => {
+router.post('/:id/upload', verifyToken, upload.single('file'), scanUploadedFiles, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
     if (!document) return res.status(404).json({ message: 'Document not found' });
@@ -276,8 +280,10 @@ router.post('/:id/approve', verifyToken, authorizeRoles(...workflowRoles), async
   if (!document) return res.status(404).json({ message: 'Document not found' });
   if (document.status !== 'reviewed') return res.status(400).json({ message: 'Only reviewed documents can be approved' });
 
+  const beforeStatus = document.status;
   document.status = 'approved';
-  document.approvalHistory.push({ action: 'approved', by: req.user._id, comment: req.body.comment });
+  document.approvalHistory.push({ action: 'approved', by: req.user._id, comment: req.body.comment, nextResponsibleOfficer: req.body.nextResponsibleOfficer || null });
+  document.assignedTo = req.body.nextResponsibleOfficer || document.assignedTo;
   document.updatedAt = Date.now();
   await document.save();
 
@@ -287,6 +293,8 @@ router.post('/:id/approve', verifyToken, authorizeRoles(...workflowRoles), async
     entity: 'Document',
     entityId: document._id,
     details: { comment: req.body.comment },
+    before: { status: beforeStatus },
+    after: { status: document.status, assignedTo: document.assignedTo },
   });
 
   res.json(document);
@@ -298,10 +306,13 @@ router.post('/:id/review', verifyToken, authorizeRoles(...workflowRoles), async 
   if (!['submitted', 'pending', 'under_review'].includes(document.status)) {
     return res.status(400).json({ message: 'Only submitted documents can be reviewed' });
   }
+  const beforeStatus = document.status;
   document.status = 'reviewed';
-  document.approvalHistory.push({ action: 'submitted', by: req.user._id, comment: req.body.comment || 'Document reviewed' });
+  document.approvalHistory.push({ action: 'reviewed', by: req.user._id, comment: req.body.comment || 'Document reviewed', nextResponsibleOfficer: req.body.nextResponsibleOfficer || null });
+  document.assignedTo = req.body.nextResponsibleOfficer || document.assignedTo;
   document.updatedAt = Date.now();
   await document.save();
+  await recordAudit({ req, action: 'Reviewed document', entity: 'Document', entityId: document._id, details: { comment: req.body.comment }, before: { status: beforeStatus }, after: { status: document.status, assignedTo: document.assignedTo } });
   res.json(document);
 });
 
@@ -309,10 +320,13 @@ router.post('/:id/publish', verifyToken, authorizeRoles(...workflowRoles), async
   const document = await Document.findById(req.params.id);
   if (!document) return res.status(404).json({ message: 'Document not found' });
   if (document.status !== 'approved') return res.status(400).json({ message: 'Only approved documents can be published' });
+  const beforeStatus = document.status;
   document.status = 'published';
-  document.approvalHistory.push({ action: 'approved', by: req.user._id, comment: req.body.comment || 'Document published' });
+  document.approvalHistory.push({ action: 'published', by: req.user._id, comment: req.body.comment || 'Document published', nextResponsibleOfficer: req.body.nextResponsibleOfficer || null });
+  document.assignedTo = req.body.nextResponsibleOfficer || document.assignedTo;
   document.updatedAt = Date.now();
   await document.save();
+  await recordAudit({ req, action: 'Published document', entity: 'Document', entityId: document._id, details: { comment: req.body.comment }, before: { status: beforeStatus }, after: { status: document.status, assignedTo: document.assignedTo } });
   res.json(document);
 });
 
@@ -320,8 +334,10 @@ router.post('/:id/reject', verifyToken, authorizeRoles(...workflowRoles), async 
   const document = await Document.findById(req.params.id);
   if (!document) return res.status(404).json({ message: 'Document not found' });
 
+  const beforeStatus = document.status;
   document.status = 'rejected';
-  document.approvalHistory.push({ action: 'rejected', by: req.user._id, comment: req.body.comment });
+  document.approvalHistory.push({ action: 'rejected', by: req.user._id, comment: req.body.comment, nextResponsibleOfficer: req.body.nextResponsibleOfficer || null });
+  document.assignedTo = req.body.nextResponsibleOfficer || document.assignedTo;
   document.updatedAt = Date.now();
   await document.save();
 
@@ -331,6 +347,8 @@ router.post('/:id/reject', verifyToken, authorizeRoles(...workflowRoles), async 
     entity: 'Document',
     entityId: document._id,
     details: { comment: req.body.comment },
+    before: { status: beforeStatus },
+    after: { status: document.status, assignedTo: document.assignedTo },
   });
 
   res.json(document);
@@ -499,6 +517,7 @@ router.get('/:id/download/:fileId', verifyToken, async (req, res) => {
     const file = document.files.id(req.params.fileId);
     if (!file) return res.status(404).json({ message: 'File not found' });
 
+    await recordAudit({ req, action: 'Downloaded document file', entity: 'Document', entityId: document._id, details: { fileId: req.params.fileId, filename: file.originalName }, before: null, after: { downloaded: true } });
     res.download(file.path, file.originalName);
   } catch (error) {
     res.status(500).json({ message: 'Error downloading file', error: error.message });

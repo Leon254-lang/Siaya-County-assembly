@@ -11,6 +11,53 @@ const { sendReminder } = require('../utils/mailer');
 
 const router = express.Router();
 
+const privilegedRoles = ['Super Admin', 'ICT Admin', 'HR Officer', 'Clerk', 'Finance Officer', 'Committee Officer'];
+const base32Encode = (buffer) => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  let output = '';
+  for (const byte of buffer) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      output += alphabet[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) output += alphabet[(value << (5 - bits)) & 31];
+  return output;
+};
+const base32Decode = (input) => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = 0;
+  let value = 0;
+  const bytes = [];
+  for (const character of String(input).toUpperCase().replace(/=+$/, '')) {
+    const index = alphabet.indexOf(character);
+    if (index < 0) throw new Error('Invalid MFA secret');
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bytes.push((value >>> (bits - 8)) & 255);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(bytes);
+};
+const hotp = (secret, counter) => {
+  const key = base32Decode(secret);
+  const data = Buffer.alloc(8);
+  data.writeBigUInt64BE(BigInt(counter));
+  const digest = crypto.createHmac('sha1', key).update(data).digest();
+  const offset = digest[digest.length - 1] & 15;
+  return String((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0');
+};
+const validTotp = (secret, code) => {
+  const counter = Math.floor(Date.now() / 30000);
+  return [counter - 1, counter, counter + 1].some((value) => hotp(secret, value) === String(code || '').trim());
+};
+
 const getAppBaseUrl = (req = null) => {
   const configured = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.APP_URL || process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.RENDER_URL;
   if (configured) {
@@ -138,7 +185,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail }).populate('role');
+    const user = await User.findOne({ email: normalizedEmail }).select('+mfaSecret +mfaRecoveryCodes').populate('role');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
@@ -196,6 +243,12 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    if (privilegedRoles.includes(user.role.name) && user.mfaEnabled) {
+      if (!validTotp(user.mfaSecret, req.body.mfaCode)) {
+        return res.status(401).json({ message: 'MFA code required or invalid.', mfaRequired: true });
+      }
+    }
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecret', {
       expiresIn: '8h',
     });
@@ -248,6 +301,26 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Login failed.', error: error.message });
   }
+});
+
+router.post('/mfa/setup', verifyToken, async (req, res) => {
+  const secret = base32Encode(crypto.randomBytes(20));
+  req.user.mfaSecret = secret;
+  await req.user.save();
+  res.json({ secret, otpauth: `otpauth://totp/ICAMS:${encodeURIComponent(req.user.email)}?secret=${secret}&issuer=ICAMS` });
+});
+
+router.post('/mfa/enable', verifyToken, async (req, res) => {
+  if (!req.user.mfaSecret || !validTotp(req.user.mfaSecret, req.body.code)) return res.status(400).json({ message: 'A valid MFA code is required.' });
+  req.user.mfaEnabled = true;
+  req.user.mfaRecoveryCodes = Array.from({ length: 8 }, () => crypto.randomBytes(5).toString('hex'));
+  await req.user.save();
+  res.json({ enabled: true, recoveryCodes: req.user.mfaRecoveryCodes });
+});
+
+router.post('/logout', verifyToken, async (req, res) => {
+  await recordAudit({ req, user: req.user, action: 'User logout', entity: 'User', entityId: req.user._id, details: { logoutTime: new Date().toISOString() } });
+  res.json({ message: 'Logged out successfully.' });
 });
 
 router.get('/verify-email', async (req, res) => {

@@ -6,6 +6,9 @@ const OrderPaper = require('../models/OrderPaper');
 const Hansard = require('../models/Hansard');
 const Bill = require('../models/Bill');
 const PublicFeedback = require('../models/PublicFeedback');
+const Meeting = require('../models/Meeting');
+const Document = require('../models/Document');
+const FinanceRecord = require('../models/FinanceRecord');
 
 const router = express.Router();
 const cleanText = (value, max) => String(value || '').trim().slice(0, max);
@@ -32,8 +35,41 @@ router.get('/hansard', async (req, res) => {
 });
 
 router.get('/bills', async (req, res) => {
-  const bills = await Bill.find({ status: { $in: ['Submitted', 'Committee Review', 'Debate', 'Voting', 'Approved'] } }).populate('committee proposer', 'name full_name member_id').select('title summary status committee proposer documents motions createdAt updatedAt').sort({ updatedAt: -1 });
-  res.json(bills);
+  const bills = await Bill.find({ status: { $in: ['Approved', 'Resolved'] } }).populate('committee', 'name').select('title summary status committee motions createdAt updatedAt').sort({ updatedAt: -1 });
+  res.json(bills.map((bill) => ({
+    ...bill.toObject(),
+    motions: (bill.motions || []).filter((motion) => motion.status === 'Accepted').map((motion) => ({
+      _id: motion._id,
+      text: motion.text,
+      status: motion.status,
+      createdAt: motion.createdAt,
+    })),
+  })));
+});
+
+router.get('/calendar', async (req, res) => {
+  const meetings = await Meeting.find({ startTime: { $gte: new Date() }, status: { $ne: 'Cancelled' } })
+    .sort({ startTime: 1 }).limit(50).populate('committee', 'name')
+    .select('title startTime endTime meetingType sittingType room committee agenda');
+  res.json(meetings.map((meeting) => ({
+    _id: meeting._id,
+    title: meeting.title,
+    startTime: meeting.startTime,
+    endTime: meeting.endTime,
+    meetingType: meeting.meetingType,
+    sittingType: meeting.sittingType,
+    committee: meeting.committee?.name || null,
+    agenda: meeting.agenda,
+  })));
+});
+
+router.get('/publications', async (req, res) => {
+  const [reports, budgets, notices] = await Promise.all([
+    Document.find({ status: 'published' }).select('title document_type type updatedAt').sort({ updatedAt: -1 }).limit(50),
+    FinanceRecord.find({ category: 'Budget', status: { $in: ['Approved', 'Completed'] } }).select('title description amountApproved status updatedAt').sort({ updatedAt: -1 }).limit(50),
+    require('../models/Announcement').find({ type: 'notice', $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] }).select('title body createdAt expiresAt').sort({ createdAt: -1 }).limit(50),
+  ]);
+  res.json({ reports, budgets, notices });
 });
 
 router.get('/submissions/:trackingCode', async (req, res) => {
@@ -54,7 +90,7 @@ router.post('/submissions', async (req, res) => {
   const submission = await PublicFeedback.create({
     title,
     description,
-    category: ['public_comment', 'feedback_report', 'bill_notice'].includes(req.body.category) ? req.body.category : 'public_comment',
+    category: ['public_comment', 'petition', 'feedback_report', 'bill_notice'].includes(req.body.category) ? req.body.category : 'public_comment',
     submittedBy: cleanText(req.body.name, 120) || 'Public user',
     publicEmail: email,
     trackingCode,

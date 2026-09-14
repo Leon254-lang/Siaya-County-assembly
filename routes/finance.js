@@ -3,6 +3,8 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const FinanceRecord = require('../models/FinanceRecord');
 const Department = require('../models/Department');
+const { buildWorkflowEvent } = require('../utils/workflow');
+const { safeNotify } = require('../utils/notifications');
 
 const router = express.Router();
 
@@ -38,6 +40,8 @@ router.get('/records', verifyToken, authorizeRoles('Finance Officer', 'Super Adm
         .populate('department', 'name')
         .populate('createdBy', 'name email')
         .populate('approvedBy', 'name email')
+        .populate('nextResponsibleOfficer', 'name email')
+        .populate('workflowHistory.actor workflowHistory.nextResponsibleOfficer', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit)),
@@ -201,8 +205,17 @@ router.post('/records', verifyToken, authorizeRoles('Finance Officer', 'Super Ad
       vendor,
       createdBy: req.user._id,
     });
+    record.workflowHistory.push(buildWorkflowEvent({
+      actor: req.user._id,
+      action: 'submitted',
+      status: record.status || 'Draft',
+      comment: 'Finance record submitted',
+      nextResponsibleOfficer: req.body.nextResponsibleOfficer || null,
+    }));
+    record.nextResponsibleOfficer = req.body.nextResponsibleOfficer || null;
 
     await record.save();
+    await safeNotify({ userIds: [record.createdBy], type: 'approval_request', title: 'Budget request submitted', body: `${record.title} is awaiting budget approval.`, link: '/finance' });
     await record.populate('department', 'name');
     await record.populate('createdBy', 'name email');
 
@@ -218,6 +231,42 @@ router.post('/records', verifyToken, authorizeRoles('Finance Officer', 'Super Ad
     res.status(201).json({ message: 'Finance record created successfully', record });
   } catch (error) {
     res.status(500).json({ message: 'Error creating finance record', error: error.message });
+  }
+});
+
+router.post('/records/:id/decision', verifyToken, authorizeRoles('Finance Officer', 'Super Admin'), async (req, res) => {
+  try {
+    const { decision, comment = '', nextResponsibleOfficer = null } = req.body;
+    if (!['Approved', 'Rejected'].includes(decision)) {
+      return res.status(400).json({ message: 'Decision must be Approved or Rejected' });
+    }
+    const record = await FinanceRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ message: 'Finance record not found' });
+    if (record.category !== 'Budget') return res.status(400).json({ message: 'Only budget requests use this approval workflow' });
+    if (!['Submitted', 'Draft'].includes(record.status) && record.approvalStatus !== 'Pending') {
+      return res.status(400).json({ message: 'Only pending budget requests can be decided' });
+    }
+
+    record.status = decision;
+    record.approvalStatus = decision;
+    record.approvedBy = req.user._id;
+    record.approvedAt = new Date();
+    record.approvalComments = comment;
+    record.nextResponsibleOfficer = nextResponsibleOfficer || null;
+    record.workflowHistory.push(buildWorkflowEvent({
+      actor: req.user._id,
+      action: decision === 'Approved' ? 'approved' : 'rejected',
+      status: decision,
+      comment,
+      nextResponsibleOfficer,
+    }));
+    await record.save();
+    await recordAudit({ req, action: `Budget request ${decision.toLowerCase()}`, entity: 'FinanceRecord', entityId: record._id, details: { comment }, before: { status: 'Pending', approvalStatus: 'Pending' }, after: { status: record.status, approvalStatus: record.approvalStatus, amountApproved: record.amountApproved } });
+    await safeNotify({ userIds: [record.createdBy, nextResponsibleOfficer], type: 'status_update', title: `Budget request ${decision.toLowerCase()}`, body: comment || `${record.title} was ${decision.toLowerCase()}.`, link: '/finance', critical: decision === 'Rejected' });
+    await record.populate('createdBy approvedBy nextResponsibleOfficer department');
+    res.json({ record });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deciding budget request', error: error.message });
   }
 });
 

@@ -5,11 +5,14 @@ const Role = require('../models/Role');
 const Department = require('../models/Department');
 const Committee = require('../models/Committee');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 
 const uploadDir = path.join(__dirname, '../uploads/avatars');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -17,7 +20,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g,'_')}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 router.get('/', verifyToken, authorizeRoles('Super Admin', 'ICT Admin', 'HR Officer', 'Committee Officer', 'Clerk'), async (req, res) => {
   const users = await User.find().select('-password').populate('role department');
@@ -38,6 +41,8 @@ router.put('/:id', verifyToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    const before = user.toObject();
+    delete before.password;
 
     const isSelf = req.user._id.toString() === req.params.id;
     const isAdmin = req.user.role?.name === 'Super Admin';
@@ -120,6 +125,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 
     const updatedUser = await User.findById(user._id)
       .populate('role department committeeMemberships');
+    await recordAudit({ req, action: roleName ? 'Changed user permissions or profile' : 'Updated user', entity: 'User', entityId: user._id, before, after: updatedUser.toObject(), details: { roleName, departmentId, isActive } });
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Failed to update user', error: error.message });
@@ -138,13 +144,14 @@ router.delete('/:id', verifyToken, authorizeRoles('Super Admin'), async (req, re
     }
 
     await User.findByIdAndDelete(req.params.id);
+    await recordAudit({ req, action: 'Deleted user', entity: 'User', entityId: user._id, before: (() => { const snapshot = user.toObject(); delete snapshot.password; return snapshot; })(), after: null });
     res.json({ message: 'User deleted.' });
   } catch (error) {
     res.status(500).json({ message: 'Could not delete user.', error: error.message });
   }
 });
 
-router.post('/:id/avatar', verifyToken, upload.single('avatar'), async (req, res) => {
+router.post('/:id/avatar', verifyToken, upload.single('avatar'), scanUploadedFiles, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });

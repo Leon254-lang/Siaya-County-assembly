@@ -9,6 +9,8 @@ const Committee = require('../models/Committee');
 const Document = require('../models/Document');
 const Hansard = require('../models/Hansard');
 const { verifyToken } = require('../middleware/auth');
+const ChatbotInteraction = require('../models/ChatbotInteraction');
+const { recordAudit } = require('../middleware/audit');
 
 const router = express.Router();
 const upload = multer({
@@ -247,9 +249,26 @@ const filterEvidenceByRole = (records = [], roleName = 'Citizen') => {
   const allowed = getRoleKnowledgeAccess(roleName);
 
   return (records || []).filter((record) => {
+    if (normalizeRoleName(roleName) === 'Citizen') {
+      if (record.type === 'Document' && record.status !== 'published' && record.status !== 'Published') return false;
+      if (record.type === 'Bill' && !['Approved', 'Resolved'].includes(record.status)) return false;
+      if (record.type === 'Hansard' && record.status !== 'Published') return false;
+    }
     const category = record?.category || record?.type || 'Assembly Governance';
     const knowledgeArea = Object.keys(KNOWLEDGE_AREA_TO_CATEGORY).find((area) => KNOWLEDGE_AREA_TO_CATEGORY[area] === category);
     return allowed.has(category) || (knowledgeArea && allowed.has(KNOWLEDGE_AREA_TO_CATEGORY[knowledgeArea])) || (record?.metadata && Object.values(record.metadata).some((value) => typeof value === 'string' && allowed.has(value)));
+  });
+};
+
+const sanitizeEvidenceForRole = (records = [], roleName = 'Citizen') => {
+  if (normalizeRoleName(roleName) !== 'Citizen') return records;
+  return records.map((record) => {
+    const metadata = { ...(record.metadata || {}) };
+    delete metadata.proposer;
+    delete metadata.members;
+    delete metadata.chairperson;
+    delete metadata.room;
+    return { ...record, metadata };
   });
 };
 
@@ -515,6 +534,23 @@ const executeAssistantAction = (question, user = null, options = {}) => {
   };
 
   return runAction();
+};
+
+const logAssistantInteraction = async ({ req, question, answer, citations = [], accessDenied = false }) => {
+  try {
+    const interaction = await ChatbotInteraction.create({
+      user: req.user?._id,
+      role: normalizeRoleName(req.user?.role?.name || req.user?.role || 'Citizen'),
+      question: String(question).slice(0, 2000),
+      answer: String(answer).slice(0, 10000),
+      sourceCitations: citations,
+      accessDenied,
+    });
+    return interaction._id;
+  } catch (error) {
+    console.error('Chatbot interaction log failed:', error.message);
+    return null;
+  }
 };
 
 const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
@@ -1466,7 +1502,7 @@ const buildAnswer = (question, evidence) => {
 
   if (!results || !results.length) {
     return {
-      answer: 'I could not find any matching Assembly records for that question. Please try a different date range, document type, or subject such as bills, meetings, committees, budgets, or public participation.',
+      answer: 'I could not find this in the published records. Please contact the Clerk or ICT help desk if you need help refining the search.',
       intent: intent.entity,
       category: 'No matching records',
       results: []
@@ -1608,7 +1644,16 @@ router.post('/query', verifyToken, async (req, res) => {
     const confirmAction = Boolean(req.body?.confirmAction === true);
     const systemPrompt = buildAssistantSystemPrompt(userRole);
 
+    const detectedAction = detectAssistantAction(question);
+    const readOnlyActions = new Set(['list_overdue_action_items', 'generate_attendance_report']);
+    if (detectedAction && !readOnlyActions.has(detectedAction.type)) {
+      const blockedAnswer = 'I can explain the required workflow, but I cannot schedule meetings, approve requests, change votes, or publish documents from chat. Please use the authorized workflow and confirm the action there.';
+      const interactionId = await logAssistantInteraction({ req, question, answer: blockedAnswer });
+      return res.json({ answer: blockedAnswer, intent: detectedAction.type, category: 'Read-only assistant', results: [], evidence: [], sourceCitations: [], interactionId, contact: 'Please contact the Clerk or ICT help desk for assistance.' });
+    }
+
     if (!isDatabaseReady()) {
+      const interactionId = await logAssistantInteraction({ req, question, answer: 'I could not find this in the published records because the database connection is unavailable.' });
       return res.json({
         answer: 'I could not access the Assembly records because the database connection is currently unavailable. Please check the MongoDB configuration and try again.',
         intent: 'system',
@@ -1619,7 +1664,9 @@ router.post('/query', verifyToken, async (req, res) => {
         allowedKnowledge: [...allowedKnowledge],
         accessDenied: false,
         sourceSnippets: [],
-        systemPrompt
+        systemPrompt,
+        interactionId,
+        contact: 'Please contact the Clerk or ICT help desk for assistance.'
       });
     }
 
@@ -1642,6 +1689,8 @@ router.post('/query', verifyToken, async (req, res) => {
         }))
       };
 
+      actionResponse.contact = 'Please contact the Clerk or ICT help desk for assistance.';
+      actionResponse.interactionId = await logAssistantInteraction({ req, question, answer: actionResponse.answer, accessDenied: actionResponse.accessDenied });
       return res.json(actionResponse);
     }
 
@@ -1662,9 +1711,10 @@ router.post('/query', verifyToken, async (req, res) => {
     }
 
     const rawResults = answer.results || evidence.results || [];
-    const accessibleResults = filterEvidenceByRole(rawResults, userRole);
+    const accessibleResults = sanitizeEvidenceForRole(filterEvidenceByRole(rawResults, userRole), userRole);
 
-    if (rawResults.length > 0 && accessibleResults.length === 0) {
+    if (rawResults.length > 0 && accessibleResults.length === 0 && userRole !== 'Citizen') {
+      const interactionId = await logAssistantInteraction({ req, question, answer: `Your access level (${userRole}) does not permit this assistant to answer with those records.`, accessDenied: true });
       return res.status(403).json({
         answer: `Your access level (${userRole}) does not permit this assistant to answer with those records.`,
         intent: answer.intent || 'restricted',
@@ -1674,7 +1724,9 @@ router.post('/query', verifyToken, async (req, res) => {
         queryPlan: plan,
         allowedKnowledge: [...allowedKnowledge],
         accessDenied: true,
-        sourceSnippets: []
+        sourceSnippets: [],
+        interactionId,
+        contact: 'Please contact the Clerk or ICT help desk for assistance.'
       });
     }
 
@@ -1682,6 +1734,9 @@ router.post('/query', verifyToken, async (req, res) => {
       ...answer,
       results: accessibleResults,
       category: accessibleResults[0]?.category || answer.category,
+      answer: userRole === 'Citizen'
+        ? buildAnswer(question, { intent: parseNaturalLanguageRequest(question), results: accessibleResults }).answer
+        : answer.answer,
       sourceSnippets: accessibleResults.map((item) => ({
         type: item.type,
         title: item.title,
@@ -1689,6 +1744,8 @@ router.post('/query', verifyToken, async (req, res) => {
       }))
     };
 
+    const sourceCitations = filteredAnswer.sourceCitations || filteredAnswer.results?.map((item) => item.citation || buildSourceCitation(item)).filter(Boolean) || [];
+    const interactionId = await logAssistantInteraction({ req, question, answer: filteredAnswer.answer || 'I could not find this in the published records.', citations: sourceCitations });
     return res.json({
       answer: filteredAnswer.answer,
       intent: filteredAnswer.intent,
@@ -1699,12 +1756,30 @@ router.post('/query', verifyToken, async (req, res) => {
       allowedKnowledge: [...allowedKnowledge],
       accessDenied: false,
       sourceSnippets: filteredAnswer.sourceSnippets,
-      systemPrompt
+      sourceCitations,
+      systemPrompt,
+      interactionId,
+      contact: 'Please contact the Clerk or ICT help desk for assistance.'
     });
   } catch (error) {
     console.error('Assistant query failed:', error);
     return res.status(500).json({ message: 'Unable to answer the question right now.', error: error.message });
   }
+});
+
+router.post('/feedback', verifyToken, async (req, res) => {
+  const { interactionId, feedback, comment = '' } = req.body || {};
+  if (!interactionId || !['helpful', 'not_helpful', 'report_incorrect'].includes(feedback)) {
+    return res.status(400).json({ message: 'A valid interaction and feedback value are required.' });
+  }
+  const interaction = await ChatbotInteraction.findOneAndUpdate(
+    { _id: interactionId, user: req.user._id },
+    { feedback, feedbackComment: String(comment).slice(0, 2000) },
+    { new: true }
+  );
+  if (!interaction) return res.status(404).json({ message: 'Chatbot interaction not found.' });
+  await recordAudit({ req, action: 'Submitted chatbot feedback', entity: 'ChatbotInteraction', entityId: interaction._id, details: { feedback } });
+  res.json({ message: 'Feedback recorded.' });
 });
 
 module.exports = router;

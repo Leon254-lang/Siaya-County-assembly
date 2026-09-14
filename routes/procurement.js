@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const Procurement = require('../models/Procurement');
 const ProcurementRecord = require('../models/ProcurementRecord');
@@ -14,7 +16,7 @@ const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 // Get all procurement documents (public access)
 router.get('/files', async (req, res) => {
@@ -49,7 +51,7 @@ const canUploadRole = (role) => {
 };
 
 // Upload procurement documents (HOD/Admin/Super Admin)
-router.post('/upload', verifyToken, upload.array('files', 30), async (req, res) => {
+router.post('/upload', verifyToken, upload.array('files', 30), scanUploadedFiles, async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'File upload required' });

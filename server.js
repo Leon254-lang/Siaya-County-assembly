@@ -5,14 +5,24 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const crypto = require('crypto');
 const connectDB = require('./config/db');
 const { sendReminder } = require('./utils/mailer');
+const { safeNotify } = require('./utils/notifications');
 const Role = require('./models/Role');
+const { auditApiRequest } = require('./middleware/auditRequest');
 
 dotenv.config();
 
 const app = express();
 app.set('trust proxy', 1);
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(`https://${req.headers.host}${req.originalUrl}`);
+  }
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  next();
+});
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
 app.use(helmet());
 app.use(cors({
@@ -48,7 +58,18 @@ const publicSubmissionLimiter = rateLimit({
   message: { message: 'Too many submissions. Please try again later.' },
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Try again later.' },
+});
+
 app.use('/api/public/submissions', publicSubmissionLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/resend-verification', authLimiter);
+app.use('/api', auditApiRequest);
 app.use('/api/public', publicApiLimiter, require('./routes/publicPortal'));
 
 app.use('/api/auth', require('./routes/auth'));
@@ -70,6 +91,7 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/bills', require('./routes/bills'));
 app.use('/api/mcas', require('./routes/mcas'));
 app.use('/api/communications', require('./routes/communications'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/order-papers', require('./routes/orderPapers'));
 app.use('/api/hansard', require('./routes/hansard'));
@@ -78,6 +100,8 @@ app.use('/api/hr', require('./routes/hr'));
 app.use('/api/assistant', require('./routes/assistant'));
 app.use('/api/ai-knowledge', require('./routes/aiKnowledge'));
 app.use('/api/security', require('./routes/security'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/public/reports', require('./routes/reports'));
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
@@ -90,6 +114,7 @@ const ensureDefaultRoles = async () => {
     'ICT Admin',
     'HR Officer',
     'Clerk',
+    'Speaker',
     'Finance Officer',
     'Committee Officer',
     'Procurement Officer',
@@ -187,6 +212,13 @@ Please arrive on time and confirm attendance through the meeting portal.`;
           text,
           html,
         });
+        await safeNotify({
+          userIds: meeting.attendees.map((attendee) => attendee._id),
+          type: 'meeting_reminder',
+          title: subject,
+          body: text,
+          link: `/meetings/${meeting._id}`,
+        });
         sentMeetingIds.push(meeting._id);
       } catch (emailError) {
         console.error(`Failed to send reminder for meeting '${meeting.title}':`, emailError.message);
@@ -205,3 +237,32 @@ Please arrive on time and confirm attendance through the meeting portal.`;
 };
 
 setInterval(sendMeetingReminders, 60 * 1000);
+
+const sendOverdueActionReminders = async () => {
+  try {
+    const now = new Date();
+    const meetings = await Meeting.find({ 'actionItems.deadline': { $lt: now } }).select('title actionItems');
+    for (const meeting of meetings) {
+      let changed = false;
+      for (const item of meeting.actionItems || []) {
+        if (!item.deadline || item.deadline >= now || ['Completed', 'Cancelled'].includes(item.status) || item.escalatedAt) continue;
+        item.status = 'Overdue';
+        item.escalatedAt = now;
+        changed = true;
+        await safeNotify({
+          userIds: [item.assignedTo, item.nextResponsibleOfficer],
+          type: 'deadline',
+          title: 'Action item overdue',
+          body: `The action item "${item.title}" for ${meeting.title} is overdue.`,
+          link: `/meetings/${meeting._id}`,
+          critical: true,
+        });
+      }
+      if (changed) await meeting.save();
+    }
+  } catch (error) {
+    console.error('Overdue action reminder job failed:', error.message);
+  }
+};
+
+setInterval(sendOverdueActionReminders, 60 * 1000);

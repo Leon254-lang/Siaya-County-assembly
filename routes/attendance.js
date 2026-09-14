@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const Leave = require('../models/Leave');
 const User = require('../models/User');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
 
 const ASSEMBLY_PREMISES = {
   latitude: 0.051274198250157124,
@@ -178,6 +179,8 @@ router.post(['/checkin', '/check-in'], verifyToken, async (req, res) => {
       attendance = await Attendance.findById(attendance._id).populate('user', 'name email');
     }
 
+    await recordAudit({ req, action: 'Checked in for attendance', entity: 'Attendance', entityId: attendance._id, details: { method, latitude, longitude, deviceId }, after: attendance.toObject() });
+
     res.json(attendance);
   } catch (error) {
     res.status(500).json({ message: 'Error checking in', error: error.message });
@@ -225,6 +228,8 @@ router.post(['/checkout', '/check-out'], verifyToken, async (req, res) => {
     const updatedRecord = await Attendance.findById(record._id)
       .populate('user', 'name email')
       .populate('approvedBy', 'name');
+
+    await recordAudit({ req, action: 'Checked out from attendance', entity: 'Attendance', entityId: record._id, before: { checkIn: record.checkIn, checkOut: null, status: record.status }, after: updatedRecord.toObject(), details: { method, latitude, longitude, deviceId } });
 
     res.json(updatedRecord);
   } catch (error) {
@@ -320,6 +325,8 @@ router.post('/verify-qr', verifyToken, authorizeRoles('Security Officer', 'Super
 
     record.updatedAt = new Date();
     await record.save();
+
+    await recordAudit({ req, action: `QR attendance ${record.checkOut.time ? 'checkout' : 'checkin'}`, entity: 'Attendance', entityId: record._id, details: { method, deviceId, qrCodeUsed: true }, after: record.toObject() });
 
     res.json({
       success: true,

@@ -1,6 +1,6 @@
 const AuditLog = require('../models/AuditLog');
 
-exports.recordAudit = async ({ req, user, action, entity, entityId, details }) => {
+exports.recordAudit = async ({ req, user, action, entity, entityId, details, before, after, statusCode, success }) => {
   try {
     await AuditLog.create({
       user: user?._id || req?.user?._id,
@@ -8,6 +8,10 @@ exports.recordAudit = async ({ req, user, action, entity, entityId, details }) =
       entity,
       entityId: entityId?.toString(),
       details,
+      before,
+      after,
+      statusCode,
+      success,
       method: req?.method,
       path: req?.originalUrl,
       ip: req?.headers['x-forwarded-for']?.split(',')[0] || req?.ip,

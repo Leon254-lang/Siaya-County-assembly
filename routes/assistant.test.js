@@ -60,6 +60,16 @@ test('role-based access restricts citizens to public-only knowledge', () => {
   assert.ok(!filtered.some((entry) => entry.category === 'Financial and Procurement'));
 });
 
+test('citizen chatbot evidence excludes unpublished records and personal metadata', () => {
+  const filtered = assistant.filterEvidenceByRole([
+    { type: 'Document', status: 'draft', category: 'Public Participation', metadata: {} },
+    { type: 'Document', status: 'published', category: 'Public Participation', metadata: { proposer: 'Private name', room: 'Internal room' } },
+  ], 'Citizen');
+
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].status, 'published');
+});
+
 test('knowledge base exposes the expected ICAMS domain tree', () => {
   const tree = assistant.getKnowledgeBaseTree();
   assert.ok(tree['ICAMS AI KNOWLEDGE BASE']);

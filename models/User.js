@@ -132,6 +132,18 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     default: null,
   },
+  notificationPreferences: {
+    email: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false },
+    meetingReminders: { type: Boolean, default: true },
+    approvalRequests: { type: Boolean, default: true },
+    deadlines: { type: Boolean, default: true },
+    statusUpdates: { type: Boolean, default: true },
+    publicNotices: { type: Boolean, default: true },
+  },
+  mfaEnabled: { type: Boolean, default: false },
+  mfaSecret: { type: String, select: false },
+  mfaRecoveryCodes: { type: [String], select: false, default: [] },
   lastLoginLocation: {
     type: String,
     trim: true,

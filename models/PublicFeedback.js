@@ -12,7 +12,7 @@ const PublicFeedbackSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['bill_notice', 'event_notice', 'public_comment', 'feedback_report'],
+    enum: ['bill_notice', 'event_notice', 'public_comment', 'petition', 'feedback_report'],
     default: 'public_comment',
   },
   submittedBy: {
@@ -35,6 +35,16 @@ const PublicFeedbackSchema = new mongoose.Schema({
     enum: ['draft', 'published', 'reviewed', 'archived'],
     default: 'draft',
   },
+  currentStatus: { type: String, trim: true },
+  nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  workflowHistory: [{
+    actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    action: String,
+    status: String,
+    comment: String,
+    nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    at: { type: Date, default: Date.now },
+  }],
   publishedOn: Date,
   eventDate: Date,
   eventLocation: String,

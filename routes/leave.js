@@ -4,6 +4,10 @@ const Leave = require('../models/Leave');
 const Attendance = require('../models/Attendance');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
+const { buildWorkflowEvent } = require('../utils/workflow');
+const { safeNotify } = require('../utils/notifications');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 
 const router = express.Router();
 
@@ -11,7 +15,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/leave/'),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 // Get leave requests with filtering
 router.get('/', verifyToken, async (req, res) => {
@@ -174,8 +178,16 @@ router.post('/', verifyToken, async (req, res) => {
       status: 'pending',
       workflowStage: 'Submitted to HR',
     });
+    leaveRequest.workflowHistory.push(buildWorkflowEvent({
+      actor: req.user._id,
+      action: 'submitted',
+      status: 'pending',
+      comment: trimmedReason,
+      nextResponsibleOfficer: req.body.nextResponsibleOfficer || null,
+    }));
 
     await leaveRequest.save();
+    await safeNotify({ userIds: [req.user._id], type: 'approval_request', title: 'Leave request submitted', body: `Your ${type} leave request is awaiting review.`, link: '/attendance' });
 
     await recordAudit({
       req,
@@ -235,6 +247,8 @@ router.post('/:id/return', verifyToken, async (req, res) => {
     leaveRequest.updatedAt = new Date();
 
     await leaveRequest.save();
+    await recordAudit({ req, action: `Leave request ${leaveRequest.status}`, entity: 'Leave', entityId: leaveRequest._id, details: { workflowStage: leaveRequest.workflowStage, comments }, before: { status: 'pending' }, after: { status: leaveRequest.status, workflowStage: leaveRequest.workflowStage, approvedBy: leaveRequest.approvedBy } });
+    await safeNotify({ userIds: [leaveRequest.user._id || leaveRequest.user], type: 'status_update', title: `Leave request ${leaveRequest.status}`, body: comments || `Your leave request was ${leaveRequest.status}.`, link: '/attendance', critical: leaveRequest.status === 'rejected' });
 
     const populatedRequest = await Leave.findById(leaveRequest._id)
       .populate('user', 'name email department role')
@@ -247,7 +261,7 @@ router.post('/:id/return', verifyToken, async (req, res) => {
 });
 
 // Upload attachment to leave request
-router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) => {
+router.post('/:id/upload', verifyToken, upload.single('file'), scanUploadedFiles, async (req, res) => {
   try {
     const leaveRequest = await Leave.findById(req.params.id);
     if (!leaveRequest) return res.status(404).json({ message: 'Leave request not found' });
@@ -261,6 +275,15 @@ router.post('/:id/upload', verifyToken, upload.single('file'), async (req, res) 
 
     leaveRequest.updatedAt = new Date();
     await leaveRequest.save();
+    await recordAudit({
+      req,
+      action: `Leave request ${leaveRequest.status}`,
+      entity: 'Leave',
+      entityId: leaveRequest._id,
+      details: { workflowStage: leaveRequest.workflowStage, comments },
+      before: { status: 'pending' },
+      after: { status: leaveRequest.status, workflowStage: leaveRequest.workflowStage, approvedBy: leaveRequest.approvedBy },
+    });
 
     const populatedRequest = await Leave.findById(leaveRequest._id)
       .populate('user', 'name email department role')
@@ -368,6 +391,15 @@ router.post('/:id/:action', verifyToken, authorizeRoles('Super Admin', 'HR Offic
       leaveRequest.approvedAt = new Date();
       leaveRequest.updatedAt = new Date();
     }
+
+    const nextResponsibleOfficer = req.body.nextResponsibleOfficer || null;
+    leaveRequest.workflowHistory.push(buildWorkflowEvent({
+      actor: req.user._id,
+      action,
+      status: leaveRequest.status,
+      comment: comments || '',
+      nextResponsibleOfficer,
+    }));
 
     await leaveRequest.save();
 

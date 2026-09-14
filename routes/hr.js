@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 const path = require('path');
 const Appraisal = require('../models/Appraisal');
 const SelfAssessment = require('../models/SelfAssessment');
@@ -20,7 +22,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, hrUploadDir),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 // Dashboard summary
 router.get('/dashboard', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), async (req, res) => {
@@ -139,7 +141,7 @@ router.patch('/employees/:id/deactivate', verifyToken, authorizeRoles('Super Adm
 });
 
 // Upload employee documents
-router.post('/employees/:id/documents', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), upload.single('file'), async (req, res) => {
+router.post('/employees/:id/documents', verifyToken, authorizeRoles('Super Admin', 'HR Officer'), upload.single('file'), scanUploadedFiles, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'File required' });
     const user = await User.findById(req.params.id);
@@ -224,7 +226,7 @@ router.post('/vacancies/:id/close', verifyToken, authorizeRoles('Super Admin', '
 });
 
 // Applications
-router.post('/vacancies/:id/apply', upload.single('resume'), async (req, res) => {
+router.post('/vacancies/:id/apply', upload.single('resume'), scanUploadedFiles, async (req, res) => {
   try {
     const vacancy = await Vacancy.findById(req.params.id);
     if (!vacancy) return res.status(404).json({ message: 'Vacancy not found' });

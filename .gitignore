@@ -1,4 +1,5 @@
-node_modules
+backups/
+*.archive.gz.encnode_modules
 client/node_modules
 uploads
 .env

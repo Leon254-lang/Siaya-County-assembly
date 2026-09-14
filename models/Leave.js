@@ -39,6 +39,14 @@ const LeaveSchema = new mongoose.Schema({
   },
   approvedAt: Date,
   comments: String,
+  workflowHistory: [{
+    actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    action: String,
+    status: String,
+    comment: String,
+    nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    at: { type: Date, default: Date.now },
+  }],
   workflowStage: {
     type: String,
     enum: ['Submitted to HR', 'Submitted to Clerk', 'Approved by Clerk', 'Returned', 'Rejected by HR', 'Rejected by Clerk'],

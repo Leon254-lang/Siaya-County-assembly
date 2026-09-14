@@ -4,6 +4,7 @@ const Message = require('../models/Message');
 const Department = require('../models/Department');
 const User = require('../models/User');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
+const { safeNotify } = require('../utils/notifications');
 
 const router = express.Router();
 
@@ -56,6 +57,15 @@ router.post('/announcements', verifyToken, authorizeRoles('Super Admin', 'Commit
     });
 
     await announcement.save();
+    const recipientQuery = {};
+    if (targetDepartments?.length) recipientQuery.department = { $in: targetDepartments };
+    if (targetRoles?.length) {
+      const Role = require('../models/Role');
+      const roles = await Role.find({ name: { $in: targetRoles } }).select('_id');
+      recipientQuery.role = { $in: roles.map((role) => role._id) };
+    }
+    const recipients = await User.find(recipientQuery).select('_id');
+    await safeNotify({ userIds: recipients.map((user) => user._id), type: 'public_notice', title, body, critical: type === 'notice' });
     const populated = await Announcement.findById(announcement._id).populate('createdBy', 'name email');
     res.status(201).json(populated);
   } catch (error) {

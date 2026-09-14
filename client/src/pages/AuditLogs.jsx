@@ -94,17 +94,19 @@ export default function AuditLogs() {
               <th>Action</th>
               <th>Entity</th>
               <th>Details</th>
+              <th>Request context</th>
+              <th>Before / After</th>
               <th>Path</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6">Loading...</td>
+                <td colSpan="8">Loading...</td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan="6">No audit logs found.</td>
+                <td colSpan="8">No audit logs found.</td>
               </tr>
             ) : (
               logs.map((log) => (
@@ -114,6 +116,8 @@ export default function AuditLogs() {
                   <td>{log.action}</td>
                   <td>{log.entity}{log.entityId ? ` (${log.entityId})` : ''}</td>
                   <td><pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(log.details || {}, null, 2)}</pre></td>
+                  <td>{log.statusCode || '-'} · {log.success === false ? 'Failed' : 'Success'}<br />{log.ip || 'IP unavailable'}<br />{log.userAgent || 'Device unavailable'}</td>
+                  <td><pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify({ before: log.before, after: log.after }, null, 2)}</pre></td>
                   <td>{log.path}</td>
                 </tr>
               ))

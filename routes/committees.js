@@ -3,13 +3,16 @@ const Committee = require('../models/Committee');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
 const Meeting = require('../models/Meeting');
 const Document = require('../models/Document');
+const { summarizeCommitteePerformance } = require('../utils/committeeManagement');
 const multer = require('multer');
+const { uploadLimits, secureFileFilter } = require('../middleware/uploadSecurity');
+const { scanUploadedFiles } = require('../middleware/fileScan');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
-const upload = multer({ storage });
+const upload = multer({ storage, limits: uploadLimits, fileFilter: secureFileFilter });
 
 const router = express.Router();
 
@@ -43,7 +46,7 @@ const defaultCommittees = [
 const handleAsync = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const loadCommittee = async (req, res, next, id) => {
-  const committee = await Committee.findById(id).populate('members chairperson viceChairperson reports recommendations.by');
+  const committee = await Committee.findById(id).populate('members chairperson viceChairperson clerk reports documents recommendations.by');
   if (!committee) {
     return res.status(404).json({ message: 'Committee not found' });
   }
@@ -64,9 +67,25 @@ router.get('/', verifyToken, handleAsync(async (req, res) => {
 
 router.get('/:id', verifyToken, (req, res) => {
   Meeting.find({ committee: req.committee._id })
-    .populate('attendees attendance.user')
+    .populate('attendees attendance.user documents actionItems.assignedTo')
     .sort({ startTime: 1, date: 1 })
-    .then((meetings) => res.json({ ...req.committee.toObject(), meetings }))
+    .then((meetings) => {
+      const committee = req.committee.toObject();
+      const performance = summarizeCommitteePerformance(meetings, committee);
+      res.json({
+        ...committee,
+        meetings,
+        performance: {
+          ...committee.performance,
+          totalMeetings: performance.totalMeetings,
+          overdueActions: performance.overdueActionItems,
+          completedActions: performance.completedActionItems,
+          pendingActions: performance.pendingActionItems,
+          averageAttendance: performance.averageAttendance,
+          updatedAt: performance.lastUpdated,
+        },
+      });
+    })
     .catch((error) => res.status(500).json({ message: 'Error loading committee meetings', error: error.message }));
 });
 
@@ -107,10 +126,24 @@ router.post('/:id/meetings', verifyToken, authorizeRoles('Clerk', 'Committee Off
   const meeting = new Meeting(meetingData);
   await meeting.save();
   await meeting.populate('committee attendees attendance.user');
+
+  req.committee.meetings = req.committee.meetings || [];
+  req.committee.meetings.push({
+    title: meeting.title,
+    date: meeting.startTime || meeting.date,
+    agenda: meeting.agenda,
+    invitations: (meeting.attendees || []).map((user) => user?.full_name || user?.name || 'Member'),
+    attendance: meeting.attendees || [],
+    minutes: meeting.minutes || '',
+    documents: meeting.documents || [],
+    actionItems: meeting.actionItems || [],
+  });
+  req.committee.performance = summarizeCommitteePerformance(req.committee.meetings, req.committee);
+  await req.committee.save();
   res.status(201).json(meeting);
 }));
 
-router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), upload.single('file'), handleAsync(async (req, res) => {
+router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), upload.single('file'), scanUploadedFiles, handleAsync(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'File required' });
   }
@@ -120,8 +153,16 @@ router.post('/:id/upload-report', verifyToken, authorizeRoles('Committee Officer
     description: req.body.description || '',
     type: req.body.type || 'report',
     category: req.body.category || 'public',
-    status: 'approved',
+    status: 'submitted',
+    document_type: 'Committee Reports',
     owner: req.user._id,
+    assignedTo: req.body.nextResponsibleOfficer || null,
+    approvalHistory: [{
+      action: 'submitted',
+      by: req.user._id,
+      comment: 'Committee report submitted for approval',
+      nextResponsibleOfficer: req.body.nextResponsibleOfficer || null,
+    }],
     department: req.body.department,
     files: [{ path: req.file.path, filename: req.file.filename, originalName: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype }],
   });
@@ -141,6 +182,55 @@ router.post('/:id/recommendations', verifyToken, authorizeRoles('Committee Offic
   await req.committee.save();
   await req.committee.populate('recommendations.by');
   res.json(req.committee);
+}));
+
+router.post('/:id/action-items', verifyToken, authorizeRoles('Committee Officer', 'Clerk', 'Super Admin'), handleAsync(async (req, res) => {
+  const { title, description, responsiblePerson, dueDate, status } = req.body;
+  if (!title) {
+    return res.status(400).json({ message: 'Action item title required' });
+  }
+
+  const item = {
+    title,
+    description,
+    responsiblePerson,
+    dueDate,
+    status: status || 'Pending',
+  };
+
+  const meeting = req.body.meetingId ? await Meeting.findOne({ _id: req.body.meetingId, committee: req.committee._id }) : null;
+  if (!meeting) {
+    return res.status(400).json({ message: 'A valid committee meeting is required' });
+  }
+  meeting.actionItems = meeting.actionItems || [];
+  meeting.actionItems.push({
+    title,
+    notes: description,
+    assignedTo: responsiblePerson,
+    deadline: dueDate,
+    status: status || 'Pending',
+  });
+  await meeting.save();
+
+  const meetings = await Meeting.find({ committee: req.committee._id }).lean();
+  const summary = summarizeCommitteePerformance(meetings, req.committee);
+  req.committee.performance = {
+    totalMeetings: summary.totalMeetings,
+    overdueActions: summary.overdueActionItems,
+    completedActions: summary.completedActionItems,
+    averageAttendance: summary.averageAttendance,
+    updatedAt: summary.lastUpdated,
+  };
+  await req.committee.save();
+  res.status(201).json({ committee: req.committee, meeting, item });
+}));
+
+router.get('/:id/performance', verifyToken, handleAsync(async (req, res) => {
+  const meetings = await Meeting.find({ committee: req.committee._id }).lean();
+  const summary = summarizeCommitteePerformance(meetings, req.committee.toObject());
+  req.committee.performance = summary;
+  await req.committee.save();
+  res.json(summary);
 }));
 
 module.exports = router;

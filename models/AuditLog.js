@@ -21,6 +21,10 @@ const AuditLogSchema = new mongoose.Schema({
   details: {
     type: mongoose.Schema.Types.Mixed,
   },
+  before: { type: mongoose.Schema.Types.Mixed },
+  after: { type: mongoose.Schema.Types.Mixed },
+  statusCode: { type: Number },
+  success: { type: Boolean },
   method: {
     type: String,
     trim: true,

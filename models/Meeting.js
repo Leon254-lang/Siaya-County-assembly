@@ -11,6 +11,15 @@ const AttendanceEntrySchema = new mongoose.Schema({
     default: 'Pending',
   },
   checkedInAt: Date,
+  method: {
+    type: String,
+    enum: ['manual', 'qr_code', 'pin', 'biometric', 'clerk_confirmed'],
+    default: 'manual',
+  },
+  confirmedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
 });
 
 const MeetingSchema = new mongoose.Schema({
@@ -139,6 +148,25 @@ const MeetingSchema = new mongoose.Schema({
       deadline: Date,
       status: { type: String, enum: ['Pending', 'Ongoing', 'Completed', 'Overdue', 'Cancelled'], default: 'Pending' },
       notes: { type: String, trim: true },
+      nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      escalatedAt: Date,
+      workflowHistory: [{
+        actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        action: String,
+        status: String,
+        comment: String,
+        nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        at: { type: Date, default: Date.now },
+      }],
+      nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      workflowHistory: [{
+        actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        action: String,
+        status: String,
+        comment: String,
+        nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        at: { type: Date, default: Date.now },
+      }],
     }, { _id: true })
   ],
   outcome: {

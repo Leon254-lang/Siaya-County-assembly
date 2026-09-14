@@ -20,6 +20,21 @@ export default function Voting() {
   const [voteForm, setVoteForm] = useState({ question: '', voteType: 'electronic', options: '' });
   const [castVote, setCastVote] = useState({ itemId: '', option: '' });
 
+  const downloadMeetingReport = async () => {
+    if (!selectedItem || selectedKind !== 'meeting') return;
+    try {
+      const response = await api.get(`/meetings/${selectedItem._id}/voting-report`, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `meeting-${selectedItem._id}-voting-report.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'Unable to download voting report.');
+    }
+  };
+
   const loadResources = async () => {
     setLoading(true);
     try {
@@ -191,7 +206,9 @@ export default function Voting() {
                 <h2>{selectedSummary?.title || selectedItem?.title}</h2>
                 <p><strong>Type:</strong> {selectedKind === 'bill' ? 'Bill' : 'Meeting'}</p>
                 {selectedKind === 'meeting' && <p><strong>Scheduled:</strong> {formatDate(selectedSummary?.startTime || selectedItem?.startTime)}</p>}
+                {selectedKind === 'meeting' && selectedSummary?.quorum && <p><strong>Quorum:</strong> {selectedSummary.quorum.present}/{selectedSummary.quorum.eligible} present ({selectedSummary.quorum.met ? 'met' : 'not met'})</p>}
                 {selectedKind === 'bill' && <p><strong>Status:</strong> {selectedSummary?.status || selectedItem?.status}</p>}
+                {selectedKind === 'meeting' && <button type="button" className="secondary-button" onClick={downloadMeetingReport}>Download voting report</button>}
               </div>
 
                       <div className="vote-items">
@@ -210,6 +227,8 @@ export default function Voting() {
                           <li key={result.option}>{result.option}: {result.votes} votes</li>
                         ))}
                       </ul>
+                      {item.voteRecords?.length > 0 && <div><strong>Member voting record</strong><ul>{item.voteRecords.map((record) => <li key={`${record.voter?._id || record.voter}-${record.castAt}`}>{record.voter?.name || 'Member'}: {record.option}</li>)}</ul></div>}
+                      {item.absentMembers?.length > 0 && <div><strong>Absent / excused</strong><ul>{item.absentMembers.map((member) => <li key={member._id}>{member.name}</li>)}</ul></div>}
                     </div>
                   </div>
                 ))}

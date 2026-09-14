@@ -33,6 +33,8 @@ import MediaPost from './pages/MediaPost';
 import Voting from './pages/Voting';
 import Announcements from './pages/Announcements';
 import Messages from './pages/Messages';
+import Notifications from './pages/Notifications';
+import ReportsDashboard from './pages/ReportsDashboard';
 import AuditLogs from './pages/AuditLogs';
 import ManageUsers from './pages/ManageUsers';
 import ClerkDashboard from './pages/ClerkDashboard';
@@ -145,6 +147,9 @@ function App() {
           <Route path="/voting" element={<ProtectedRoute><Voting /></ProtectedRoute>} />
           <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
+          <Route path="/public-reports" element={<ReportsDashboard publicView />} />
           <Route path="/audit-logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
           <Route path="/manage-users" element={<ProtectedRoute><ManageUsers /></ProtectedRoute>} />
           <Route path="/assistant" element={<ProtectedRoute><AssemblyAssistant /></ProtectedRoute>} />

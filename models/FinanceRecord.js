@@ -58,6 +58,17 @@ const FinanceRecordSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  approvedAt: Date,
+  approvalComments: String,
+  nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  workflowHistory: [{
+    actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    action: String,
+    status: String,
+    comment: String,
+    nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    at: { type: Date, default: Date.now },
+  }],
   createdAt: {
     type: Date,
     default: Date.now,

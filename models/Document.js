@@ -121,7 +121,7 @@ const DocumentSchema = new mongoose.Schema({
     {
       action: {
         type: String,
-        enum: ['created', 'submitted', 'assigned', 'moved', 'approved', 'rejected', 'archived', 'returned'],
+        enum: ['created', 'submitted', 'reviewed', 'published', 'assigned', 'moved', 'approved', 'rejected', 'archived', 'returned', 'responded'],
         default: 'created',
       },
       by: {
@@ -131,6 +131,7 @@ const DocumentSchema = new mongoose.Schema({
       fromDepartment: String,
       toDepartment: String,
       comment: String,
+      nextResponsibleOfficer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       when: {
         type: Date,
         default: Date.now,

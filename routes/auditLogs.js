@@ -6,12 +6,13 @@ const router = express.Router();
 
 router.get('/', verifyToken, authorizeRoles('Super Admin', 'ICT Admin'), async (req, res) => {
   try {
-    const { user, action, entity, page = 1, limit = 25 } = req.query;
+    const { user, action, entity, success, page = 1, limit = 25 } = req.query;
     const query = {};
 
     if (user) query.user = user;
     if (action) query.action = new RegExp(action, 'i');
     if (entity) query.entity = new RegExp(entity, 'i');
+    if (success === 'true' || success === 'false') query.success = success === 'true';
 
     const skip = (Number(page) - 1) * Number(limit);
     const logs = await AuditLog.find(query)
